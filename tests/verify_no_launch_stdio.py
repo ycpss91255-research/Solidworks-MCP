@@ -18,6 +18,7 @@ async def main():
     for target in (None, '0'):
         env = dict(os.environ)
         env.pop('SOLIDWORKS_TARGET_PID', None)
+        env.pop('SOLIDWORKS_AUTO_LAUNCH', None)
         if target is not None:
             env['SOLIDWORKS_TARGET_PID'] = target
         env['SOLIDWORKS_MCP_LOG'] = str(ROOT/'test-results/no-launch-{server_pid}.log')
@@ -26,7 +27,7 @@ async def main():
         async with stdio_client(params) as (reader, writer):
             async with ClientSession(reader, writer, read_timeout_seconds=timedelta(seconds=10)) as session:
                 initialized = await session.initialize()
-                assert 'never starts SolidWorks' in initialized.instructions
+                assert 'SOLIDWORKS_AUTO_LAUNCH=1' in initialized.instructions
                 result = await session.call_tool('connect_solidworks', {})
                 response = result.content[0].text
                 assert response.startswith('[ERROR]'), response

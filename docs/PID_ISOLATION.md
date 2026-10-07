@@ -1,11 +1,11 @@
 # PID-bound connections and low-memory warning handling
 
-Start a separate SolidWorks instance, then configure a separate MCP server
+In attach-only mode, start a separate SolidWorks instance, then configure a separate MCP server
 with `SOLIDWORKS_TARGET_PID` set to its current process ID. The server binds
 only to the exact `SolidWorks_PID_<pid>` Running Object Table entry and verifies
 the returned process ID. Missing, invalid, or unavailable targets fail without
 launching SolidWorks or connecting to another instance. This variable is
-required: when unset, connection fails before any COM binding or launch.
+required in attach-only mode: when unset, connection fails before any COM binding or launch.
 
 Set `SOLIDWORKS_MCP_LOG` to a separate log file for each MCP server. The
 `{server_pid}` placeholder is expanded to the MCP server process ID so multiple
@@ -33,7 +33,7 @@ Install `requirements.txt` in the separate server's Python environment.
 
 ## Explicit instance startup
 
-MCP never starts SolidWorks. Connection failures must not be bypassed with
+Attach-only MCP never starts SolidWorks. Connection failures must not be bypassed with
 shell Start-Process, generic COM Dispatch/DispatchEx, or the old server.
 Server initialization instructions and the connection tool description state
 this workflow. Shell access is outside MCP's enforcement boundary, so clients
@@ -60,6 +60,51 @@ any instance or change journal/AutoRecover settings. Apply the verified PID
 and log settings from the manifest to that checkout's MCP configuration,
 then restart that MCP connection. Other running connections retain their
 startup environment until restarted.
+
+## Opt-in managed automatic startup
+
+To let MCP start SolidWorks when its target has exited, set both variables in
+that workspace's MCP environment:
+
+```toml
+SOLIDWORKS_AUTO_LAUNCH = '1'
+SOLIDWORKS_SESSION_FILE = 'C:\work\project\.codex\solidworks-session.json'
+```
+
+Use a distinct absolute session file per independent workspace. Set the tool
+timeout to at least 60 seconds (90 seconds recommended for startup). A configured
+`SOLIDWORKS_TARGET_PID` seeds the session; after automatic startup the new PID
+and process creation time are persisted in the session file, so it does not
+require editing the shared config every time SolidWorks restarts. If no seed
+PID is supplied, managed mode creates its own instance. Other MCP connections
+for the same session file reuse that instance instead of starting duplicates.
+
+Creation uses the same installation-directory launcher, global launch mutex
+and two-instance limit. If the target still exists but COM binding fails, it
+reports failure without starting another instance. Access denial, PID reuse,
+invalid PID and corrupt session metadata also fail without generic COM fallback.
+The session reserves a newly created PID before waiting up to 45 seconds for
+COM registration; startup failure keeps that target rather than creating an
+alternate instance. MCP does not close existing SolidWorks processes.
+
+Managed mode is explicit authorization for automatic instance creation in that
+workspace. Default/global connections remain attach-only unless opted in.
+Initial real SolidWorks 2023 managed-start checks connected successfully, but
+MCP client cleanup terminated the newly launched CAD child. This was a failed
+lifecycle check, not a successful reconnect. The launcher now creates the
+process with the existing Explorer desktop shell as parent, using Windows
+PROC_THREAD_ATTRIBUTE_PARENT_PROCESS, without inheriting MCP pipes. A native
+disposable-process test confirms survival after kill-on-close job cleanup.
+Real managed SolidWorks startup and reconnect with this correction remain
+unverified because two working CAD instances are currently open.
+
+The two-instance limit does not prevent journal contention: the first instance
+may already hold the per-user swxJRNL.swj file. The launcher now checks existing
+default and registry-configured journal files read-only, and refuses startup
+when one cannot be opened exclusively. It does not change shared registry
+settings or dismiss startup warnings. This conservative check includes journal
+files for other installed SolidWorks versions and is not a guarantee against
+another launcher racing to acquire the journal after the check.
 
 ## Low-memory warning during open_document
 
@@ -101,6 +146,7 @@ On Windows with dependencies installed:
 python -m unittest discover -s tests -p 'test_*.py' -v
 python tests/verify_memory_warning_native.py
 python tests/verify_no_launch_stdio.py
+python tests/verify_desktop_lifetime.py
 ```
 
 The native test opens disposable helper task dialogs, checks Yes/No return

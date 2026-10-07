@@ -55,7 +55,9 @@ logger = logging.getLogger("SolidWorksMCP")
 
 sw_automation = SolidWorksAutomation()
 server = Server("solidworks-mcp-server", instructions=(
-    "Connect only to SOLIDWORKS_TARGET_PID. This server never starts SolidWorks. "
+    "Connect only to the configured PID or the workspace's managed session. "
+    "Automatic startup is allowed only with SOLIDWORKS_AUTO_LAUNCH=1 and an absolute "
+    "SOLIDWORKS_SESSION_FILE; it uses the guarded launcher when the target has exited. "
     "If connection fails, stop CAD operations: do not use shell Start-Process, "
     "Dispatch/DispatchEx with a ProgID, or another unbound COM client as a fallback. "
     "Verify the configured PID and restart this MCP connection after changing it. "
@@ -76,7 +78,7 @@ async def list_tools() -> list[Tool]:
         # Connection Tools
         Tool(
             name="connect_solidworks",
-            description="Connect only to the running SOLIDWORKS_TARGET_PID. Never launches SolidWorks. On failure stop; do not start another instance or bypass this server.",
+            description="Connect to the configured PID or opt-in managed session. Managed mode starts one guarded instance only if its target exited. On connection failure stop; never bypass this server.",
             inputSchema={"type": "object", "properties": {}, "required": []}
         ),
         Tool(

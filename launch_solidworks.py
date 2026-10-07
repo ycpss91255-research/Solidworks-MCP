@@ -1,11 +1,10 @@
-"""Explicit launcher or existing-PID verifier; MCP itself never launches CAD."""
+"""Guarded launcher and existing-PID verifier, also used by opt-in managed MCP."""
 import argparse
 import ctypes
 from ctypes import wintypes
 import json
 import os
 from pathlib import Path
-import subprocess
 import time
 from contextlib import contextmanager
 
@@ -13,9 +12,11 @@ import win32api
 import win32process
 import win32event
 import win32con
+import win32file
 
 from solidworks_mcp.automation import SolidWorksAutomation
 from solidworks_mcp.utils import find_solidworks
+from solidworks_mcp.desktop_process import start_desktop_process
 
 
 def running_pids():
@@ -69,11 +70,43 @@ def _launch_locked(executable):
     executable = Path(executable).resolve(strict=True)
     if executable.name.casefold() != 'sldworks.exe':
         raise ValueError('Expected the installed SLDWORKS.exe')
-    startup = subprocess.STARTUPINFO()
-    startup.dwFlags |= subprocess.STARTF_USESHOWWINDOW
-    startup.wShowWindow = 0
-    return subprocess.Popen([str(executable)], cwd=str(executable.parent),
-                            env=dict(os.environ), startupinfo=startup).pid
+    check_journal_available()
+    return start_desktop_process(executable, executable.parent)
+
+
+def check_journal_available():
+    """Read-only preflight; never change per-user journal registry settings."""
+    import winreg
+    roots = Path(os.environ['APPDATA']) / 'SOLIDWORKS'
+    candidates = set(roots.glob('SOLIDWORKS */swxJRNL.swj'))
+    try:
+        with winreg.OpenKey(winreg.HKEY_CURRENT_USER, r'Software\SolidWorks') as root:
+            for index in range(winreg.QueryInfoKey(root)[0]):
+                version = winreg.EnumKey(root, index)
+                if not version.upper().startswith('SOLIDWORKS '):
+                    continue
+                try:
+                    with winreg.OpenKey(root, version + r'\ExtReferences') as refs:
+                        folders, _ = winreg.QueryValueEx(refs, 'SolidWorks Journal Folders')
+                        for folder in folders.split(';'):
+                            if folder:
+                                candidates.add(Path(os.path.expandvars(folder)) / 'swxJRNL.swj')
+                except FileNotFoundError:
+                    pass
+    except FileNotFoundError:
+        pass
+    for path in candidates:
+        if not path.exists():
+            continue
+        try:
+            handle = win32file.CreateFile(str(path), win32con.GENERIC_READ, 0,
+                                         None, win32con.OPEN_EXISTING, 0, None)
+        except win32api.error as exc:
+            raise RuntimeError(f'Journal file unavailable: {path} (Windows error {exc.winerror}). '
+                               'No process was launched. PID isolation does not isolate '
+                               'per-user journal/AutoRecover files.') from exc
+        else:
+            handle.Close()
 
 
 def main():

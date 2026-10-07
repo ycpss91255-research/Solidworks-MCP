@@ -39,6 +39,8 @@ class SolidWorksAutomation:
         self._sw_exe_path = None
         # Keep the requested identity for the lifetime of this MCP instance.
         self._target_pid = os.environ.get("SOLIDWORKS_TARGET_PID")
+        self._configured_target = self._target_pid
+        self._auto_launch = os.environ.get('SOLIDWORKS_AUTO_LAUNCH') == '1'
         self._target_com_initialized = False
         
         logger.info("SolidWorksAutomation initialized")
@@ -156,6 +158,13 @@ class SolidWorksAutomation:
     
     def connect(self) -> Dict:
         """Connect only to an explicitly configured, already running PID."""
+        if self._auto_launch:
+            try:
+                from .managed_session import connect_managed
+                return connect_managed(self)
+            except Exception as exc:
+                return self._result(False, f'Managed connection failed: {exc}',
+                                    SwErrors.swConnectionError)
         if self._target_pid is None:
             return self._result(False,
                 'SOLIDWORKS_TARGET_PID is required. No SolidWorks process was launched. '
