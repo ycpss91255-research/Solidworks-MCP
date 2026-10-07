@@ -7,6 +7,7 @@ Create, open, save, and manage SolidWorks documents.
 import os
 import logging
 import traceback
+from contextlib import nullcontext
 from typing import Optional, Dict
 
 import win32com.client
@@ -150,7 +151,7 @@ class DocumentOperations:
             logger.error(f"Create drawing error: {e}\n{traceback.format_exc()}")
             return self._result(False, f"Error: {e}", SwErrors.swFileLoadError)
     
-    def open_document(self, filepath: str) -> Dict:
+    def open_document(self, filepath: str, memory_warning_action: str = 'manual') -> Dict:
         """
         Open an existing document
         
@@ -161,6 +162,11 @@ class DocumentOperations:
             Result dictionary
         """
         try:
+            if memory_warning_action not in ('manual', 'continue', 'cancel'):
+                return self._result(False, 'Invalid memory_warning_action', SwErrors.swFileLoadError)
+            if memory_warning_action != 'manual' and not self._target_pid:
+                return self._result(False, 'Automatic warning handling requires SOLIDWORKS_TARGET_PID',
+                                    SwErrors.swFileLoadError)
             if not self.is_connected:
                 r = self.connect()
                 if not r["success"]:
@@ -183,17 +189,29 @@ class DocumentOperations:
             errors = win32com.client.VARIANT(pythoncom.VT_BYREF | pythoncom.VT_I4, 0)
             warnings = win32com.client.VARIANT(pythoncom.VT_BYREF | pythoncom.VT_I4, 0)
             
-            doc = self._sw_app.OpenDoc6(filepath, int(doc_type), 0, "", errors, warnings)
+            handler = None
+            if memory_warning_action != 'manual':
+                from .memory_warning import MemoryWarningHandler
+                actual_pid = self._sw_app.GetProcessID
+                actual_pid = actual_pid() if callable(actual_pid) else actual_pid
+                if actual_pid != int(self._target_pid):
+                    return self._result(False, 'Target PID changed', SwErrors.swFileLoadError)
+                handler = MemoryWarningHandler(actual_pid, memory_warning_action)
+            with handler if handler is not None else nullcontext():
+                doc = self._sw_app.OpenDoc6(filepath, int(doc_type), 0, "", errors, warnings)
+
+            handling = {'memory_warning_events': handler.events,
+                        'memory_warning_handler_errors': handler.errors} if handler else {}
             
             if doc is None or errors.value != 0:
                 return self._result(False, f"Failed to open (error {errors.value})",
-                                  SwErrors.swFileLoadError)
+                                  SwErrors.swFileLoadError, handling)
             
             title = self._get_doc_title(doc)
             
             return self._result(True, f"Opened: {title}",
                               SwErrors.swSuccess,
-                              {"name": title, "path": filepath})
+                              {"name": title, "path": filepath, **handling})
             
         except Exception as e:
             logger.error(f"Open document error: {e}\n{traceback.format_exc()}")

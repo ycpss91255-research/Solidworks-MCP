@@ -23,6 +23,9 @@
 
 ## ✨ Features
 
+See [PID-bound connections and memory warning handling](docs/PID_ISOLATION.md)
+for using a separate SolidWorks instance with a dedicated MCP connection.
+
 - ✅ **22 Tools** covering parts, sketches, features, and utilities
 - ✅ **SolidWorks 2023–2025 Compatible** with version-aware API fallbacks
 - ✅ **Auto-detects SolidWorks** installation via Windows registry

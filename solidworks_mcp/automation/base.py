@@ -37,6 +37,9 @@ class SolidWorksAutomation:
         self._config = get_config()
         self._units = UnitConverter(self._config.default_unit)
         self._sw_exe_path = None
+        # Keep the requested identity for the lifetime of this MCP instance.
+        self._target_pid = os.environ.get("SOLIDWORKS_TARGET_PID")
+        self._target_com_initialized = False
         
         logger.info("SolidWorksAutomation initialized")
     
@@ -107,6 +110,49 @@ class SolidWorksAutomation:
     # ========================================================================
     # Connection Methods
     # ========================================================================
+
+    def _connect_target(self) -> Dict:
+        """Attach only to the requested ROT entry; never launch or fall back."""
+        self._sw_app = None
+        self._connected = False
+        try:
+            pid = int(self._target_pid)
+            if pid <= 0:
+                raise ValueError("SOLIDWORKS_TARGET_PID must be positive")
+            if not self._target_com_initialized:
+                pythoncom.CoInitialize()
+                self._target_com_initialized = True
+            try:
+                rot = pythoncom.GetRunningObjectTable()
+                context = pythoncom.CreateBindCtx(0)
+                for moniker in rot.EnumRunning():
+                    if moniker.GetDisplayName(context, None) != f"SolidWorks_PID_{pid}":
+                        continue
+                    obj = rot.GetObject(moniker)
+                    app = win32com.client.Dispatch(
+                        obj.QueryInterface(pythoncom.IID_IDispatch))
+                    actual_pid = app.GetProcessID
+                    if callable(actual_pid):
+                        actual_pid = actual_pid()
+                    if int(actual_pid) != pid:
+                        raise RuntimeError("SolidWorks process identity mismatch")
+                    version = app.RevisionNumber
+                    if callable(version):
+                        version = version()
+                    self._sw_app = app
+                    self._connected = True
+                    logger.info("Connected to SolidWorks PID %s", pid)
+                    return self._result(True, f"Connected to SolidWorks PID {pid}",
+                                        data={"pid": pid, "version": str(version),
+                                              "launched": False})
+                raise RuntimeError(f"SolidWorks PID {pid} is not available in ROT")
+            finally:
+                if not self._connected:
+                    pythoncom.CoUninitialize()
+                    self._target_com_initialized = False
+        except Exception as exc:
+            return self._result(False, f"Target connection failed: {exc}",
+                                SwErrors.swConnectionError)
     
     def _try_connect_com(self) -> bool:
         """
@@ -158,6 +204,9 @@ class SolidWorksAutomation:
         Returns:
             Result dictionary with connection status
         """
+        if self._target_pid is not None:
+            return self._connect_target()
+
         try:
             logger.info("=== Connecting to SolidWorks ===")
             
@@ -229,6 +278,9 @@ class SolidWorksAutomation:
         """
         self._sw_app = None
         self._connected = False
+        if self._target_com_initialized:
+            pythoncom.CoUninitialize()
+            self._target_com_initialized = False
         logger.info("Disconnected from SolidWorks")
         return self._result(True, "Disconnected from SolidWorks")
     

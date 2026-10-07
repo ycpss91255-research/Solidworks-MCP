@@ -17,6 +17,7 @@ Fixes v4.0.0:
 """
 
 import io
+import os
 import sys
 import json
 import logging
@@ -37,7 +38,8 @@ from .utils import get_solidworks_info, set_default_unit
 
 # Configure logging
 config = get_config()
-LOG_FILE = Path(__file__).parent / config.log_file
+LOG_FILE = Path(os.environ.get("SOLIDWORKS_MCP_LOG", str(Path(__file__).parent / config.log_file)))
+LOG_FILE.parent.mkdir(parents=True, exist_ok=True)
 
 logging.basicConfig(
     level=config.get_log_level_int(),
@@ -91,7 +93,9 @@ async def list_tools() -> list[Tool]:
             inputSchema={
                 "type": "object",
                 "properties": {
-                    "filepath": {"type": "string", "description": "Path to file"}
+                    "filepath": {"type": "string", "description": "Path to file"},
+                    "memory_warning_action": {"type": "string", "enum": ["manual", "continue", "cancel"],
+                        "default": "manual", "description": "Handle only the target PID's low-memory warning: continue presses Yes, cancel presses No. Requires SOLIDWORKS_TARGET_PID."}
                 },
                 "required": ["filepath"]
             }
@@ -387,7 +391,8 @@ async def call_tool(name: str, arguments: dict) -> list[TextContent]:
             result = sw_automation.create_new_assembly()
         
         elif name == "open_document":
-            result = sw_automation.open_document(arguments.get("filepath", ""))
+            result = sw_automation.open_document(arguments.get("filepath", ""),
+                arguments.get("memory_warning_action", "manual"))
         
         elif name == "save_document":
             result = sw_automation.save_document(arguments.get("filepath"))
