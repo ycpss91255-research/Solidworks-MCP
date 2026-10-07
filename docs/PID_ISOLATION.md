@@ -4,10 +4,12 @@ Start a separate SolidWorks instance, then configure a separate MCP server
 with `SOLIDWORKS_TARGET_PID` set to its current process ID. The server binds
 only to the exact `SolidWorks_PID_<pid>` Running Object Table entry and verifies
 the returned process ID. Missing, invalid, or unavailable targets fail without
-launching SolidWorks or connecting to another instance. With this variable
-unset, the existing connection behavior is preserved.
+launching SolidWorks or connecting to another instance. This variable is
+required: when unset, connection fails before any COM binding or launch.
 
-Set `SOLIDWORKS_MCP_LOG` to a separate log file for each MCP server.
+Set `SOLIDWORKS_MCP_LOG` to a separate log file for each MCP server. The
+`{server_pid}` placeholder is expanded to the MCP server process ID so multiple
+connections do not write the same log.
 For example, an MCP client configuration can use:
 
 ```json
@@ -28,6 +30,36 @@ For example, an MCP client configuration can use:
 Replace the paths and PID with the actual values. Restart the MCP connection
 after changing its environment. Update the PID after restarting SolidWorks.
 Install `requirements.txt` in the separate server's Python environment.
+
+## Explicit instance startup
+
+MCP never starts SolidWorks. Connection failures must not be bypassed with
+shell Start-Process, generic COM Dispatch/DispatchEx, or the old server.
+Server initialization instructions and the connection tool description state
+this workflow. Shell access is outside MCP's enforcement boundary, so clients
+must also follow their workspace AGENTS.md rules.
+
+Use the launcher to verify an existing target:
+
+```powershell
+python launch_solidworks.py --pid 12345 --output test-results/session.json
+```
+
+Only when a new instance is explicitly requested:
+
+```powershell
+python launch_solidworks.py --launch --output test-results/session.json
+```
+
+The launcher uses the installed executable's directory as the working
+directory, inherits the user's environment, starts hidden, then displays the
+new instance after PID-bound COM attachment. It refuses to add an instance
+when two or more already exist. On initialization failure it reports the
+new PID and never retries by starting another instance. It does not close
+any instance or change journal/AutoRecover settings. Apply the verified PID
+and log settings from the manifest to that checkout's MCP configuration,
+then restart that MCP connection. Other running connections retain their
+startup environment until restarted.
 
 ## Low-memory warning during open_document
 
@@ -68,6 +100,7 @@ On Windows with dependencies installed:
 ```powershell
 python -m unittest discover -s tests -p 'test_*.py' -v
 python tests/verify_memory_warning_native.py
+python tests/verify_no_launch_stdio.py
 ```
 
 The native test opens disposable helper task dialogs, checks Yes/No return

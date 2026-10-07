@@ -21,7 +21,7 @@ class TargetConnectionTests(unittest.TestCase):
         for pid in ("", "invalid", "0", "-1"):
             with self.subTest(pid=pid):
                 sw = self.automation(pid)
-                with patch.object(sw, "_try_connect_com") as fallback, patch("os.startfile") as launch:
+                with patch("win32com.client.Dispatch") as fallback, patch("os.startfile") as launch:
                     self.assertFalse(sw.connect()["success"])
                     fallback.assert_not_called()
                     launch.assert_not_called()
@@ -36,7 +36,7 @@ class TargetConnectionTests(unittest.TestCase):
         app = MagicMock()
         app.GetProcessID.return_value = 123
         app.RevisionNumber.return_value = "33"
-        with patch("pythoncom.GetRunningObjectTable", return_value=rot), patch("win32com.client.Dispatch", return_value=app), patch.object(sw, "_try_connect_com") as fallback, patch("os.startfile") as launch:
+        with patch("pythoncom.GetRunningObjectTable", return_value=rot), patch("win32com.client.Dispatch", return_value=app), patch("win32com.client.GetActiveObject") as fallback, patch("os.startfile") as launch:
             self.assertEqual(sw.connect()["data"]["pid"], 123)
             rot.GetObject.assert_called_once_with(target)
             sw.disconnect()
@@ -56,6 +56,19 @@ class TargetConnectionTests(unittest.TestCase):
         with patch("pythoncom.GetRunningObjectTable", return_value=rot), patch("win32com.client.Dispatch", return_value=app):
             self.assertFalse(sw.connect()["success"])
             self.assertIsNone(sw.app)
+
+    def test_missing_environment_never_launches(self):
+        with patch.dict(os.environ, {}, clear=True):
+            sw = SolidWorksAutomation()
+        with patch('win32com.client.Dispatch') as dispatch, \
+             patch('win32com.client.GetActiveObject') as active, \
+             patch('os.startfile') as launch, \
+             patch('pythoncom.GetRunningObjectTable') as rot:
+            result = sw.connect()
+            self.assertFalse(result['success'])
+            self.assertIn('SOLIDWORKS_TARGET_PID is required', result['message'])
+            for operation in (dispatch, active, launch, rot):
+                operation.assert_not_called()
 
 
 if __name__ == "__main__":

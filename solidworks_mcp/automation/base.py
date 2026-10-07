@@ -154,121 +154,15 @@ class SolidWorksAutomation:
             return self._result(False, f"Target connection failed: {exc}",
                                 SwErrors.swConnectionError)
     
-    def _try_connect_com(self) -> bool:
-        """
-        Try multiple COM connection methods
-        
-        Returns:
-            True if connection successful
-        """
-        methods = [
-            # Method 1: GetObject (running instance)
-            lambda: win32com.client.GetObject(Class="SldWorks.Application"),
-            # Method 2: Dispatch (creates or gets existing)
-            lambda: win32com.client.Dispatch("SldWorks.Application"),
-            # Method 3: Dynamic Dispatch
-            lambda: win32com.client.dynamic.Dispatch("SldWorks.Application"),
-            # Method 4: GetActiveObject
-            lambda: win32com.client.GetActiveObject("SldWorks.Application"),
-        ]
-        
-        for i, method in enumerate(methods):
-            try:
-                logger.debug(f"Trying connection method {i+1}...")
-                pythoncom.CoInitialize()
-                self._sw_app = method()
-                
-                if self._sw_app is not None:
-                    self._sw_app.Visible = True
-                    
-                    # Get version (property or method)
-                    try:
-                        version = self._sw_app.RevisionNumber
-                    except:
-                        version = self._sw_app.RevisionNumber()
-                    
-                    logger.info(f"Connected via method {i+1}: {version}")
-                    self._connected = True
-                    return True
-                    
-            except Exception as e:
-                logger.debug(f"Method {i+1} failed: {e}")
-                continue
-        
-        return False
-    
     def connect(self) -> Dict:
-        """
-        Connect to SolidWorks - launches if not running
-        
-        Returns:
-            Result dictionary with connection status
-        """
-        if self._target_pid is not None:
-            return self._connect_target()
-
-        try:
-            logger.info("=== Connecting to SolidWorks ===")
-            
-            # Step 1: Try connecting to running instance
-            if self._try_connect_com():
-                try:
-                    version = self._sw_app.RevisionNumber
-                except:
-                    version = self._sw_app.RevisionNumber()
-                
-                return self._result(True, f"Connected to SolidWorks {version}",
-                                  SwErrors.swSuccess,
-                                  {"version": str(version), "launched": False})
-            
-            # Step 2: Find SolidWorks executable
-            if self._sw_exe_path is None:
-                if self._config.exe_path != "auto":
-                    self._sw_exe_path = self._config.exe_path
-                else:
-                    self._sw_exe_path = find_solidworks()
-            
-            if not self._sw_exe_path or not os.path.exists(self._sw_exe_path):
-                return self._result(False,
-                    f"SolidWorks not found. Set exe_path in config or install SolidWorks.",
-                    SwErrors.swSolidWorksNotFound)
-            
-            # Step 3: Launch SolidWorks
-            logger.info(f"Launching SolidWorks: {self._sw_exe_path}")
-            os.startfile(self._sw_exe_path)
-            
-            # Step 4: Wait for SolidWorks to start
-            logger.info("Waiting for SolidWorks startup...")
-            max_wait = self._config.startup_timeout
-            retry_interval = self._config.connection_retry_interval
-            start_time = time.time()
-            
-            while time.time() - start_time < max_wait:
-                time.sleep(retry_interval)
-                elapsed = int(time.time() - start_time)
-                logger.debug(f"Connection attempt at {elapsed}s...")
-                
-                if self._try_connect_com():
-                    try:
-                        version = self._sw_app.RevisionNumber
-                    except:
-                        version = self._sw_app.RevisionNumber()
-                    
-                    logger.info(f"Connected after {elapsed}s")
-                    return self._result(True,
-                        f"Launched and connected to SolidWorks {version} (took {elapsed}s)",
-                        SwErrors.swSuccess,
-                        {"version": str(version), "launched": True, "startup_time": elapsed})
-            
+        """Connect only to an explicitly configured, already running PID."""
+        if self._target_pid is None:
             return self._result(False,
-                f"Timeout after {max_wait}s. Close any dialogs and try again.",
+                'SOLIDWORKS_TARGET_PID is required. No SolidWorks process was launched. '
+                'Configure the intended running PID and restart the MCP connection.',
                 SwErrors.swConnectionError)
-            
-        except Exception as e:
-            logger.error(f"Connection error: {e}\n{traceback.format_exc()}")
-            return self._result(False, f"Connection error: {e}",
-                              SwErrors.swConnectionError)
-    
+        return self._connect_target()
+
     def disconnect(self) -> Dict:
         """
         Disconnect from SolidWorks (does not close SolidWorks)

@@ -38,7 +38,8 @@ from .utils import get_solidworks_info, set_default_unit
 
 # Configure logging
 config = get_config()
-LOG_FILE = Path(os.environ.get("SOLIDWORKS_MCP_LOG", str(Path(__file__).parent / config.log_file)))
+LOG_FILE = Path(os.environ.get("SOLIDWORKS_MCP_LOG", str(Path(__file__).parent / config.log_file))
+                .replace('{server_pid}', str(os.getpid())))
 LOG_FILE.parent.mkdir(parents=True, exist_ok=True)
 
 logging.basicConfig(
@@ -53,7 +54,15 @@ logger = logging.getLogger("SolidWorksMCP")
 # ============================================================================
 
 sw_automation = SolidWorksAutomation()
-server = Server("solidworks-mcp-server")
+server = Server("solidworks-mcp-server", instructions=(
+    "Connect only to SOLIDWORKS_TARGET_PID. This server never starts SolidWorks. "
+    "If connection fails, stop CAD operations: do not use shell Start-Process, "
+    "Dispatch/DispatchEx with a ProgID, or another unbound COM client as a fallback. "
+    "Verify the configured PID and restart this MCP connection after changing it. "
+    "Use launch_solidworks.py only for explicitly requested new instances. "
+    "For low-memory warnings during open_document, explicitly choose "
+    "memory_warning_action=continue or cancel; default manual leaves it for the user."
+))
 
 
 # ============================================================================
@@ -67,7 +76,7 @@ async def list_tools() -> list[Tool]:
         # Connection Tools
         Tool(
             name="connect_solidworks",
-            description="Connect to SolidWorks. Launches if not running.",
+            description="Connect only to the running SOLIDWORKS_TARGET_PID. Never launches SolidWorks. On failure stop; do not start another instance or bypass this server.",
             inputSchema={"type": "object", "properties": {}, "required": []}
         ),
         Tool(
