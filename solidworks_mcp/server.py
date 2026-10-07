@@ -62,6 +62,10 @@ server = Server("solidworks-mcp-server", instructions=(
     "Dispatch/DispatchEx with a ProgID, or another unbound COM client as a fallback. "
     "Verify the configured PID and restart this MCP connection after changing it. "
     "Use launch_solidworks.py only for explicitly requested new instances. "
+    "A journal-file sharing notice is nonfatal and does not require closing "
+    "another chat's SolidWorks. Independent PID connections can still succeed. "
+    "Do not claim journal or AutoRecover isolation, change shared journal settings, "
+    "or dismiss unrelated startup dialogs. "
     "For low-memory warnings during open_document, explicitly choose "
     "memory_warning_action=continue or cancel; default manual leaves it for the user."
 ))

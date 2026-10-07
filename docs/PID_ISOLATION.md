@@ -95,16 +95,21 @@ lifecycle check, not a successful reconnect. The launcher now creates the
 process with the existing Explorer desktop shell as parent, using Windows
 PROC_THREAD_ATTRIBUTE_PARENT_PROCESS, without inheriting MCP pipes. A native
 disposable-process test confirms survival after kill-on-close job cleanup.
-Real managed SolidWorks startup and reconnect with this correction remain
-unverified because two working CAD instances are currently open.
+Real managed SolidWorks 2023 startup and reconnect subsequently passed: a new
+independent instance stayed running after the first stdio client closed, and
+a second client reused its recorded PID with launched=false. The pre-existing
+MR12 instance remained running and was not accessed through COM.
 
 The two-instance limit does not prevent journal contention: the first instance
 may already hold the per-user swxJRNL.swj file. The launcher now checks existing
-default and registry-configured journal files read-only, and refuses startup
-when one cannot be opened exclusively. It does not change shared registry
-settings or dismiss startup warnings. This conservative check includes journal
-files for other installed SolidWorks versions and is not a guarantee against
-another launcher racing to acquire the journal after the check.
+default and registry-configured journal files read-only. Windows sharing error
+32 is logged as a nonfatal notice and permits independent startup. Other errors,
+such as access denied, still stop startup. The earlier refusal on sharing error
+was too restrictive and prevented legitimate same-user dual-instance work.
+This fixes the launcher blocker, not the shared journal limitation: SolidWorks
+may still display its journal/AutoRecover warning. The launcher does not change
+shared registry settings or dismiss startup dialogs. An independent process
+does not guarantee independent AutoRecover, RAM or per-user preferences.
 
 ## Low-memory warning during open_document
 
