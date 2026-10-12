@@ -180,7 +180,13 @@ root. The real default-directory MR12 run passed: 1,405 primaries, 1,407 hashes,
 the requested LocalAppData folder to the Codex package's LocalCache directory;
 the final manifest and all mappings retain that authoritative canonical root.
 Evidence: `mr12-isolated-proof/compact-default-complete.json`. The non-CAD suite
-passes 211 tests. A fresh restore of this compact generation remains pending.
+passes 211 tests. A fresh owned PID 32184 then reopened this compact generation:
+2,853 occurrences and referenced configurations matched, all 1,405 primary
+sources were private, volume was 34.57444172181828 m³ and all 1,407 hashes
+remained unchanged. The existing source's missing-reference flag 2 was retained,
+with warning 0 and no memory-warning event. It exited normally. Evidence:
+`mr12-isolated-proof/compact-default-fresh-restore-proof.json`. Production
+session migration remains pending authorization; see `BACKUP_COMPLETION_AUDIT.md`.
 
 Nonblocking `py-spy` stack inspection of the old MR12 worker pinpointed its
 wait in `NativePack.__init__` at `extension.GetPackAndGo()` (old line 34), before

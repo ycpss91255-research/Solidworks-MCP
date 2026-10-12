@@ -24,6 +24,14 @@ the API, implementation checks and chronological test evidence.
 
 ## Validated scope and limits
 
+The table below retains earlier test history. Current assembly recovery uses
+copy-only staging and an explicitly configured independent repair helper; the
+current MR12/rack evidence is in [INDEPENDENT_PACKAGE_REPAIR.md](INDEPENDENT_PACKAGE_REPAIR.md).
+The earlier drawing-package result used source-side Pack and Go. That save path
+has been removed after it changed a private source root on disk. The current
+helper is assembly-only, so drawing packages fail explicitly rather than claim
+protection. Other chats' legacy workers have not been migrated automatically.
+
 | Case | Real SW2023 evidence |
 | --- | --- |
 | Dirty standalone saved part | Timed copy and reopened 6 mm cylinder; original disk hash and dirty state preserved |
