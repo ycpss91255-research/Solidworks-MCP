@@ -210,6 +210,17 @@ Both pre-existing working processes remained running. This is acknowledgement
 of a warning; the journal and AutoRecover limitation is still present. The popup
 can appear briefly before acknowledgement, and AutoRecover is not guaranteed.
 
+Stage 1 was accepted by the user as acknowledgement plus normal independent
+session operation; stage 2 continues investigating actual journal/AutoRecover
+isolation. A separate real managed-MCP verification also passed: its first
+connection launched the owned instance, recorded the journal warning as closed
+with no handler errors, and its second independent stdio connection reused the
+same PID with launched=false. Both pre-existing process creation identities were
+unchanged. The owned test was empty; no production CAD document was accessed.
+The user's main workspace, independent MR12 worktree and global MCP defaults
+were opted into acknowledgement, without changing their target PIDs. Running
+MCP servers must restart to load the new environment. Stage 2 is not complete.
+
 `CURRENT_USER` appears in the default path shown by GoEngineer's journal-warning
 documentation. Its literal appearance alone does not prove a configuration
 error. This machine's process-handle evidence shows the real journal under the
