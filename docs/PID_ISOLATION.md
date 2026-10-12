@@ -111,6 +111,41 @@ may still display its journal/AutoRecover warning. The launcher does not change
 shared registry settings or dismiss startup dialogs. An independent process
 does not guarantee independent AutoRecover, RAM or per-user preferences.
 
+## Journal isolation experiment (not enabled)
+
+`solidworks_mcp/journal_registry.py` provides a reversible registry-folder lease
+for the next experiment. It backs up the original value before assigning a
+temporary folder, restores after normal or exceptional exit, and refuses to
+overwrite a value changed by another program. Existing evidence blocks another
+lease until it is inspected. Abrupt process termination still requires explicit
+recovery from the backup; this is not automatic crash recovery.
+
+Native tests use only disposable `HKCU/Software/SolidWorksMCPTests` keys.
+No actual SolidWorks journal settings were changed by these tests. The module
+is not wired into the launcher or MCP and does not establish CAD isolation.
+The registry is shared for the Windows user while a lease is active; holding
+our launch mutex cannot serialize manual launches or other programs' settings
+writes. Other running instances must retain their existing journal handles and
+documents throughout a real test. Do not claim no interference without checking.
+
+The real experiment requires a free instance slot. Start only through the
+guarded launcher, reserve a unique new folder, observe the new process holding
+that folder's journal, restore the original setting, and verify both instances
+and MCP reconnects. Inspect startup UI independently of successful COM calls.
+Do not use broad silent startup flags or automatic dialog dismissal as proof
+that journal creation or AutoRecover works.
+
+`CURRENT_USER` appears in the default path shown by GoEngineer's journal-warning
+documentation. Its literal appearance alone does not prove a configuration
+error. This machine's process-handle evidence shows the real journal under the
+actual user's roaming directory. The earlier inference of an invalid setting
+based only on `Test-Path` was insufficient.
+
+References:
+- https://help.solidworks.com/2026/chinese/SolidWorks/sldworks/c_Preventative_File_Management.htm
+- https://help.solidworks.com/2019/English/api/swconst/SO_FileLocations.htm
+- https://www.goengineer.com/blog/solidworks-warning-journal-file-could-not-be-created
+
 ## Low-memory warning during open_document
 
 The optional `memory_warning_action` argument controls this specific warning:
