@@ -87,6 +87,7 @@ def run_monitor(pid,identity,directory,status_file,interval,backend,
     next_tick=clock()
     connected=False
     try:
+        record('starting')
         while max_ticks is None or state['ticks']<max_ticks:
             if stop and stop():record('stopped',reason='stop_requested');break
             if identity_reader(pid)!=identity:record('stopped',reason='target_exited_or_identity_changed');break

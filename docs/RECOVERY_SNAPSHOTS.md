@@ -101,8 +101,9 @@ without terminating CAD. The marker must be inside the private recovery root.
 Creating it stops at the next scheduler check; it cannot interrupt a blocked
 COM call. An existing stop marker causes immediate stop before connecting.
 
-This is an explicit foreground program, not a deployed MCP background service.
-Its process/job lifetime integration with MCP is still pending. A new dialog
+The CLI can also be started by an opt-in MCP connection hook described below.
+It is not enabled in existing chat configurations. Live testing of that hook
+and its process/job lifetime with CAD remains pending. A new dialog
 or unresponsive CAD process during a COM call can block that call; this initial
 CLI does not impose a COM-operation timeout or forcibly close CAD. Keep the
 running monitor handle and inspect its worker PID plus creation timestamp
@@ -137,6 +138,34 @@ kill-on-close job did not terminate that child: scheduler ticks continued,
 then an explicit stop request caused the worker to exit. This proves the
 desktop-parent launch primitive for the scheduler. It does not prove live CAD
 snapshots during parent cleanup or implement automatic MCP monitor startup.
+
+## Opt-in MCP connection hook (live integration verification pending)
+
+The `connect_solidworks` endpoint starts or reuses the session's worker only
+when these explicitly chosen environment values are supplied:
+
+```text
+SOLIDWORKS_RECOVERY_MONITOR=1
+SOLIDWORKS_SESSION_FILE=C:/work/session-a/.codex/solidworks-session.json
+SOLIDWORKS_RECOVERY_DIRECTORY=C:/work/session-a/.codex/recovery
+SOLIDWORKS_RECOVERY_INTERVAL=60
+```
+
+The session file must already own the connected PID and its creation time.
+The worker uses the desktop-parent launch primitive and persists independently
+of MCP's stdio job. It writes `monitor.json` in its private directory before
+performing COM operations. Reconnecting MCP checks the worker's live executable
+and creation time before reuse. An identity mismatch refuses a duplicate; it
+never terminates another process. The worker retains the separate per-session
+monitor mutex. A launch mutex serializes connection hooks for that session.
+
+Create `requested.stop` inside that recovery directory to request shutdown.
+The hook respects that marker and never removes it automatically. Recovery
+startup errors are returned as `recovery_monitor_error` in the connection
+details; CAD connection success does not imply recovery is running. Ordinary
+implicit CAD connections do not start this hook: explicitly call
+`connect_solidworks` after enabling the configuration. This hook remains
+experimental until actual MCP restart and live worker lifetime tests pass.
 
 Pack and Go is not yet used as an assembly recovery backend: its official API
 documentation describes packaging designated files but does not establish

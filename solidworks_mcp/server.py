@@ -396,6 +396,13 @@ async def call_tool(name: str, arguments: dict) -> list[TextContent]:
         # Connection Tools
         if name == "connect_solidworks":
             result = sw_automation.connect()
+            if result['success']:
+                try:
+                    from .recovery_service import ensure_recovery_worker
+                    recovery = ensure_recovery_worker(result['data']['pid'])
+                    if recovery is not None: result['data']['recovery_monitor'] = recovery
+                except Exception as exc:
+                    result.setdefault('data', {})['recovery_monitor_error'] = str(exc)
         
         elif name == "get_solidworks_info":
             info = get_solidworks_info()
