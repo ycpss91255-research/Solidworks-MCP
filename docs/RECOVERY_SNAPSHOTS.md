@@ -8,6 +8,16 @@ references can be recovered and verified without saving original components.
 External reference files belonging to a part are not packaged by this tool.
 The overall journal / recovery goal remains incomplete.
 
+The official Backup/Recover/Version help explicitly states that starting a
+second application session produces a message that auto-recover will not work:
+https://help.solidworks.com/2026/English/SolidWorks/sldworks/HIDD_OPTIONS_BACKUPS.htm
+This is consistent with the SW2023 private test's empty native recovery folder,
+but does not prove the exact internal disabling mechanism. Successful private
+journal writes and an enabled preference getter do not prove that the native
+recovery scheduler is active. The interval mode value 2 means minutes according
+to the official `swAutoSaveIntervalMode_e` enumeration; the observed one-minute
+setting was not mistakenly a change-count setting.
+
 After connecting to this checkout's configured PID:
 
 ```json
@@ -190,4 +200,16 @@ Pack and Go is not yet used as an assembly recovery backend: its official API
 documentation describes packaging designated files but does not establish
 preservation of unsaved component edits. That behavior requires a real assembly
 test with independent source-file and restored-geometry verification.
+
+A subsequent private SW2023 assembly probe created a saved one-component
+assembly and changed only its private component from 5 to 7 mm without saving.
+`IModelDocExtension.GetPackAndGo` returned `DISP_E_PARAMNOTOPTIONAL` through its
+generated wrapper and explicit interface dispatch. Its runtime method DISPID
+was confirmed as 207; property invocation returned `DISP_E_BADPARAMCOUNT`.
+No recovery package was produced, so neither unsaved component preservation
+nor assembly reference restoration has passed. The probe documents remain
+loaded in test PID 34340. The separately loaded `ui-baseline.SLDPRT` retained
+its unsaved 6 mm edit and unchanged saved-file SHA256. Ignored diagnostic state:
+`test-results/native-journal/assembly-recovery-probe/status.json`. Do not enable
+assembly monitoring based on this failed probe.
 https://help.solidworks.com/2023/English/api/sldworksapi/SOLIDWORKS.Interop.sldworks~SOLIDWORKS.Interop.sldworks.IModelDocExtension~SavePackAndGo.html
