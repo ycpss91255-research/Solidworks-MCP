@@ -70,7 +70,7 @@ class CadBackend:
 
 def run_monitor(pid,identity,directory,status_file,interval,backend,
                 max_ticks=None,stop=None,identity_reader=process_identity,
-                dialog_reader=visible_dialog,clock=time.monotonic,sleep=time.sleep,session_file=None):
+                dialog_reader=visible_dialog,clock=time.monotonic,sleep=time.sleep,session_file=None,startup_token=None):
     """Sequential ticks. A connection/save error is terminal, never retried."""
     if pid<=0 or not identity:raise ValueError('A PID and process creation identity are required')
     if not math.isfinite(interval) or interval<=0:raise ValueError('Interval must be finite and positive')
@@ -81,6 +81,7 @@ def run_monitor(pid,identity,directory,status_file,interval,backend,
            'worker_start_time':win32process.GetProcessTimes(win32api.GetCurrentProcess())['CreationTime'].isoformat(),
            'directory':str(directory),'interval_seconds':interval,'status':'starting','ticks':0,'snapshots':0}
     if session_file:state['session_file']=str(Path(session_file).resolve())
+    if startup_token:state['startup_token']=startup_token
     def record(status,**values):
         state.update(status=status,updated_at=datetime.now(timezone.utc).isoformat(),**values)
         write_state(status_file,state)
@@ -133,6 +134,7 @@ def main():
     parser.add_argument('--status-file',type=Path,required=True)
     parser.add_argument('--interval',type=float,required=True)
     parser.add_argument('--max-ticks',type=int)
+    parser.add_argument('--startup-token',help='Parent/worker startup correlation token')
     parser.add_argument('--stop-file',type=Path,help='Private .stop marker; exits at the next scheduler check')
     args=parser.parse_args()
     paths=(args.session_file,args.directory,args.status_file)
@@ -157,7 +159,7 @@ def main():
                 raise RuntimeError('This session changed its target; monitor will not retarget')
             return process_identity(requested)
         result=run_monitor(pid,identity,args.directory,args.status_file,args.interval,backend,args.max_ticks,
-                           identity_reader=current_identity,session_file=args.session_file,
+                           identity_reader=current_identity,session_file=args.session_file,startup_token=args.startup_token,
                            stop=(lambda:args.stop_file.exists()) if args.stop_file else None)
         print(json.dumps(result,indent=2))
         if result['status']=='failed':raise SystemExit(1)

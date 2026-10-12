@@ -53,7 +53,7 @@ hit a real low-memory warning; its explicitly selected cancel action closed
 the warning. The endpoint's own geometry restoration test therefore remains
 incomplete. The test instance was empty and exited through its own MCP; the two
 working CAD instances retained their identities. Additional required work includes live
-scheduler / MCP crash-lifetime integration, assembly/reference recovery,
+MCP crash-lifetime integration, assembly/reference recovery,
 unsaved-new-document and drawing coverage, and actual native AutoRecover
 validation. Do not present this manual part tool as complete automatic recovery.
 
@@ -102,8 +102,9 @@ Creating it stops at the next scheduler check; it cannot interrupt a blocked
 COM call. An existing stop marker causes immediate stop before connecting.
 
 The CLI can also be started by an opt-in MCP connection hook described below.
-It is not enabled in existing chat configurations. Live testing of that hook
-and its process/job lifetime with CAD remains pending. A new dialog
+It is not enabled in existing chat configurations. Its normal MCP exit and
+reconnect lifetime has passed a live CAD test described below; forced crash
+and kill-on-close job cleanup with live CAD remain unverified. A new dialog
 or unresponsive CAD process during a COM call can block that call; this initial
 CLI does not impose a COM-operation timeout or forcibly close CAD. Keep the
 running monitor handle and inspect its worker PID plus creation timestamp
@@ -139,7 +140,7 @@ then an explicit stop request caused the worker to exit. This proves the
 desktop-parent launch primitive for the scheduler. It does not prove live CAD
 snapshots during parent cleanup or implement automatic MCP monitor startup.
 
-## Opt-in MCP connection hook (live integration verification pending)
+## Opt-in MCP connection hook
 
 The `connect_solidworks` endpoint starts or reuses the session's worker only
 when these explicitly chosen environment values are supplied:
@@ -164,8 +165,26 @@ The hook respects that marker and never removes it automatically. Recovery
 startup errors are returned as `recovery_monitor_error` in the connection
 details; CAD connection success does not imply recovery is running. Ordinary
 implicit CAD connections do not start this hook: explicitly call
-`connect_solidworks` after enabling the configuration. This hook remains
-experimental until actual MCP restart and live worker lifetime tests pass.
+`connect_solidworks` after enabling the configuration.
+
+Live SW2023 verification on private PID 34340 passed: the initial MCP connection
+launched worker PID 29232; ending that MCP stdio session left the worker alive,
+and a second timed snapshot completed after 60 seconds. A new MCP connection
+reported `reused: true` with the same worker PID and creation time. The private
+stop marker then stopped the worker without closing CAD. Reopening its second
+snapshot recovered the unsaved 6 mm extrusion, one body, and the expected volume;
+the source stayed dirty and its saved-file SHA256 stayed unchanged. Neither
+working CAD PID was controlled. Ignored evidence is in
+`test-results/native-journal/sw-enum-mcp-recovery-v2/integration-result.json`
+and `live-restore-result.json`. This verifies normal MCP exit/reconnect, not a
+forced server crash or live CAD kill-on-close job cleanup.
+
+Windows venv Python can launch a separate base-interpreter process. Startup
+confirmation therefore correlates a unique token written by the actual worker
+and validates its base executable plus creation time; it does not assume the
+CreateProcess launcher PID is the worker PID. The first live attempt exposed
+that distinction, returned an explicit startup-observation error, and was
+stopped before the corrected test. No replacement was launched on timeout.
 
 Pack and Go is not yet used as an assembly recovery backend: its official API
 documentation describes packaging designated files but does not establish

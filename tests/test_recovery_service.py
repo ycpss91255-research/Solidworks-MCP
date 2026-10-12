@@ -28,7 +28,7 @@ class RecoveryServiceTests(unittest.TestCase):
             self.assertIsNone(ensure_recovery_worker(123));launch.assert_not_called()
     def test_same_live_worker_reused_after_mcp_restart(self):
         self.status.write_text(json.dumps(self.record))
-        result,count=self.invoke((str(Path(sys.executable).resolve()).casefold(),'worker-start'))
+        result,count=self.invoke((str(Path(sys._base_executable).resolve()).casefold(),'worker-start'))
         self.assertTrue(result['reused']);self.assertEqual(count,0)
     def test_reused_worker_pid_refuses_duplicate(self):
         self.status.write_text(json.dumps(self.record))
@@ -44,9 +44,15 @@ class RecoveryServiceTests(unittest.TestCase):
         def launch(executable,cwd,arguments):
             self.assertEqual(executable,sys.executable)
             self.assertIn(str(self.session),arguments);self.assertIn(str(self.status),arguments)
-            self.status.write_text(json.dumps(self.record));return 456
-        result,count=self.invoke(launcher=launch)
+            self.record['startup_token']=arguments[arguments.index('--startup-token')+1]
+            self.status.write_text(json.dumps(self.record));return 999  # venv launcher PID differs from actual worker
+        result,count=self.invoke((str(Path(sys._base_executable).resolve()).casefold(),'worker-start'),launcher=launch)
         self.assertFalse(result['reused']);self.assertEqual(count,1)
+        self.assertEqual(result['worker_pid'],456)
+    def test_terminal_but_still_live_worker_is_not_reported_as_running(self):
+        self.record['status']='failed';self.status.write_text(json.dumps(self.record))
+        with self.assertRaisesRegex(RuntimeError,'finishing shutdown'):
+            self.invoke((str(Path(sys._base_executable).resolve()).casefold(),'worker-start'))
     def test_launch_failure_is_explicit(self):
         def launch(*args):raise RuntimeError('Desktop unavailable')
         with self.assertRaisesRegex(RuntimeError,'Desktop unavailable'):self.invoke(launcher=launch)
