@@ -64,7 +64,8 @@ class DocumentOperations:
             active=app.ActiveDoc
             if active is not None and adapter(active).GetType() in (2,3):
                 from ..assembly_recovery import snapshot_package
-                result=snapshot_package(app,pid,directory,adapter)
+                from ..package_repair_service import configured_processor
+                result=snapshot_package(app,pid,directory,adapter,package_processor=configured_processor())
             else:
                 result=snapshot_part(app,pid,directory,adapter)
             return self._result(True,'Created private recovery snapshot',data=result)
