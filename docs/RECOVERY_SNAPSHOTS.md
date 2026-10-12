@@ -112,9 +112,18 @@ replacement while the previous worker is still live or holds the session lock.
 The scheduler, stop/error behavior and status-file boundaries are tested without
 CAD. Native Python helper tests verify same-session refusal, independent-session
 permission and lock reuse. An expired-target CLI test with inherited automatic
-startup enabled verifies that no CAD process is launched. Actual timed CAD
-copies and restoration have not passed live validation yet. This CLI has not
-been started against either working SolidWorks or enabled in any chat config.
+startup enabled verifies that no CAD process is launched. A live SW2023 run on
+owned test PID 34340 completed two snapshots 60 seconds apart and stopped at
+its explicit two-tick limit. Reopening the second native part copy through
+that PID's MCP recovered one body, a 6 mm extrusion, and volume
+1.884955592153876e-6 cubic metres. The loaded source retained its unsaved 6 mm
+edit; its saved-file SHA256 stayed unchanged. Opening the copy produced no
+memory warning. This verifies timed copies and restoration for this standalone
+part, not assemblies, drawings, or native AutoRecover. The private native
+AutoRecover directory remained empty despite its enabled one-minute setting.
+Ignored evidence: `test-results/native-journal/sw-enum-timed-recovery/monitor.json`
+and `live-restore-result.json`. This CLI has not been started against either
+working SolidWorks or enabled in any chat config.
 
 ```powershell
 python tests/verify_recovery_monitor_lock_native.py
