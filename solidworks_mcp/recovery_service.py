@@ -2,7 +2,7 @@
 import json,math,os,sys,time,uuid
 from pathlib import Path
 import win32api,win32con,win32event,win32process
-from .automation.managed_session import process_identity
+from .automation.managed_session import process_identity,write_state
 from .recovery_monitor import monitor_lock,validate_status_path
 from .desktop_process import start_desktop_process
 
@@ -52,6 +52,18 @@ def ensure_recovery_worker(pid):
         raise RuntimeError('Recovery session does not own the connected process')
     # Separate launch mutex: the worker holds the regular session monitor mutex.
     with monitor_lock(str(session)+'.worker-launch'):
+        pending_path=directory/'worker-startup.json'
+        pending=json.loads(pending_path.read_text(encoding='utf-8')) if pending_path.exists() else None
+        if pending:
+            if (pending.get('kind')!='recovery_worker_startup' or pending.get('pid')!=int(pid)
+                    or pending.get('process_start_time')!=expected['start_time']
+                    or pending.get('session_file')!=str(session.resolve())):
+                raise RuntimeError('Recovery startup reservation identity mismatch; refusing a duplicate')
+            observed=json.loads(status.read_text(encoding='utf-8')) if status.exists() else None
+            if not observed or observed.get('startup_token')!=pending['startup_token']:
+                # A venv launcher's exit does not prove its real worker exited.
+                # Keep the reservation until that worker's own status identifies it.
+                raise RuntimeError('Recovery startup remains unconfirmed; no replacement was launched')
         if status.exists():
             previous=json.loads(status.read_text(encoding='utf-8'))
             live=worker_identity(previous['worker_pid'])
@@ -61,14 +73,22 @@ def ensure_recovery_worker(pid):
                     raise RuntimeError('Existing recovery worker identity mismatch; refusing a duplicate')
                 if previous['status'] in ('failed','stopped'):
                     raise RuntimeError('Existing recovery worker is finishing shutdown; no replacement was launched')
+                if pending:pending_path.unlink()
                 return {'worker_pid':previous['worker_pid'],'worker_start_time':previous['worker_start_time'],
                         'process_start_time':expected['start_time'],'status_file':str(status),'reused':True}
+            if pending:
+                # Matching worker-written status plus its absent handle proves
+                # this reserved attempt is terminal, unlike a polling timeout.
+                pending_path.unlink()
         if marker.exists():raise RuntimeError('Recovery stop marker exists; monitor remains stopped')
         root=Path(__file__).resolve().parents[1]
         token=uuid.uuid4().hex
         arguments=['-m','solidworks_mcp.recovery_monitor','--session-file',str(session),
                    '--directory',str(directory),'--status-file',str(status),'--interval',str(interval),
                    '--stop-file',str(marker),'--startup-token',token]
+        write_state(pending_path,{'kind':'recovery_worker_startup','pid':int(pid),
+                    'process_start_time':expected['start_time'],'session_file':str(session.resolve()),
+                    'startup_token':token})
         worker=start_desktop_process(sys.executable,root,arguments)
         # Require the actual child's status before reporting successful startup.
         deadline=time.monotonic()+10
@@ -82,6 +102,8 @@ def ensure_recovery_worker(pid):
                     if current.get('pid')!=int(pid) or current.get('process_start_time')!=expected['start_time']:
                         raise RuntimeError('Recovery worker startup target mismatch')
                     if current['status']=='failed':raise RuntimeError(current.get('error','Recovery worker failed'))
+                    if current['status']=='stopped':raise RuntimeError('Recovery worker stopped during startup')
+                    pending_path.unlink()
                     return {'worker_pid':actual,'worker_start_time':current['worker_start_time'],
                             'process_start_time':expected['start_time'],'status_file':str(status),'reused':False}
             if worker_identity(worker) is None:raise RuntimeError('Recovery worker exited before startup confirmation')

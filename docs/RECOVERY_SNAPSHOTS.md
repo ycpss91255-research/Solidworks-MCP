@@ -450,3 +450,22 @@ shutdown, so loading that configuration cannot silently reopen CAD. Enabling
 and verifying that worktree's active host connection remains a deployment step.
 Native AutoRecover remains unsupported for the second instance; the private
 snapshot solution and its previously documented scope limits still apply.
+
+## Unconfirmed worker startup
+
+Before creating a recovery worker, the service now writes an owned
+`worker-startup.json` reservation under its private recovery directory, while
+holding the per-session launch mutex. It records the session, CAD creation
+identity and startup token. A matching live worker's own status clears it and
+allows reuse. Matching worker-written status plus a missing process handle
+proves that attempt exited and permits a new attempt. A timeout, a missing
+status, an old status, or a venv launcher's exit does not release the reservation.
+Reconnect reports the unresolved startup rather than creating a duplicate.
+
+If launch throws before any worker-written status appears, the reservation
+intentionally remains unresolved. Inspect the original attempt before manually
+clearing that chat's reservation; do not delete it or relaunch based solely on
+an observation timeout. No shared registry or another chat's state is changed.
+Tests cover delayed status, stale status, mismatched target, and a startup
+timeout followed by reconnect without a second launch. These are controlled
+process-interface tests; no new live CAD instance was started for this change.

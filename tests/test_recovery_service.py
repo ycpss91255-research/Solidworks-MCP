@@ -77,6 +77,46 @@ class RecoveryServiceTests(unittest.TestCase):
         result,count=self.invoke((str(Path(sys._base_executable).resolve()).casefold(),'worker-start'),launcher=launch)
         self.assertFalse(result['reused']);self.assertEqual(count,1)
         self.assertEqual(result['worker_pid'],456)
+        self.assertFalse((self.root/'worker-startup.json').exists())
+    def reserve(self):
+        pending={'kind':'recovery_worker_startup','pid':123,'process_start_time':'cad-start',
+                 'session_file':str(self.session.resolve()),'startup_token':'reserved'}
+        (self.root/'worker-startup.json').write_text(json.dumps(pending))
+    def test_unconfirmed_reservation_prevents_duplicate_even_if_launcher_exited(self):
+        self.reserve()
+        with self.assertRaisesRegex(RuntimeError,'unconfirmed'):self.invoke(None)
+        self.assertTrue((self.root/'worker-startup.json').exists())
+    def test_old_status_cannot_release_unconfirmed_reservation(self):
+        self.reserve();self.record['startup_token']='old'
+        self.status.write_text(json.dumps(self.record))
+        with self.assertRaisesRegex(RuntimeError,'unconfirmed'):
+            self.invoke((str(Path(sys._base_executable).resolve()).casefold(),'worker-start'))
+    def test_delayed_worker_status_reuses_original_attempt(self):
+        self.reserve();self.record['startup_token']='reserved'
+        self.status.write_text(json.dumps(self.record))
+        result,count=self.invoke((str(Path(sys._base_executable).resolve()).casefold(),'worker-start'))
+        self.assertTrue(result['reused']);self.assertEqual(count,0)
+        self.assertFalse((self.root/'worker-startup.json').exists())
+    def test_observation_timeout_then_reconnect_does_not_launch_again(self):
+        with patch('solidworks_mcp.recovery_service.time.monotonic',side_effect=[0,11]):
+            with self.assertRaisesRegex(RuntimeError,'observation timed out'):
+                self.invoke(None,launcher=lambda *args:999)
+        self.assertTrue((self.root/'worker-startup.json').exists())
+        with patch.dict(os.environ,self.environment,clear=True), \
+             patch('solidworks_mcp.recovery_service.process_identity',return_value='cad-start'), \
+             patch('solidworks_mcp.recovery_service.monitor_lock',return_value=nullcontext()), \
+             patch('solidworks_mcp.recovery_service.start_desktop_process') as launch:
+            with self.assertRaisesRegex(RuntimeError,'unconfirmed'):ensure_recovery_worker(123)
+            launch.assert_not_called()
+    def test_other_target_reservation_is_not_replaced(self):
+        self.reserve();self.session.write_text(json.dumps({'pid':123,'start_time':'changed'}))
+        with patch.dict(os.environ,self.environment,clear=True), \
+             patch('solidworks_mcp.recovery_service.process_identity',return_value='changed'), \
+             patch('solidworks_mcp.recovery_service.monitor_lock',return_value=nullcontext()), \
+             patch('solidworks_mcp.recovery_service.start_desktop_process') as launch:
+            with self.assertRaisesRegex(RuntimeError,'reservation identity mismatch'):
+                ensure_recovery_worker(123)
+            launch.assert_not_called()
     def test_terminal_but_still_live_worker_is_not_reported_as_running(self):
         self.record['status']='failed';self.status.write_text(json.dumps(self.record))
         with self.assertRaisesRegex(RuntimeError,'finishing shutdown'):
