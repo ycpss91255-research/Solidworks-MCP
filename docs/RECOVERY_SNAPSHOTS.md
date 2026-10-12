@@ -45,9 +45,14 @@ The source was closed without saving; reopening the copy through the same
 PID-bound MCP recovered one body with volume 1.884955592153876e-6 cubic metres.
 The two working SolidWorks instances were left running throughout.
 
-The new tool's guards and MCP schema/dispatch are tested without CAD. That
-earlier live test used execute_python; the new endpoint still needs its own
-live invocation and restoration test. Additional required work includes live
+The new tool's guards and MCP schema/dispatch are tested without CAD. A subsequent
+actual endpoint test on owned PID 43728 successfully wrote an 82,980-byte native
+part snapshot, returned save status zero, and verified identical source path,
+title, dirty flag and saved-file SHA256 before/after. Reopening that snapshot
+hit a real low-memory warning; its explicitly selected cancel action closed
+the warning. The endpoint's own geometry restoration test therefore remains
+incomplete. The test instance was empty and exited through its own MCP; the two
+working CAD instances retained their identities. Additional required work includes live
 scheduler / MCP crash-lifetime integration, assembly/reference recovery,
 unsaved-new-document and drawing coverage, and actual native AutoRecover
 validation. Do not present this manual part tool as complete automatic recovery.
@@ -91,6 +96,10 @@ finishes. Clean parts, missing documents, busy commands, unsupported document
 types and visible target-PID dialogs are skipped. Existing dialogs are never
 dismissed. Copies remain separate generations, and the monitor never deletes
 old backups. `--max-ticks N` bounds an explicit diagnostic run.
+`--stop-file <absolute-private-path.stop>` permits an explicit stop request
+without terminating CAD. The marker must be inside the private recovery root.
+Creating it stops at the next scheduler check; it cannot interrupt a blocked
+COM call. An existing stop marker causes immediate stop before connecting.
 
 This is an explicit foreground program, not a deployed MCP background service.
 Its process/job lifetime integration with MCP is still pending. A new dialog
@@ -110,7 +119,15 @@ been started against either working SolidWorks or enabled in any chat config.
 ```powershell
 python tests/verify_recovery_monitor_lock_native.py
 python tests/verify_recovery_monitor_no_launch.py
+python tests/verify_recovery_monitor_lifetime.py
 ```
+
+The lifetime fixture runs the actual scheduler with a fake backend in a Python
+child created through `start_desktop_process`. Closing the parent server's
+kill-on-close job did not terminate that child: scheduler ticks continued,
+then an explicit stop request caused the worker to exit. This proves the
+desktop-parent launch primitive for the scheduler. It does not prove live CAD
+snapshots during parent cleanup or implement automatic MCP monitor startup.
 
 Pack and Go is not yet used as an assembly recovery backend: its official API
 documentation describes packaging designated files but does not establish

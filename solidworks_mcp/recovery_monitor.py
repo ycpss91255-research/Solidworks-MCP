@@ -132,11 +132,17 @@ def main():
     parser.add_argument('--status-file',type=Path,required=True)
     parser.add_argument('--interval',type=float,required=True)
     parser.add_argument('--max-ticks',type=int)
+    parser.add_argument('--stop-file',type=Path,help='Private .stop marker; exits at the next scheduler check')
     args=parser.parse_args()
     paths=(args.session_file,args.directory,args.status_file)
     if not all(path.is_absolute() for path in paths):parser.error('All paths must be absolute')
     if args.session_file.resolve()==args.status_file.resolve():parser.error('Status must not overwrite the CAD session file')
     validate_status_path(args.directory,args.status_file,args.session_file)
+    if args.stop_file:
+        if (not args.stop_file.is_absolute() or args.stop_file.suffix.casefold()!='.stop'
+                or not args.stop_file.resolve().is_relative_to(args.directory.resolve())
+                or args.stop_file.resolve() in (args.session_file.resolve(),args.status_file.resolve())):
+            parser.error('Stop marker must be a separate absolute .stop file inside the recovery directory')
     if not math.isfinite(args.interval) or args.interval<=0:parser.error('Interval must be finite and positive')
     if args.max_ticks is not None and args.max_ticks<=0:parser.error('max-ticks must be positive')
     target=json.loads(args.session_file.read_text(encoding='utf-8'))
@@ -150,7 +156,8 @@ def main():
                 raise RuntimeError('This session changed its target; monitor will not retarget')
             return process_identity(requested)
         result=run_monitor(pid,identity,args.directory,args.status_file,args.interval,backend,args.max_ticks,
-                           identity_reader=current_identity,session_file=args.session_file)
+                           identity_reader=current_identity,session_file=args.session_file,
+                           stop=(lambda:args.stop_file.exists()) if args.stop_file else None)
         print(json.dumps(result,indent=2))
         if result['status']=='failed':raise SystemExit(1)
 

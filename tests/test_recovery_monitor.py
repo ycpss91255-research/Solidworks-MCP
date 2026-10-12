@@ -1,7 +1,8 @@
-import json,tempfile,unittest
+import json,tempfile,unittest,sys,io
+from contextlib import nullcontext,redirect_stdout
 from pathlib import Path
 from unittest.mock import Mock,patch
-from solidworks_mcp.recovery_monitor import run_monitor,validate_status_path,CadBackend
+from solidworks_mcp.recovery_monitor import run_monitor,validate_status_path,CadBackend,main
 
 class Clock:
     def __init__(self):self.time=0
@@ -96,3 +97,14 @@ class MonitorTests(unittest.TestCase):
         self.assertEqual(automation._target_pid,'123')
         self.assertEqual(automation._configured_target,'123')
         automation.connect.assert_not_called()
+    def test_cli_existing_stop_marker_does_not_connect(self):
+        session=self.root/'session.json';marker=self.root/'requested.stop'
+        session.write_text(json.dumps({'pid':123,'start_time':'start'}));marker.touch()
+        args=['monitor','--session-file',str(session),'--directory',str(self.root),
+              '--status-file',str(self.status),'--interval','1','--stop-file',str(marker)]
+        with patch.object(sys,'argv',args),patch('solidworks_mcp.recovery_monitor.process_identity',return_value='start'), \
+             patch('solidworks_mcp.recovery_monitor.monitor_lock',return_value=nullcontext()), \
+             patch('solidworks_mcp.recovery_monitor.CadBackend',return_value=self.backend),redirect_stdout(io.StringIO()):
+            main()
+        self.assertEqual(self.backend.connects,0)
+        self.assertEqual(json.loads(self.status.read_text())['reason'],'stop_requested')
