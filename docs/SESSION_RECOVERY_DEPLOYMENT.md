@@ -134,6 +134,31 @@ non-interfering; this audit did not write that setting or call their CAD APIs.
 The ignored `test-results/native-journal/completion-audit.json` also rechecked
 the stored native-copy hashes in the reconnect and final-closure batches.
 
+`repair_journal_path.py` now provides a separate maintenance command. With no
+arguments it only inspects the current value, proposed APPDATA-based path and
+live CAD PIDs. Explicit `--apply --backup <new-absolute-file>` repairs only the
+literal `CURRENT_USER` placeholder, using an exclusive flushed backup before
+the registry write and verifying readback. It holds the managed-launch mutex,
+refuses any live SolidWorks process, fails closed on process-inventory errors,
+and rechecks processes and the registry after preparation. Run it only during
+a maintenance window with all CAD closed and no manual launch in progress:
+the mutex cannot prevent an external desktop launch between the final check
+and write. It records any process observed after writing rather than changing
+the setting a second time while that process is starting.
+
+```text
+python repair_journal_path.py --version 2023
+python repair_journal_path.py --version 2023 --apply --backup C:/work/journal-path-backup.json
+```
+
+The real-machine apply probe refused PIDs 9336, 11064 and 12616 before any
+registry or backup write. Seven native tests use a disposable registry key to
+verify successful repair, live/new-process rejection, inventory and backup
+failure, retained external changes and existing-backup protection. The full
+suite passes 132 tests. This prepares the path correction without applying it
+to working sessions. It neither makes journals independent nor restores native
+AutoRecover; those remain distinct from correcting the invalid directory.
+
 The registered `solidworks-recovery/solidworks_data` worktree has its own config,
 state, logs and recovery directory. Its target 38376 was intentionally backed
 up and closed at the user's request. Automatic CAD launch is disabled there.
