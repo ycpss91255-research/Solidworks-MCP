@@ -61,6 +61,30 @@ class MonitorTests(unittest.TestCase):
         self.assertEqual(result['status'],'failed');self.assertEqual(self.backend.connects,1)
         self.assertEqual(len(self.backend.calls),1);self.assertEqual(result['snapshots'],0)
         self.assertIn('copy failed',result['error_traceback'])
+    def test_native_disable_then_reenable_uses_same_worker(self):
+        policies=iter([
+            {'enabled':False,'preferences':{'auto_recover_enabled':False,'backup_enabled':False}},
+            {'enabled':True,'preferences':{'auto_recover_enabled':True},
+             'settings':{'interval_seconds':10}},
+            {'enabled':True,'preferences':{'auto_recover_enabled':True},
+             'settings':{'interval_seconds':5}}])
+        result=self.run_monitor(preference_reader=lambda:next(policies))
+        self.assertEqual(self.backend.calls,[60,72])
+        self.assertEqual(result['snapshots'],2)
+        self.assertEqual(self.backend.connects,1)
+        self.assertEqual(result['interval_seconds'],5)
+        self.assertTrue(result['follow_native_preferences'])
+    def test_native_preference_failure_prevents_save(self):
+        reader=Mock(side_effect=RuntimeError('bound preferences unavailable'))
+        result=self.run_monitor(preference_reader=reader)
+        self.assertEqual(result['status'],'failed')
+        self.assertEqual(self.backend.calls,[])
+        self.assertIn('bound preferences unavailable',result['error'])
+    def test_dialog_prevents_native_preference_read(self):
+        reader=Mock()
+        result=self.run_monitor(preference_reader=reader,dialog_reader=lambda pid:True)
+        reader.assert_not_called()
+        self.assertEqual(result['snapshots'],0)
     def test_incomplete_or_foreign_snapshot_cannot_be_counted(self):
         for report in ({'status':'writing','pid':123,'process_start_time':'start'},
                        {'status':'complete','pid':456,'process_start_time':'start'}):

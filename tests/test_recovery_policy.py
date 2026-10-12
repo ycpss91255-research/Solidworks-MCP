@@ -1,7 +1,7 @@
 import unittest
 from unittest.mock import Mock,patch
 from solidworks_mcp.recovery_policy import automatic_policy
-from solidworks_mcp.recovery_service import ensure_recovery_worker
+from solidworks_mcp.recovery_service import ensure_recovery_worker,matching_settings
 
 class RecoveryPolicyTests(unittest.TestCase):
     def app(self,auto=True,backup=False,minutes=5,mode=2,pid=123):
@@ -46,5 +46,12 @@ class RecoveryPolicyTests(unittest.TestCase):
         e=dict(self.env(),SOLIDWORKS_RECOVERY_ALL_DOCUMENTS='0',SOLIDWORKS_RECOVERY_DIRECTORY='C:/private')
         p=automatic_policy(self.app(),123,e)
         self.assertFalse(p['settings']['all_documents']);self.assertEqual(p['directory'],'C:/private')
+    def test_live_native_interval_changes_do_not_allow_scope_changes(self):
+        before={'interval_seconds':300,'assemblies':True}
+        after={'interval_seconds':60,'assemblies':True}
+        self.assertFalse(matching_settings(before,after))
+        self.assertTrue(matching_settings(before,after,True))
+        self.assertFalse(matching_settings(before,dict(after,assemblies=False),True))
+        self.assertFalse(matching_settings(dict(before,interval_seconds=float('nan')),after,True))
 
 if __name__=='__main__':unittest.main()

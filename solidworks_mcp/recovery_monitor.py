@@ -120,7 +120,8 @@ class CadBackend:
 
 def run_monitor(pid,identity,directory,status_file,interval,backend,
                 max_ticks=None,stop=None,identity_reader=process_identity,
-                dialog_reader=visible_dialog,clock=time.monotonic,sleep=time.sleep,session_file=None,startup_token=None):
+                dialog_reader=visible_dialog,clock=time.monotonic,sleep=time.sleep,session_file=None,startup_token=None,
+                preference_reader=None):
     """Sequential ticks. A connection/save error is terminal, never retried."""
     if pid<=0 or not identity:raise ValueError('A PID and process creation identity are required')
     if not math.isfinite(interval) or interval<=0:raise ValueError('Interval must be finite and positive')
@@ -133,6 +134,7 @@ def run_monitor(pid,identity,directory,status_file,interval,backend,
            'status':'starting','ticks':0,'snapshots':0}
     if session_file:state['session_file']=str(Path(session_file).resolve())
     if startup_token:state['startup_token']=startup_token
+    state['follow_native_preferences']=preference_reader is not None
     def record(status,**values):
         state.update(status=status,updated_at=datetime.now(timezone.utc).isoformat(),**values)
         write_state(status_file,state)
@@ -154,6 +156,20 @@ def run_monitor(pid,identity,directory,status_file,interval,backend,
                     result=backend.connect()
                     if not result['success']:raise RuntimeError(result.get('message','Target connection failed'))
                     connected=True
+                if preference_reader is not None:
+                    policy=preference_reader()
+                    state['preferences']=policy['preferences']
+                    if not policy['enabled']:
+                        # Keep this same session worker idle so re-enabling
+                        # native recovery does not require a duplicate worker.
+                        record('waiting_preferences_disabled')
+                        next_tick=clock()+60
+                        continue
+                    interval=float(policy['settings']['interval_seconds'])
+                    if not math.isfinite(interval) or interval<=0:
+                        raise ValueError('Recovery interval must be finite and positive')
+                    state['settings']=policy['settings']
+                    state['interval_seconds']=interval
                 probe=backend.probe()
                 if 'unprotected_documents' in probe:state['unprotected_documents']=probe['unprotected_documents']
                 if probe['state']=='dirty':
@@ -190,6 +206,7 @@ def main():
     parser.add_argument('--max-ticks',type=int)
     parser.add_argument('--startup-token',help='Parent/worker startup correlation token')
     parser.add_argument('--settings-json',help='Effective scope from the bound session recovery policy')
+    parser.add_argument('--follow-native-preferences',action='store_true',help='Read bound CAD preferences before each scheduled save')
     parser.add_argument('--stop-file',type=Path,help='Private .stop marker; exits at the next scheduler check')
     args=parser.parse_args()
     if args.settings_json:
@@ -219,8 +236,14 @@ def main():
             if int(latest['pid'])!=pid or latest['start_time']!=identity:
                 raise RuntimeError('This session changed its target; monitor will not retarget')
             return process_identity(requested)
+        def read_preferences():
+            from .recovery_policy import automatic_policy
+            environment=dict(os.environ,SOLIDWORKS_SESSION_FILE=str(args.session_file),
+                             SOLIDWORKS_RECOVERY_DIRECTORY=str(args.directory))
+            return automatic_policy(backend.automation.app,pid,environment)
         result=run_monitor(pid,identity,args.directory,args.status_file,args.interval,backend,args.max_ticks,
                            identity_reader=current_identity,session_file=args.session_file,startup_token=args.startup_token,
+                           preference_reader=read_preferences if args.follow_native_preferences else None,
                            stop=(lambda:args.stop_file.exists()) if args.stop_file else None)
         print(json.dumps(result,indent=2))
         if result['status']=='failed':raise SystemExit(1)

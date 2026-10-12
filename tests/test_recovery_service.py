@@ -17,24 +17,24 @@ class RecoveryServiceTests(unittest.TestCase):
                      'worker_start_time':'worker-start','status':'starting',
                      'settings':{'interval_seconds':60.0,'assemblies':False,'drawings':False,
                                  'all_documents':False,'background_activation':False}}
-    def invoke(self,identity=None,launcher=None):
+    def invoke(self,identity=None,launcher=None,app=None):
         with patch.dict(os.environ,self.environment,clear=True), \
              patch('solidworks_mcp.recovery_service.process_identity',return_value='cad-start'), \
              patch('solidworks_mcp.recovery_service.monitor_lock',return_value=nullcontext()), \
              patch('solidworks_mcp.recovery_service.worker_identity',return_value=identity), \
              patch('solidworks_mcp.recovery_service.start_desktop_process',side_effect=launcher) as launch:
-            result=ensure_recovery_worker(123)
+            result=ensure_recovery_worker(123,app=app)
             return result,launch.call_count
     def test_disabled_has_no_process_or_file_side_effect(self):
         with patch.dict(os.environ,{},clear=True),patch('solidworks_mcp.recovery_service.start_desktop_process') as launch:
             self.assertIsNone(ensure_recovery_worker(123));launch.assert_not_called()
-    def health(self,identity='live'):
+    def health(self,identity='live',policy=None):
         self.status.write_text(json.dumps(self.record))
         actual=(str(Path(sys._base_executable).resolve()).casefold(),'worker-start') if identity=='live' else identity
         with patch('solidworks_mcp.recovery_service.process_identity',return_value='cad-start'), \
              patch('solidworks_mcp.recovery_service.worker_identity',return_value=actual), \
              patch('solidworks_mcp.recovery_service.start_desktop_process') as launch:
-            error=recovery_worker_error(123,{'worker_pid':456,'worker_start_time':'worker-start',
+            error=recovery_worker_error(123,{'worker_pid':456,'worker_start_time':'worker-start','policy':policy,
                                             'process_start_time':'cad-start','status_file':str(self.status),
                                             'settings':{'interval_seconds':60.0,'assemblies':False,'drawings':False,
                                                         'all_documents':False,'background_activation':False}})
@@ -42,6 +42,14 @@ class RecoveryServiceTests(unittest.TestCase):
             return error
     def test_running_worker_health_is_verified(self):
         self.assertIsNone(self.health())
+    def test_native_interval_update_is_healthy_but_scope_update_is_not(self):
+        self.record['follow_native_preferences']=True
+        self.record['settings']['interval_seconds']=120
+        self.assertIsNone(self.health(policy={'source':'solidworks'}))
+        self.record['settings']['assemblies']=True
+        self.assertIn('settings changed',self.health(policy={'source':'solidworks'}))
+    def test_old_native_policy_worker_requires_normal_stop(self):
+        self.assertIn('does not follow native preferences',self.health(policy={'source':'solidworks'}))
     def test_unsupported_dirty_documents_are_not_silently_claimed_protected(self):
         self.record['unprotected_documents']=[{'path':'C:/drawing.SLDDRW','title':'drawing'}]
         self.assertIn('unsupported dirty documents',self.health())
@@ -101,6 +109,19 @@ class RecoveryServiceTests(unittest.TestCase):
         self.assertFalse(result['reused']);self.assertEqual(count,1)
         self.assertEqual(result['worker_pid'],456)
         self.assertFalse((self.root/'worker-startup.json').exists())
+    def test_native_policy_launch_requests_preference_tracking(self):
+        self.environment['SOLIDWORKS_RECOVERY_MONITOR']='auto'
+        policy={'enabled':True,'source':'solidworks','directory':str(self.root),
+                'settings':self.record['settings'],'preferences':{'auto_recover_enabled':True}}
+        def launch(executable,cwd,arguments):
+            self.assertIn('--follow-native-preferences',arguments)
+            self.record.update(startup_token=arguments[arguments.index('--startup-token')+1],
+                               follow_native_preferences=True)
+            self.status.write_text(json.dumps(self.record));return 999
+        with patch('solidworks_mcp.recovery_policy.automatic_policy',return_value=policy):
+            result,count=self.invoke((str(Path(sys._base_executable).resolve()).casefold(),'worker-start'),
+                                     launcher=launch,app=object())
+        self.assertEqual(count,1);self.assertFalse(result['reused'])
     def reserve(self):
         pending={'kind':'recovery_worker_startup','pid':123,'process_start_time':'cad-start',
                  'session_file':str(self.session.resolve()),'startup_token':'reserved'}

@@ -35,8 +35,9 @@ the API, implementation checks and chronological test evidence.
 | MCP normal exit and reconnect | Same worker remained live, produced a later copy and was reused |
 | Forced MCP termination | Private server job termination after worker startup; worker continued and was reused |
 
-The default monitor protects the **active supported document**, together
-with its packaged references. `SOLIDWORKS_RECOVERY_ALL_DOCUMENTS=1` instead scans
+The forced opt-in monitor's default protects the **active supported document**,
+together with its packaged references. Automatic preference mode enables
+`SOLIDWORKS_RECOVERY_ALL_DOCUMENTS=1` by default; this scans
 open documents and selects dirty supported documents, including clean roots
 whose loaded references are dirty. Background part copies need no activation.
 Background assembly/drawing packages require the separate explicit setting
@@ -83,11 +84,28 @@ copies, mirror their retention settings, or delete old recovery generations.
 
 Explicit `SOLIDWORKS_RECOVERY_MONITOR=0` disables the independent worker startup
 and `1` retains the previous forced opt-in configuration. Worker self-connection
-cannot recursively start workers. Settings are read at connection, not watched
-continuously: live worker option changes still require the documented owned
-stop/restart procedure. In particular, disabling startup does not stop an
-already-running worker. The CLI launcher/verifier does not start backup workers;
+cannot recursively start workers. New automatic workers re-read native enable
+preferences and interval before each scheduled backup. Disabling both native
+features leaves the same worker idle, checking every 60 seconds; re-enabling
+resumes it. Interval changes apply at the next scheduled check, with saves
+scheduled from completion and no overlapping saves. Scope, directory or
+explicit monitor-mode changes still require the owned stop/restart procedure.
+Explicitly disabling MCP startup does not stop an already-running worker.
+Workers from older code without preference tracking must be stopped normally
+before a new connection can reuse that session; no duplicate is launched.
+The CLI launcher/verifier does not start backup workers;
 the owning MCP does after attachment.
+
+On 2026-10-12, isolated PID 16296 read AutoRecover enabled, backup disabled and
+a native one-minute interval. A real bound backend and one scheduler tick
+recorded these same preferences without opening documents or changing settings.
+The app subsequently exited normally; working PIDs 2836 and 19780 kept their
+creation identities. Enable/disable/re-enable transitions, interval changes,
+preference-read failures, dialog deferral and health validation were exercised
+with controlled tests rather than changing potentially shared native settings.
+The complete suite passes 160 tests. Ignored evidence:
+`test-results/native-preferences/result.json`. This does not resolve the
+outstanding MR12 STEP-link repair or prove full MR12 restoration.
 
 Real existing-session validation found AutoRecover enabled with a one-minute
 interval and native backup disabled in both MR12 PID 24056 and rack PID 26356.

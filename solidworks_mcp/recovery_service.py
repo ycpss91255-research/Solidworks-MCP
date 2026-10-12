@@ -7,6 +7,18 @@ from .recovery_monitor import monitor_lock,validate_status_path
 from .desktop_process import start_desktop_process
 from .recovery_settings import recovery_settings
 
+def matching_settings(previous,expected,follow_native=False):
+    if not previous or not expected:return False
+    if not follow_native:return previous==expected
+    # Only a native interval can change in-place. Scope changes still require
+    # stopping the verified old worker rather than creating a second worker.
+    try:
+        interval=float(previous['interval_seconds'])
+        return (math.isfinite(interval) and interval>0 and
+                {k:v for k,v in previous.items() if k!='interval_seconds'}==
+                {k:v for k,v in expected.items() if k!='interval_seconds'})
+    except (KeyError,TypeError,ValueError):return False
+
 def worker_identity(pid):
     try:
         handle=win32api.OpenProcess(win32con.SYNCHRONIZE|win32con.PROCESS_QUERY_INFORMATION|win32con.PROCESS_VM_READ,False,int(pid))
@@ -34,7 +46,11 @@ def recovery_worker_error(pid,worker):
         expected=(str(Path(sys._base_executable).resolve()).casefold(),status['worker_start_time'])
         if worker_identity(status['worker_pid'])!=expected:
             return 'Recovery worker exited or its process identity changed'
-        if not worker.get('settings') or status.get('settings')!=worker['settings']:
+        follows=bool(worker.get('policy') and worker['policy'].get('source')=='solidworks'
+                     and status.get('follow_native_preferences'))
+        if worker.get('policy') and worker['policy'].get('source')=='solidworks' and not follows:
+            return 'Recovery worker does not follow native preferences; stop the old worker before reconnecting'
+        if not matching_settings(status.get('settings'),worker.get('settings'),follows):
             return 'Recovery worker settings changed or cannot be verified'
         if status.get('unprotected_documents'):
             return 'Recovery monitor has unsupported dirty documents; inspect unprotected_documents in its status file'
@@ -87,7 +103,12 @@ def ensure_recovery_worker(pid,app=None):
                     raise RuntimeError('Existing recovery worker identity mismatch; refusing a duplicate')
                 if previous['status'] in ('failed','stopped'):
                     raise RuntimeError('Existing recovery worker is finishing shutdown; no replacement was launched')
-                if previous.get('settings')!=settings:
+                if policy and not previous.get('follow_native_preferences'):
+                    raise RuntimeError('Existing recovery worker does not follow native preferences; stop that worker before reconnecting')
+                if not policy and previous.get('follow_native_preferences'):
+                    raise RuntimeError('Existing recovery worker follows native preferences; stop that worker before switching to forced mode')
+                follows=bool(policy and previous.get('follow_native_preferences'))
+                if not matching_settings(previous.get('settings'),settings,follows):
                     raise RuntimeError('Existing recovery worker settings differ or are unverified; stop that worker before applying new settings')
                 if pending:pending_path.unlink()
                 return {'worker_pid':previous['worker_pid'],'worker_start_time':previous['worker_start_time'],
@@ -103,6 +124,7 @@ def ensure_recovery_worker(pid,app=None):
                    '--directory',str(directory),'--status-file',str(status),'--interval',str(interval),
                    '--stop-file',str(marker),'--startup-token',token,
                    '--settings-json',json.dumps(settings)]
+        if policy:arguments.append('--follow-native-preferences')
         write_state(pending_path,{'kind':'recovery_worker_startup','pid':int(pid),
                     'process_start_time':expected['start_time'],'session_file':str(session.resolve()),
                     'startup_token':token})
