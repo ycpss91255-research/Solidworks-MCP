@@ -112,12 +112,14 @@ def launch_journal_experiment(executable, folder, evidence, on_launch=None):
         return pid
 
 
-def launch_session(executable, session_file, journal_dir=None, journal_evidence=None, journal_redirect=None):
+def launch_session(executable, session_file, journal_dir=None, journal_evidence=None, journal_redirect=None, journal_preload=False):
     """Reuse only this session's recorded live process; never cap other sessions."""
     from solidworks_mcp.automation.managed_session import process_identity, write_state
     path = Path(session_file)
     if not path.is_absolute():
         raise ValueError('An absolute per-session file is required')
+    if journal_preload and not journal_redirect:
+        raise ValueError('Journal preload requires explicit routing paths')
     with launcher_lock():
         if path.exists():
             state = json.loads(path.read_text(encoding='utf-8'))
@@ -156,19 +158,23 @@ def launch_session(executable, session_file, journal_dir=None, journal_evidence=
         if journal_dir:
             pid = launch_journal_experiment(executable, journal_dir, journal_evidence, reserve)
         else:
-            pid = _launch_locked(executable, journal_redirect) if journal_redirect else _launch_locked(executable)
+            pid = (_launch_locked(executable,journal_redirect,True) if journal_preload else
+                   _launch_locked(executable,journal_redirect) if journal_redirect else _launch_locked(executable))
             reserve(pid)
         return pid, True
 
 
-def _launch_locked(executable, journal_redirect=None):
+def _launch_locked(executable, journal_redirect=None, journal_preload=False):
     executable = Path(executable).resolve(strict=True)
     if executable.name.casefold() != 'sldworks.exe':
         raise ValueError('Expected the installed SLDWORKS.exe')
     for notice in check_journal_available():
         logging.getLogger(__name__).warning(notice)
     if journal_redirect:
-        from solidworks_mcp.journal_redirect_bootstrap import initialize_created
+        if journal_preload:
+            from solidworks_mcp.journal_preload_bootstrap import preload_created as initialize_created
+        else:
+            from solidworks_mcp.journal_redirect_bootstrap import initialize_created
         dll, source, destination = journal_redirect[:3]
         def before_resume(process,pid):
             initialize_created(process,pid,dll,source,destination,
@@ -232,6 +238,7 @@ def main():
     parser.add_argument('--journal-source-dir', type=Path, help='Exact original journal directory for experimental routing')
     parser.add_argument('--journal-private-dir', type=Path, help='New empty private journal directory for experimental routing')
     parser.add_argument('--recovery-private-dir', type=Path, help='Experimental process-local AutoRecover directory; requires journal routing')
+    parser.add_argument('--journal-preload', action='store_true', help='Experimental early import preload into the new process only')
     parser.add_argument('--journal-dir', type=Path, help='Experimental unique journal folder; changes and restores the per-user registry value')
     parser.add_argument('--journal-evidence', type=Path, help='Required absolute backup/evidence path for --journal-dir')
     args = parser.parse_args()
@@ -241,8 +248,8 @@ def main():
     if args.launch and not session_file:
         parser.error('--launch requires --session-file or --output belonging to this chat')
     redirect_parts=(args.journal_redirect_dll,args.journal_source_dir,args.journal_private_dir)
-    if args.recovery_private_dir and not all(redirect_parts):
-        parser.error('--recovery-private-dir requires all journal routing arguments')
+    if (args.recovery_private_dir or args.journal_preload) and not all(redirect_parts):
+        parser.error('Recovery directory and journal preload require all journal routing arguments')
     if any(redirect_parts) and (not all(redirect_parts) or not args.launch or args.journal_dir):
         parser.error('Journal routing experiment requires --launch and all three routing arguments')
     if all(redirect_parts):
@@ -257,7 +264,7 @@ def main():
             raise RuntimeError('SolidWorks installation not found; no process was launched')
         routing=(redirect_parts+(args.recovery_private_dir,) if args.recovery_private_dir else redirect_parts)
         pid, launched = launch_session(executable, session_file, args.journal_dir, args.journal_evidence,
-                                       routing if all(redirect_parts) else None)
+                                       routing if all(redirect_parts) else None,args.journal_preload)
         print(f'{"Launched" if launched else "Reused"} this session instance: PID {pid}', flush=True)
     if not pid or pid <= 0:
         raise ValueError('A positive PID is required')

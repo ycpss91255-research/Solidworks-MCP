@@ -1,0 +1,4 @@
+EXPORTS
+InitializeJournalRedirect @1
+InitializeRecoveryRedirect
+StopJournalRedirect

@@ -7,6 +7,12 @@ from launch_solidworks import launch_session
 
 
 class LauncherSessionTests(unittest.TestCase):
+    def test_preload_without_routing_never_launches(self):
+        with tempfile.TemporaryDirectory() as folder, patch('launch_solidworks._launch_locked') as start:
+            with self.assertRaisesRegex(ValueError,'explicit routing paths'):
+                launch_session('SLDWORKS.exe',Path(folder)/'state.json',journal_preload=True)
+            start.assert_not_called()
+
     def test_private_recovery_cannot_be_inside_shared_journal_directory(self):
         with tempfile.TemporaryDirectory() as folder:
             root=Path(folder)

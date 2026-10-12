@@ -96,6 +96,69 @@ Next investigate startup initialization timing: private directory readback
 does not prove that the recovery engine initialized or that its timer is
 active. Do not deploy these experiments as a completed recovery fix.
 
+## Early import preload diagnostic
+
+`--journal-preload` selects a separate experimental loader. It prepends the
+native routing DLL to the fresh suspended process's in-memory PE import table.
+This focused x64 implementation is adapted from Microsoft Detours v4.0.1
+`uimports.cpp`; the accompanying MIT license is retained. It supports only
+native x64 images with an existing import / IAT directory and an ASCII DLL
+path, and fails instead of trying alternate loading methods.
+
+The DLL reads a PID-specific shared-memory configuration during process attach,
+validates its PID, installs the hooks, and restores the original import/bound
+directory entries and checksum. Its ordinal 1 export is declared explicitly.
+Only the newly created process's mapped image is changed. The installed
+executable and working processes are untouched. No code-integrity or security
+policy is changed. Managed production startup does not enable this loader.
+
+From a folder containing the native source and MinHook source:
+
+```powershell
+clang -shared -O2 -static -I./minhook-1.3.4/include preload_wrapper.c preload.def minhook-1.3.4/src/buffer.c minhook-1.3.4/src/hook.c minhook-1.3.4/src/trampoline.c minhook-1.3.4/src/hde/hde64.c -ladvapi32 -o journal_preload.dll
+clang -shared -O2 -static constructor_dependency.c '-Wl,--out-implib,constructor_dependency.a' -o constructor_dependency.dll
+clang -O2 -static constructor_probe.c constructor_dependency.a -o constructor_probe.exe
+```
+
+Put these fixture binaries in the ignored checkout `test-results/native-journal`
+folder alongside the ordinary `journal_redirect.dll`, then run:
+
+```powershell
+python tests/verify_journal_preload_native.py
+```
+
+The fixture opens a fake journal from an imported DLL's process-attach routine.
+The old remote-thread bootstrap misses this open; early import preload succeeds
+while the parent retains an exclusive original-file lock. It also verifies
+restoration of the mapped import directory and the disk executable's hash.
+It never launches or connects to SolidWorks.
+
+Windows documents that remote threads wait for DLL initialization:
+https://learn.microsoft.com/en-us/windows/win32/api/processthreadsapi/nf-processthreadsapi-createremotethread .
+The import-first technique is documented at
+https://github.com/microsoft/Detours/wiki/DetourCreateProcessWithDlls .
+These references explain the technique; they do not prove SolidWorks recovery.
+
+The actual early-preload test used PID 6336 with the two original workers left
+running. The DLL reported initialization before the application's imports;
+the owned instance held a private journal and reported a private recovery
+directory. Startup warning events/errors were empty. Independent MCP clients
+reconnected to the exact PID. UI inspection showed no blocking dialog.
+CommandInProgress was false, UserControl and Visible were true.
+
+After testing unsaved sketches, a one-body cylinder was saved at 5 mm depth,
+then changed to 6 mm without saving. MCP measured volume
+1.884955592153876e-6 cubic metres and an unsaved flag. After about 291 seconds
+from the solid baseline, including a UI rebuild command, the private recovery
+directory was still empty. The journal remained zero bytes. The test part and
+process were closed through their own MCP, and the two working PID identities
+remained unchanged. Early loading alone does not resolve actual AutoRecover.
+
+Existing live session states are reused. Routing/preload options do not
+reconfigure an existing instance. Use a new owned state and empty folders for
+an explicit new experiment. Recovery engine conditions and a usable recovery
+artifact still require investigation; this goal is not complete.
+
 The native journal test uses disposable helper processes and a fake locked journal.
 It verifies normal and malformed NT opens, backup operations, owner rejection,
 and an unrelated file. It never starts or connects to SolidWorks.
