@@ -2,6 +2,18 @@
 from collections import Counter,defaultdict
 import math
 
+def missing_reference_inventory(rows,exists=None):
+    from pathlib import Path
+    if exists is None:exists=lambda path:Path(path).is_file()
+    result={}
+    for row in rows:
+        path=row['source_path']
+        if not path or exists(path):continue
+        key=path.casefold()
+        counts=result.setdefault(key,{'active':0,'suppressed':0})
+        counts['suppressed' if row['suppressed'] else 'active']+=1
+    return result
+
 def capture_assembly_state(doc,major):
     """Read effective occurrence state from the already bound assembly."""
     from pathlib import Path
@@ -21,7 +33,8 @@ def capture_assembly_state(doc,major):
              'name':get0(component,'Name2')}
         occurrence_key(row);rows.append(row)
     configuration=get0(get0(doc.ConfigurationManager,'ActiveConfiguration'),'Name')
-    return {'configuration':configuration,'occurrences':rows}
+    return {'configuration':configuration,'occurrences':rows,
+            'missing_references':missing_reference_inventory(rows)}
 
 def occurrence_key(row):
     if type(row.get('suppressed')) is not bool:

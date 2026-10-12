@@ -25,11 +25,25 @@ occurrences. This reopening is in the same helper process; the result records
 `snapshot_package` now accepts an independent `package_processor` callback.
 Its result must cover all primary outputs and declared STEP aliases, have
 unchanged matching hashes, verify every occurrence and identify a separate
-helper. A nonzero or unverified reopen error prevents source finalization.
+helper. Unverified load errors prevent source finalization. The sole supported
+nonzero exception is FileNotFound (2) with an exactly preserved, nonempty
+source inventory of missing suppressed references, zero missing active
+occurrences and no new missing path. Such completion retains the source
+limitation in its manifest; it cannot recover files missing before backup.
 The source owner still verifies its original document, occurrence state,
 loaded-source states, disk hashes and PID/creation identity before completion.
-The optional processor is not yet connected to automatic worker lifecycle;
-no working session was given a helper or retargeted in this change.
+Automatic batches now select the processor when
+`SOLIDWORKS_RECOVERY_REPAIR_SESSION_FILE` explicitly names a separate owned
+helper. The helper state must have role `recovery_repair`, its own live PID and
+creation time, and `source_session_file` equal to the source's absolute state
+path. Neither the service nor worker launches CAD. Missing/unowned helpers
+return an explicit error. No working session was given a helper or retargeted.
+
+The private worker request/result have matching random tokens. Helper startup
+and recursive monitoring are disabled. Source PID/creation time and both
+session ownership records are rechecked during repair; one mutex serializes
+requests to a helper. The worker connects through the existing PID-bound
+automation backend and never falls back to a generic COM application.
 
 ## Real integration on 2026-10-12
 
@@ -39,8 +53,17 @@ recorded three STEP aliases and their hashes, saved/reopened the private root,
 and exited normally with no documents remaining. Its reopen returned error 2.
 The source fixture also contains seven distinct missing suppressed references
 and no missing active reference paths. This inventory alone does not prove
-the load error's cause. The source-finalization gate therefore still rejects
-this result, and the original failed manifest was not promoted.
+the load error's cause, and the original failed manifest was not promoted.
+
+On 2026-10-13, a fresh owned PID 33000 opened the source fixture itself and
+returned error 2, warning 0. Numeric missing-reference inventories were then
+compared against the independently reopened repaired model: all seven missing
+paths and suppressed occurrence counts were unchanged, with no missing active
+occurrence. Revalidation accepted the repair proof and all 1,408 declared file
+hashes (1,405 primaries plus three STEP aliases), retaining the original failed
+generation status. The acceptance exception is now restricted to exactly this
+preserved source limitation. Active missing files, new missing paths, other
+error flags and unverified inventories still prevent completion.
 
 An initial test attempted `ShowConfiguration2` even when the desired
 configuration was already active; its false return was incorrectly interpreted
@@ -49,8 +72,9 @@ configuration first and verifies it after switching. The corrected real
 combined integration passed its occurrence check.
 
 Evidence is ignored under `test-results/mr12-isolated-proof`:
-`integrated-private-repair.json` and `source-missing-reference-inventory.json`.
-The non-CAD suite passes 192 tests. Working PIDs 2836 and 19780 were not targeted;
+`integrated-private-repair.json`, `source-missing-reference-inventory.json`,
+`source-open-error-baseline.json` and `source-limitation-acceptance-proof.json`.
+The non-CAD suite passes 201 tests. Working PIDs 2836 and 19780 were not targeted;
 only the fork's `codex/pid-isolation` branch is updated. Automatic worker
-integration, load-error resolution, and end-to-end source/helper validation
+configuration, end-to-end source/helper validation and final completion audit
 remain required before the full backup objective is complete.

@@ -128,6 +128,8 @@ def snapshot_package(app,pid,directory,document_adapter=lambda doc:doc,pack_fact
                 from .package_repair import validate_repair_result
                 validate_repair_result(evidence,proof)
                 evidence['independent_package_repair']=proof
+                if proof.get('source_missing_references_preserved'):
+                    evidence['source_limitations']={'missing_suppressed_references':assembly_state['missing_references']}
             if step_sources:
                 # A copied STEP is insufficient if a saved import still points
                 # to the original. Search=False reads recorded paths, rather

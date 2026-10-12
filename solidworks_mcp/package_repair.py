@@ -4,7 +4,7 @@ from collections import Counter
 import json,shutil
 from .recovery_snapshot import get0,fingerprint,held_process
 from .automation.managed_session import process_identity
-from .component_states import occurrence_key,restore_suppression
+from .component_states import occurrence_key,restore_suppression,missing_reference_inventory
 from .step_recovery import repair_step_links
 from .assembly_recovery import STEP_EXTENSIONS
 
@@ -74,8 +74,16 @@ def validate_repair_result(evidence,result):
         raise ValueError('Repair result has no independent helper identity')
     if result.get('assembly_state_restoration',{}).get('verified_occurrences')!=len(state['occurrences']):
         raise ValueError('Repair result did not verify every assembly occurrence')
-    if result.get('reopen_errors')!=0:
-        raise ValueError('Repair reopen has unresolved load errors; source owner cannot finalize the backup')
+    error=result.get('reopen_errors')
+    if error!=0:
+        baseline=state.get('missing_references',{})
+        # SW's FileNotFound flag may already exist in the source's suppressed
+        # references. Preserve that limitation, but never accept a new missing
+        # path, a missing active occurrence, or a different load-error flag.
+        if (error!=2 or not baseline or any(v['active'] for v in baseline.values())
+                or result.get('missing_references_after')!=baseline
+                or not result.get('source_missing_references_preserved')):
+            raise ValueError('Repair reopen has unresolved load errors; source owner cannot finalize the backup')
     hashes=result.get('package_files_sha256',{})
     required=set(mapping.values())
     for alias,details in result.get('step_aliases',{}).items():
@@ -174,6 +182,10 @@ def repair_private_assembly(app,helper_pid,helper_session_file,evidence,module,
         def full_key(row):return occurrence_key(row),row['suppressed']
         if Counter(map(full_key,actual))!=Counter(map(full_key,desired['occurrences'])):
             raise RuntimeError('Saved private assembly state did not survive reopening')
+        physical={str(Path(source).resolve()).casefold():output for source,output in mapping.items()}
+        missing=missing_reference_inventory(actual,exists=lambda path:Path(physical.get(path,path)).is_file())
+        baseline=desired.get('missing_references',{})
+        preserved=bool(baseline and missing==baseline and not any(v['active'] for v in baseline.values()))
         verify();app.CloseAllDocuments(True)
         hashes={path:fingerprint(path) for path in list(mapping.values())+list(aliases)}
         if any(sha is None for sha in hashes.values()):raise RuntimeError('Repaired package file is missing')
@@ -182,4 +194,5 @@ def repair_private_assembly(app,helper_pid,helper_session_file,evidence,module,
                 'assembly_state_restoration':state_result,'saved_private_documents':saved,
                 'reopen_errors':reopened[1] if isinstance(reopened,tuple) else None,
                 'reopen_warnings':reopened[2] if isinstance(reopened,tuple) else None,
+                'missing_references_after':missing,'source_missing_references_preserved':preserved,
                 'package_files_sha256':hashes,'fresh_process_reopen':False}

@@ -65,5 +65,21 @@ class PackageRepairTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError,'independent'):validate_repair_result(self.evidence,result)
         result=self.result();result['reopen_errors']=2
         with self.assertRaisesRegex(ValueError,'load errors'):validate_repair_result(self.evidence,result)
+    def test_only_unchanged_missing_suppressed_baseline_allows_file_not_found(self):
+        baseline={'d:/old/missing.sldprt':{'active':0,'suppressed':2}}
+        self.evidence['assembly_occurrence_state']['missing_references']=baseline
+        result=self.result();result.update(reopen_errors=2,missing_references_after=baseline,
+                                         source_missing_references_preserved=True)
+        self.assertTrue(validate_repair_result(self.evidence,result))
+        result['missing_references_after']={'d:/new/missing.sldprt':{'active':0,'suppressed':2}}
+        with self.assertRaisesRegex(ValueError,'load errors'):validate_repair_result(self.evidence,result)
+    def test_missing_active_baseline_and_other_error_flags_never_allow_completion(self):
+        baseline={'d:/old/missing.sldprt':{'active':1,'suppressed':2}}
+        self.evidence['assembly_occurrence_state']['missing_references']=baseline
+        result=self.result();result.update(reopen_errors=2,missing_references_after=baseline,
+                                         source_missing_references_preserved=True)
+        with self.assertRaisesRegex(ValueError,'load errors'):validate_repair_result(self.evidence,result)
+        baseline['d:/old/missing.sldprt']['active']=0;result['reopen_errors']=3
+        with self.assertRaisesRegex(ValueError,'load errors'):validate_repair_result(self.evidence,result)
 
 if __name__=='__main__':unittest.main()

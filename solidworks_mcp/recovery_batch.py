@@ -5,6 +5,8 @@ from .automation.managed_session import process_identity
 import traceback
 
 def snapshot_documents(app,pid,directory,documents,adapter,allow_activation=False,idle=lambda:True):
+    from .package_repair_service import configured_processor
+    processor=configured_processor()
     with held_process(pid) as identity:
         report={'status':'writing','pid':pid,'process_start_time':identity,'document_type':'batch','snapshots':[]}
         def verify():
@@ -31,7 +33,7 @@ def snapshot_documents(app,pid,directory,documents,adapter,allow_activation=Fals
                             app.ActivateDoc3(target['title'],False,1,0)
                             if key(current())!=key(target):raise RuntimeError('Recovery package activation selected another document')
                         snapshot=snapshot_package(app,pid,directory,adapter,
-                            allow_step_activation=allow_activation,idle=idle)
+                            allow_step_activation=allow_activation,idle=idle,package_processor=processor)
                     finally:
                         verify()
                         if switching:

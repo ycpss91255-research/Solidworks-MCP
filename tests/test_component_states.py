@@ -1,6 +1,6 @@
 import unittest
 from unittest.mock import Mock
-from solidworks_mcp.component_states import restore_suppression,occurrence_key
+from solidworks_mcp.component_states import restore_suppression,occurrence_key,missing_reference_inventory
 
 class ComponentStateTests(unittest.TestCase):
     def row(self,suppressed=False,path='C:/private/part.SLDPRT',x=0):
@@ -32,6 +32,11 @@ class ComponentStateTests(unittest.TestCase):
     def test_nonfinite_transform_is_rejected(self):
         row=self.row();row['matrix'][0]=float('nan')
         with self.assertRaisesRegex(ValueError,'finite'):occurrence_key(row)
+    def test_missing_reference_inventory_keeps_active_and_suppressed_instances(self):
+        result=missing_reference_inventory([self.row(False),self.row(True)],exists=lambda path:False)
+        self.assertEqual(result['c:/private/part.sldprt'],{'active':1,'suppressed':1})
+    def test_existing_reference_is_not_marked_missing(self):
+        self.assertEqual(missing_reference_inventory([self.row()],exists=lambda path:True),{})
     def test_shared_subassembly_change_is_rechecked(self):
         current=[self.row(),self.row()];desired=[self.row(True),self.row(True)];calls=[]
         def change(row,target):
