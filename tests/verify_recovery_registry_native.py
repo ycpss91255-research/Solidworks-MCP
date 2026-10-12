@@ -38,11 +38,25 @@ if len(sys.argv)>1:
         size=w.DWORD(4096);buffer=c.create_string_buffer(4096)
         assert adv.RegQueryValueExA(int(handle),b'AutoRecover Directory',None,c.byref(typ),buffer,c.byref(size))==0
         assert buffer.value.decode('mbcs')==str(recovery)
+        # Prove the native API remains outside the RegQueryValueEx view.
+        class Unicode(c.Structure):
+            _fields_=[('Length',w.USHORT),('MaximumLength',w.USHORT),('Buffer',w.LPWSTR)]
+        text='AutoRecover Directory';name_buffer=c.create_unicode_buffer(text)
+        name=Unicode(len(text)*2,(len(text)+1)*2,c.cast(name_buffer,w.LPWSTR))
+        nt=c.WinDLL('ntdll')
+        nt.NtQueryValueKey.argtypes=[w.HANDLE,c.POINTER(Unicode),w.ULONG,c.c_void_p,w.ULONG,c.POINTER(w.ULONG)]
+        nt.NtQueryValueKey.restype=c.c_long
+        native=c.create_string_buffer(1024);required=w.ULONG()
+        assert nt.NtQueryValueKey(int(handle),c.byref(name),2,native,len(native),c.byref(required))==0
+        data_length=int.from_bytes(native.raw[8:12],'little')
+        original=native.raw[12:12+data_length].decode('utf-16le').rstrip('\0')
+        assert original=='parent-original',original
+        assert 'NATIVE_QUERY class=2' in (private/'redirect-events.log').read_text(encoding='utf-16le')
     with winreg.OpenKey(winreg.HKEY_CURRENT_USER,key+'_other',0,winreg.KEY_ALL_ACCESS) as handle:
         assert winreg.QueryValueEx(handle,'AutoRecover Directory')[0]=='other-original'
         winreg.SetValueEx(handle,'AutoRecover Directory',0,winreg.REG_SZ,'other-normal-write')
     assert lib.StopJournalRedirect(None)==0
-    print(json.dumps({'private_query':True,'private_write_suppressed':True,'different_directory_rejected':True}))
+    print(json.dumps({'private_query':True,'private_write_suppressed':True,'different_directory_rejected':True,'native_query_bypasses_private_view':True}))
 else:
     key=r'Software\SWMCPRecoveryFixture_'+uuid.uuid4().hex
     with winreg.CreateKey(winreg.HKEY_CURRENT_USER,key) as handle:

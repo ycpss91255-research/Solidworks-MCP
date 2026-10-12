@@ -17,6 +17,7 @@ static BOOL (WINAPI *original_copy)(LPCWSTR,LPCWSTR,BOOL);
 static BOOL (WINAPI *original_move)(LPCWSTR,LPCWSTR,DWORD);
 static NTSTATUS (NTAPI *original_nt_create)(PHANDLE,ACCESS_MASK,POBJECT_ATTRIBUTES,PIO_STATUS_BLOCK,PLARGE_INTEGER,ULONG,ULONG,ULONG,ULONG,PVOID,ULONG);
 static NTSTATUS (NTAPI *original_nt_open)(PHANDLE,ACCESS_MASK,POBJECT_ATTRIBUTES,PIO_STATUS_BLOCK,ULONG,ULONG);
+static NTSTATUS (NTAPI *original_nt_set)(HANDLE,PIO_STATUS_BLOCK,PVOID,ULONG,ULONG);
 
 static BOOL journal_path(LPCWSTR path) {
     LPCWSTR name;
@@ -118,6 +119,62 @@ static NTSTATUS NTAPI redirected_nt_open(PHANDLE handle,ACCESS_MASK access,POBJE
     if(changed || journal_path(path)) {DWORD error=GetLastError();record(changed?L"NtOpenFile ROUTED":L"NtOpenFile UNMATCHED",changed?mapped:path,(DWORD)status);if(changed)record(L"NtOpenFile ORIGINAL",path,(DWORD)status);SetLastError(error);}
     return status;
 }
+static NTSTATUS NTAPI redirected_nt_set(HANDLE file,PIO_STATUS_BLOCK io,PVOID data,ULONG length,ULONG information_class) {
+    WCHAR current[2048],parent[2048],requested[2048],mapped[2048],target[2052],normalized[2048];
+    WCHAR *base; DWORD count,error; ULONG name_length,new_length; HANDLE root; BYTE *copy; NTSTATUS status;
+    /* FILE_RENAME_INFORMATION and FILE_RENAME_INFORMATION_EX share their
+       x64 RootDirectory / FileNameLength / FileName offsets (8 / 16 / 20). */
+    if((information_class!=10 && information_class!=65) || !data || length<20 || owner!=GetCurrentProcessId())
+        return original_nt_set(file,io,data,length,information_class);
+    count=GetFinalPathNameByHandleW(file,current,2048,0);
+    if(!count || count>=2048 || !journal_path(current)) return original_nt_set(file,io,data,length,information_class);
+    base=!wcsncmp(current,L"\\\\?\\",4)?current+4:current;
+    wcscpy(parent,base);
+    {
+        WCHAR *filename=wcsrchr(parent,L'\\');
+        if(!filename)return original_nt_set(file,io,data,length,information_class);
+        *filename=0;
+        count=GetLongPathNameW(parent,normalized,2048);
+        if(!count || count>=2048)return (NTSTATUS)0xC0000022;
+    }
+    if(_wcsicmp(normalized,destination_root))return original_nt_set(file,io,data,length,information_class);
+    count=(DWORD)wcslen(destination_root);
+    memcpy(&root,(BYTE*)data+8,sizeof(root));memcpy(&name_length,(BYTE*)data+16,4);
+    if(name_length%2 || name_length>=sizeof(requested) || name_length>length-20) return (NTSTATUS)0xC000000D;
+    memcpy(requested,(BYTE*)data+20,name_length);requested[name_length/2]=0;
+    if(root) {
+        count=GetFinalPathNameByHandleW(root,parent,2048,0);
+        if(!count || count>=2048) return (NTSTATUS)0xC0000022;
+        base=!wcsncmp(parent,L"\\\\?\\",4)?parent+4:parent;
+        if(wcslen(base)+wcslen(requested)+2>=2048) return (NTSTATUS)0xC000000D;
+        wcscpy(target,base);wcscat(target,L"\\");wcscat(target,requested);
+    } else {
+        if(!wcschr(requested,L'\\') && journal_path(requested))
+            return original_nt_set(file,io,data,length,information_class);
+        wcscpy(target,!wcsncmp(requested,L"\\??\\",4)?requested+4:requested);
+    }
+    count=GetFullPathNameW(target,2048,normalized,NULL);
+    if(!count || count>=2048)return (NTSTATUS)0xC000000D;
+    wcscpy(target,normalized);
+    if(route(target,mapped,2048)<=0) {
+        count=(DWORD)wcslen(destination_root);
+        if(_wcsnicmp(target,destination_root,count) || target[count]!=L'\\' ||
+           wcschr(target+count+1,L'\\') || !journal_path(target)) {
+            record(L"NtRename PRIVATE_ESCAPE_DENIED",target,0xC0000022);
+            return (NTSTATUS)0xC0000022;
+        }
+        return original_nt_set(file,io,data,length,information_class);
+    }
+    wcscpy(target,L"\\??\\");wcscat(target,mapped);
+    new_length=(ULONG)(wcslen(target)*2);
+    copy=HeapAlloc(GetProcessHeap(),0,20+new_length);
+    if(!copy)return (NTSTATUS)0xC0000017;
+    memcpy(copy,data,20);root=NULL;memcpy(copy+8,&root,sizeof(root));memcpy(copy+16,&new_length,4);
+    memcpy(copy+20,target,new_length);
+    status=original_nt_set(file,io,copy,20+new_length,information_class);
+    error=GetLastError();record(L"NtRename ROUTED",mapped,(DWORD)status);SetLastError(error);
+    HeapFree(GetProcessHeap(),0,copy);return status;
+}
 static BOOL WINAPI redirected_delete(LPCWSTR path) {
     WCHAR mapped[2048]; int changed=route(path,mapped,2048);
     if (changed<0) {SetLastError(ERROR_FILENAME_EXCED_RANGE); return FALSE;}
@@ -161,6 +218,7 @@ __declspec(dllexport) DWORD WINAPI InitializeJournalRedirect(LPVOID data) {
     INSTALL("MoveFileExW", redirected_move, original_move);
     status=MH_CreateHookApi(L"ntdll","NtCreateFile",redirected_nt_create,(LPVOID*)&original_nt_create); if(status!=MH_OK) goto failed;
     status=MH_CreateHookApi(L"ntdll","NtOpenFile",redirected_nt_open,(LPVOID*)&original_nt_open); if(status!=MH_OK) goto failed;
+    status=MH_CreateHookApi(L"ntdll","NtSetInformationFile",redirected_nt_set,(LPVOID*)&original_nt_set); if(status!=MH_OK) goto failed;
     status=MH_EnableHook(MH_ALL_HOOKS); if(status!=MH_OK) goto failed;
     record(L"INITIALIZED",destination_root,0); record(L"EXACT_FALLBACK_ROOT",malformed_source_root,0); return 0;
 failed:

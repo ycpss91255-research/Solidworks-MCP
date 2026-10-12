@@ -2,6 +2,7 @@
 typedef struct { DWORD owner_pid; WCHAR key[1024]; WCHAR directory[1024]; } RECOVERY_CONFIG;
 static WCHAR recovery_key[1024], recovery_directory[1024];
 static NTSTATUS (NTAPI *query_key)(HANDLE,ULONG,PVOID,ULONG,PULONG);
+static NTSTATUS (NTAPI *real_query_value)(HANDLE,PUNICODE_STRING,ULONG,PVOID,ULONG,PULONG);
 static LSTATUS (WINAPI *real_query_w)(HKEY,LPCWSTR,LPDWORD,LPDWORD,LPBYTE,LPDWORD);
 static LSTATUS (WINAPI *real_query_a)(HKEY,LPCSTR,LPDWORD,LPDWORD,LPBYTE,LPDWORD);
 static LSTATUS (WINAPI *real_set_w)(HKEY,LPCWSTR,DWORD,DWORD,const BYTE*,DWORD);
@@ -54,6 +55,20 @@ static LSTATUS WINAPI recovery_set_a(HKEY key,LPCSTR value,DWORD reserved,DWORD 
     }
     return real_set_a(key,value,reserved,type,data,size);
 }
+static NTSTATUS NTAPI trace_recovery_query(HANDLE key,PUNICODE_STRING value,ULONG information_class,PVOID buffer,ULONG length,PULONG required) {
+    WCHAR name[128],operation[128]; NTSTATUS status; BOOL target=FALSE; DWORD last_error;
+    if(value && value->Buffer && value->Length<sizeof(name) && !(value->Length%2)) {
+        memcpy(name,value->Buffer,value->Length);name[value->Length/2]=0;
+        target=recovery_match(key,name);
+    }
+    status=real_query_value(key,value,information_class,buffer,length,required);
+    if(target) {
+        last_error=GetLastError();
+        _snwprintf(operation,128,L"RecoveryPreference NATIVE_QUERY class=%lu",information_class);
+        record(operation,name,(DWORD)status);SetLastError(last_error);
+    }
+    return status; /* Diagnostic only: native data remains unchanged. */
+}
 __declspec(dllexport) DWORD WINAPI InitializeRecoveryRedirect(LPVOID data) {
     RECOVERY_CONFIG *config=(RECOVERY_CONFIG*)data; MH_STATUS status;
     if(!config || owner!=GetCurrentProcessId() || config->owner_pid!=owner || recovery_directory[0]) return 1;
@@ -66,6 +81,7 @@ __declspec(dllexport) DWORD WINAPI InitializeRecoveryRedirect(LPVOID data) {
     REGHOOK("RegQueryValueExA",recovery_query_a,real_query_a);
     REGHOOK("RegSetValueExW",recovery_set_w,real_set_w);
     REGHOOK("RegSetValueExA",recovery_set_a,real_set_a);
+    status=MH_CreateHookApi(L"ntdll","NtQueryValueKey",trace_recovery_query,(LPVOID*)&real_query_value); if(status!=MH_OK) goto recovery_failed;
     status=MH_EnableHook(MH_ALL_HOOKS); if(status!=MH_OK) goto recovery_failed;
     record(L"RecoveryPreference INITIALIZED",recovery_directory,0); return 0;
 recovery_failed:

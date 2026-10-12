@@ -1,7 +1,7 @@
 """Native routing proof using disposable Python children and a locked fake journal."""
 import ctypes as c
 from ctypes import wintypes as w
-import json,os,subprocess,sys,tempfile
+import json,os,subprocess,sys,tempfile,struct
 from pathlib import Path
 import win32con,win32file
 
@@ -81,7 +81,26 @@ def child(source,destination,wrong=False):
         assert k.CopyFileW(str(source/'swxJRNL.swj'),str(source/'swxJRNL.bak'),False)
         assert (destination/'swxJRNL.bak').read_text()=='second-private-journal'
         assert k.DeleteFileW(str(source/'swxJRNL.bak'))
-        print(json.dumps({'native_open_redirected':True,'short_path_and_uppercase_redirected':True,'extended_prefix_redirected':True,'nt_open_redirected':True,'invalid_nt_fallback_redirected':True,'backup_move_copy_delete_redirected':True,'unrelated_file_unmodified_routing':True}))
+        # Native rename must never move a private journal into the shared root.
+        nt.NtSetInformationFile.argtypes=[w.HANDLE,c.POINTER(IoStatus),c.c_void_p,w.ULONG,w.ULONG]
+        nt.NtSetInformationFile.restype=c.c_long
+        handle=k.CreateFileW(str(source/'swxJRNL.swj'),0x40000000|0x10000,3,None,3,0x80,None)
+        assert handle!=c.c_void_p(-1).value
+        try:
+            def rename(target):
+                encoded=('\\??\\'+str(target)).encode('utf-16le')
+                data=bytearray(20+len(encoded));struct.pack_into('<I',data,0,1)
+                struct.pack_into('<I',data,16,len(encoded));data[20:]=encoded
+                buffer=c.create_string_buffer(bytes(data))
+                return nt.NtSetInformationFile(handle,c.byref(io),buffer,len(data),10)
+            denied=rename(destination/'..'/'unrelated'/'swxJRNL.bak')
+            assert denied&0xffffffff==0xc0000022,hex(denied&0xffffffff)
+            assert rename(source/'swxJRNL.bak')==0
+        finally:k.CloseHandle(handle)
+        assert (destination/'swxJRNL.bak').read_text()=='second-private-journal'
+        assert k.MoveFileExW(str(source/'swxJRNL.bak'),str(source/'swxJRNL.swj'),1)
+        assert k.DeleteFileW(str(source/'swxJRNL.bak')) or c.get_last_error()==2
+        print(json.dumps({'native_open_redirected':True,'short_path_and_uppercase_redirected':True,'extended_prefix_redirected':True,'nt_open_redirected':True,'invalid_nt_fallback_redirected':True,'backup_move_copy_delete_redirected':True,'native_rename_keeps_shared_backup':True,'private_path_escape_denied':True,'unrelated_file_unmodified_routing':True}))
     finally:
         assert lib.StopJournalRedirect(None)==0
 
@@ -93,6 +112,7 @@ else:
         source=Path(folder).resolve()/'source';destination=Path(folder).resolve()/'private'
         source.mkdir();destination.mkdir()
         journal=source/'swxJRNL.swj'; journal.write_text('parent-original-journal')
+        backup=source/'swxJRNL.bak';backup.write_text('parent-protected-backup')
         lock=win32file.CreateFile(str(journal),win32con.GENERIC_READ,0,None,win32con.OPEN_EXISTING,0,None)
         results=[]
         try:
@@ -105,7 +125,7 @@ else:
         assert (destination/'swxJRNL.swj').read_text()=='second-private-journal'
         assert (source/'model-control.txt').read_text()=='unrelated-file-in-original-folder'
         assert not (destination/'model-control.txt').exists()
-        assert not (source/'swxJRNL.bak').exists()
+        assert backup.read_text()=='parent-protected-backup'
         result={'passed':True,'parent_original_journal_unchanged':True,'cases':results,'solidworks_touched':False}
         (HERE/'verification.json').write_text(json.dumps(result,indent=2),encoding='utf-8')
         print(json.dumps(result,indent=2))

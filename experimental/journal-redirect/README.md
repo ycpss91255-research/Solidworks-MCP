@@ -196,6 +196,45 @@ No working instance was closed. Further CAD experiments should revalidate
 current resource availability and avoid repeatedly reopening loaded documents.
 No production preload or automatic recovery-copy policy has been enabled.
 
+## Native registry diagnostics and backup-rename isolation correction
+
+The recovery preference DLL now records exact-target NtQueryValueKey calls
+without modifying their return buffers. A disposable registry fixture proves
+that RegQueryValueEx can see the private directory while a direct native read
+still sees the persistent original value. This is an API-coverage gap, not
+proof that SolidWorks' recovery engine uses that native path. An actual empty
+startup test (PID 11556) did not log an exact-target native directory read.
+Native enumeration and other preference-cache paths remain unverified.
+
+The journal prototype previously lacked native handle-based rename isolation.
+Opening a private journal does not ensure a later NtSetInformationFile rename
+keeps its backup private. The shared swxJRNL.BAK observed afterward was empty,
+with a timestamp matching an earlier seeded test startup. No before-test
+backup fingerprint was available for that old test, so strict historical
+backup preservation cannot be claimed. The old backup was not overwritten
+or "restored" based on guesses; the working primary journal remained held by
+its original PID. Earlier broad statements that shared settings/files were
+untouched must be read with this correction.
+
+The prototype now handles x64 FileRenameInformation (10) and
+FileRenameInformationEx (65) for handles whose journal file belongs to the
+private directory. Known shared journal destinations are rewritten to private
+destinations. Unknown/outside destinations and parent traversal are denied.
+Ordinary non-journal files retain native behavior. This is not a security
+sandbox and does not establish coverage of every Windows file operation.
+
+Native helper tests verify that a parent process's pre-existing shared backup
+retains its bytes while the private journal is renamed. A subsequent actual
+empty startup (PID 34740) captured the shared backup's SHA256, size and write
+timestamp before launch and after startup/exit: all were unchanged. The owned
+instance connected through its own MCP, reported zero documents, and exited
+normally. These checks validate this run's backup preservation; they do not
+prove native AutoRecover, and no default production preload was enabled.
+
+Windows rename structures and information-class values are documented at:
+- https://learn.microsoft.com/en-us/windows-hardware/drivers/ddi/ntifs/ns-ntifs-_file_rename_information
+- https://learn.microsoft.com/en-us/windows-hardware/drivers/ddi/wdm/ne-wdm-_file_information_class
+
 The native journal test uses disposable helper processes and a fake locked journal.
 It verifies normal and malformed NT opens, backup operations, owner rejection,
 and an unrelated file. It never starts or connects to SolidWorks.
