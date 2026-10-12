@@ -21,7 +21,7 @@ class PackNameTests(unittest.TestCase):
         outputs=p.destinations('C:/private','r123-')
         self.assertEqual(len(set(v.casefold() for v in outputs)),3)
         self.assertTrue(all(Path(v).is_relative_to(Path('C:/private')) for v in outputs))
-        self.assertEqual([Path(v).name for v in outputs],['r-sensor.SLDPRT','r-SENSOR.sldprt','r-assembly.SLDASM'])
+        self.assertEqual([Path(v).name for v in outputs],['sensor.SLDPRT','SENSOR.sldprt','assembly.SLDASM'])
         p.pack.SetSaveToName.assert_called_once_with(True,'C:/private')
         self.assertFalse(p.pack.FlattenToSingleFolder)
         p.pack.SetDocumentSaveToNames.assert_not_called()

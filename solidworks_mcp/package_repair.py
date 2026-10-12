@@ -74,6 +74,13 @@ def validate_repair_result(evidence,result):
         raise ValueError('Repair result has no independent helper identity')
     if result.get('assembly_state_restoration',{}).get('verified_occurrences')!=len(state['occurrences']):
         raise ValueError('Repair result did not verify every assembly occurrence')
+    if evidence.get('source_missing_native_references'):
+        key=lambda p:str(Path(p).resolve()).casefold()
+        baseline={source:{key(p) for p in paths} for source,paths in evidence['source_missing_native_references'].items()}
+        actual=result.get('missing_native_references_after')
+        if actual is None:raise ValueError('Repair did not verify existing missing native context references')
+        actual={source:{key(p) for p in paths} for source,paths in actual.items()}
+        if actual!=baseline:raise ValueError('Missing native context reference inventory changed in backup')
     error=result.get('reopen_errors')
     if error!=0:
         baseline=state.get('missing_references',{})
@@ -99,6 +106,38 @@ def validate_repair_result(evidence,result):
         raise ValueError('Repaired package content changed')
     return hashes
 
+def capture_reference_aliases(app,sources):
+    """Pair recorded/resolved references only when native ordering and labels agree."""
+    key=lambda p:str(Path(p).resolve()).casefold()
+    source_keys={key(p) for p in sources};aliases={}
+    for source in sources:
+        if Path(source).suffix.casefold() not in ('.sldprt','.sldasm','.slddrw'):continue
+        recorded=list(app.GetDocumentDependencies2(source,False,False,False) or ())
+        resolved=list(app.GetDocumentDependencies2(source,False,True,False) or ())
+        if (len(recorded)%2 or len(recorded)!=len(resolved)
+                or [str(n).casefold() for n in recorded[::2]]!=[str(n).casefold() for n in resolved[::2]]):
+            raise RuntimeError('Cannot safely pair recorded and resolved references: '+source)
+        owner={}
+        for old,new in zip(recorded[1::2],resolved[1::2]):
+            if key(old)==key(new) or key(old) in source_keys:continue
+            if key(new) not in source_keys:continue
+            if old in owner and key(owner[old])!=key(new):raise RuntimeError('Reference alias is ambiguous')
+            owner[old]=new
+        if owner:aliases[source]=owner
+    return aliases
+
+def capture_missing_native_references(app,sources):
+    """Record already absent native context links; never treat them as copies."""
+    result={}
+    for source in sources:
+        if Path(source).suffix.casefold() not in ('.sldprt','.sldasm','.slddrw'):continue
+        refs=list(app.GetDocumentDependencies2(source,False,False,False) or ())
+        if len(refs)%2:raise RuntimeError('Cannot enumerate source native references')
+        missing=sorted(set(p for p in refs[1::2]
+                           if Path(p).suffix.casefold() in ('.sldprt','.sldasm') and not Path(p).is_file()))
+        if missing:result[source]=missing
+    return result
+
 def rebind_staged_native_references(app,evidence,verify=lambda:None):
     """Rewrite closed private files before any copied assembly is opened."""
     root,mapping,state=validate_private_package(evidence)
@@ -106,17 +145,20 @@ def rebind_staged_native_references(app,evidence,verify=lambda:None):
     destinations={key(source):output for source,output in mapping.items()}
     missing=set(state.get('missing_references',{}))
     rewrites=[]
-    for output in mapping.values():
+    for source,output in mapping.items():
         if Path(output).suffix.casefold() not in ('.sldprt','.sldasm'):continue
         verify()
         if app.GetOpenDocumentByName(output) is not None:raise RuntimeError('Reference rewrite requires a closed private file')
         refs=list(app.GetDocumentDependencies2(output,False,False,False) or ())
+        absent={key(p) for p in evidence.get('source_missing_native_references',{}).get(source,[])}
         if len(refs)%2:raise RuntimeError('Cannot enumerate staged native references')
         for reference in dict.fromkeys(refs[1::2]):
             if Path(reference).suffix.casefold() in STEP_EXTENSIONS:continue
-            replacement=destinations.get(key(reference))
+            resolved=evidence.get('native_reference_aliases',{}).get(source,{}).get(reference,reference)
+            replacement=destinations.get(key(resolved))
             if replacement is None:
                 if key(reference) in missing and not Path(reference).is_file():continue
+                if key(reference) in absent and not Path(reference).is_file():continue
                 if Path(reference).resolve().is_relative_to(root):continue
                 raise RuntimeError('Staged native reference has no private replacement: '+reference)
             verify()
@@ -128,9 +170,32 @@ def rebind_staged_native_references(app,evidence,verify=lambda:None):
         for reference in after[1::2]:
             if Path(reference).suffix.casefold() in STEP_EXTENSIONS:continue
             if key(reference) in missing and not Path(reference).is_file():continue
+            if key(reference) in absent and not Path(reference).is_file():continue
             if not Path(reference).resolve().is_relative_to(root):
                 raise RuntimeError('Native reference still points outside private package: '+reference)
     return rewrites
+
+def verify_closed_private_native_references(app,evidence):
+    root,mapping,state=validate_private_package(evidence)
+    key=lambda p:str(Path(p).resolve()).casefold()
+    known_missing=set(state.get('missing_references',{}));inventory={}
+    for source,output in mapping.items():
+        if Path(output).suffix.casefold() not in ('.sldprt','.sldasm'):continue
+        if app.GetOpenDocumentByName(output) is not None:raise RuntimeError('Final reference verification requires closed copies')
+        absent={key(p) for p in evidence.get('source_missing_native_references',{}).get(source,[])}
+        refs=list(app.GetDocumentDependencies2(output,False,False,False) or ())
+        if len(refs)%2:raise RuntimeError('Cannot verify final native references')
+        preserved=[]
+        for reference in refs[1::2]:
+            if Path(reference).suffix.casefold() in STEP_EXTENSIONS:continue
+            ref=Path(reference)
+            if not ref.is_file():
+                if key(reference) not in absent|known_missing:raise RuntimeError('New missing native reference in backup: '+reference)
+                preserved.append(reference)
+            elif not ref.resolve().is_relative_to(root):
+                raise RuntimeError('Final native reference points outside private package: '+reference)
+        if preserved:inventory[source]=sorted(set(preserved))
+    return inventory
 
 def repair_private_assembly(app,helper_pid,helper_session_file,evidence,module,
                             memory_warning_action='cancel',verify_source=lambda:None):
@@ -223,10 +288,12 @@ def repair_private_assembly(app,helper_pid,helper_session_file,evidence,module,
         baseline=desired.get('missing_references',{})
         preserved=bool(baseline and missing==baseline and not any(v['active'] for v in baseline.values()))
         verify();app.CloseAllDocuments(True)
+        final_missing_native=verify_closed_private_native_references(app,evidence)
         hashes={path:fingerprint(path) for path in list(mapping.values())+list(aliases)}
         if any(sha is None for sha in hashes.values()):raise RuntimeError('Repaired package file is missing')
         return {'status':'repaired','helper_pid':helper_pid,'helper_start_time':identity,
                 'native_reference_rewrites':native_rewrites,
+                'missing_native_references_after':final_missing_native,
                 'step_aliases':aliases,'step_reference_repairs':repairs,
                 'assembly_state_restoration':state_result,'saved_private_documents':saved,
                 'reopen_errors':reopened[1] if isinstance(reopened,tuple) else None,

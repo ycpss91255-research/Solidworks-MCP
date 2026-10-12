@@ -53,9 +53,10 @@ class NativePack:
         self.pack.FlattenToSingleFolder=False
         if not self.pack.SetSaveToName(True,target):
             raise RuntimeError('Cannot assign private package directory')
-        # Keep copied document titles distinct using a short prefix; the old
-        # ten-character prefix pushed three real MR12 outputs over MAX_PATH.
-        self.pack.AddPrefix='r-'
+        # Preserve basenames: renaming mirrored rack references caused invalid
+        # child occurrences. Private generations and preserved subfolders
+        # provide isolation without changing component filenames.
+        self.pack.AddPrefix=''
         self.pack.AddSuffix=''
         # Let the native package preserve subfolders and handle STEP/virtual
         # naming. On the real mixed MR12 package even identity SetDocumentSaveToNames

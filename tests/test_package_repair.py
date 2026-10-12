@@ -2,7 +2,7 @@ import tempfile,unittest
 from pathlib import Path
 from types import SimpleNamespace
 from solidworks_mcp.recovery_snapshot import fingerprint
-from solidworks_mcp.package_repair import validate_private_package,materialize_step_aliases,validate_repair_result,rebind_staged_native_references
+from solidworks_mcp.package_repair import validate_private_package,materialize_step_aliases,validate_repair_result,rebind_staged_native_references,capture_reference_aliases,capture_missing_native_references,verify_closed_private_native_references
 
 class PackageRepairTests(unittest.TestCase):
     def setUp(self):
@@ -42,6 +42,41 @@ class PackageRepairTests(unittest.TestCase):
         self.app.GetDocumentDependencies2=lambda *args:['part',str(self.source/'unknown.sldprt')]
         with self.assertRaisesRegex(RuntimeError,'no private replacement'):
             rebind_staged_native_references(self.app,self.evidence)
+    def test_native_alias_requires_matching_ordered_reference_labels(self):
+        old=str(self.base/'old'/'part.SLDPRT');new=str(self.source/'part.SLDPRT')
+        self.app.GetDocumentDependencies2=lambda p,t,search,r:['part',new if search else old]
+        aliases=capture_reference_aliases(self.app,self.files)
+        self.assertEqual(aliases[str(self.source/'assembly.SLDASM')][old],new)
+        self.app.GetDocumentDependencies2=lambda p,t,search,r:['other' if search else 'part',new if search else old]
+        with self.assertRaisesRegex(RuntimeError,'safely pair'):capture_reference_aliases(self.app,self.files)
+    def test_existing_missing_context_is_recorded_and_new_missing_is_rejected(self):
+        missing=str(self.base/'old-context.SLDASM')
+        self.app.GetDocumentDependencies2=lambda *args:['context',missing]
+        baseline=capture_missing_native_references(self.app,self.files)
+        self.evidence['source_missing_native_references']=baseline
+        self.app.GetOpenDocumentByName=lambda p:None
+        self.assertEqual(rebind_staged_native_references(self.app,self.evidence),[])
+        self.app.GetDocumentDependencies2=lambda *args:['context',str(self.base/'new-context.SLDASM')]
+        with self.assertRaisesRegex(RuntimeError,'no private replacement'):
+            rebind_staged_native_references(self.app,self.evidence)
+    def test_final_closed_verification_rejects_new_missing_private_reference(self):
+        self.app.GetOpenDocumentByName=lambda p:None
+        self.app.GetDocumentDependencies2=lambda *args:['part',str(self.root/'missing.sldprt')]
+        with self.assertRaisesRegex(RuntimeError,'New missing'):verify_closed_private_native_references(self.app,self.evidence)
+    def test_final_closed_verification_rejects_original_reference(self):
+        self.app.GetOpenDocumentByName=lambda p:None
+        self.app.GetDocumentDependencies2=lambda *args:['part',str(self.source/'part.SLDPRT')]
+        with self.assertRaisesRegex(RuntimeError,'outside private'):verify_closed_private_native_references(self.app,self.evidence)
+    def test_known_missing_context_requires_matching_final_proof(self):
+        missing=str(self.base/'old-context.sldasm')
+        source=str(self.source/'part.SLDPRT')
+        self.evidence['source_missing_native_references']={source:[missing]}
+        result=self.result()
+        with self.assertRaisesRegex(ValueError,'did not verify'):validate_repair_result(self.evidence,result)
+        result['missing_native_references_after']={source:[missing]}
+        validate_repair_result(self.evidence,result)
+        result['missing_native_references_after']={}
+        with self.assertRaisesRegex(ValueError,'inventory changed'):validate_repair_result(self.evidence,result)
     def test_original_step_basename_copy_is_hashed_and_recorded(self):
         result=materialize_step_aliases(self.app,self.evidence)
         alias=str(self.root/'sensor.stp')

@@ -64,6 +64,11 @@ def snapshot_package(app,pid,directory,document_adapter=lambda doc:doc,pack_fact
         sources={p:fingerprint(p) for p in paths}
         if any(value is None for value in sources.values()):
             raise ValueError('Package contains missing or unsaved source files')
+        native_aliases={};native_missing={}
+        if hasattr(pack,'app'):
+            from .package_repair import capture_reference_aliases,capture_missing_native_references
+            native_aliases=capture_reference_aliases(app,paths)
+            native_missing=capture_missing_native_references(app,paths)
         def loaded_states():
             result={}
             for path in paths:
@@ -86,6 +91,10 @@ def snapshot_package(app,pid,directory,document_adapter=lambda doc:doc,pack_fact
                   'source':before,'source_files_sha256':sources,'loaded_sources':loaded_before,
                   'manifest_path':str(manifest),'validated_scope':'saved '+document_type+' with saved part/assembly references and byte-identical STEP dependencies'}
         evidence['step_source_files']=step_sources
+        if native_aliases:evidence['native_reference_aliases']=native_aliases
+        if native_missing:
+            evidence['source_missing_native_references']=native_missing
+            evidence['source_limitations']={'missing_native_context_references':native_missing}
         if assembly_state is not None:evidence['assembly_occurrence_state']=assembly_state
         if document is not None:evidence['active_before']=active_before
         def record():
@@ -132,7 +141,7 @@ def snapshot_package(app,pid,directory,document_adapter=lambda doc:doc,pack_fact
                 validate_repair_result(evidence,proof)
                 evidence['independent_package_repair']=proof
                 if proof.get('source_missing_references_preserved'):
-                    evidence['source_limitations']={'missing_suppressed_references':assembly_state['missing_references']}
+                    evidence.setdefault('source_limitations',{})['missing_suppressed_references']=assembly_state['missing_references']
             if step_sources:
                 # A copied STEP is insufficient if a saved import still points
                 # to the original. Search=False reads recorded paths, rather
@@ -173,6 +182,8 @@ def snapshot_package(app,pid,directory,document_adapter=lambda doc:doc,pack_fact
             if (after!=before or loaded_states()!=loaded_before
                     or any(fingerprint(p)!=sha for p,sha in sources.items())):
                 raise RuntimeError('Source state or disk files changed during assembly snapshot')
+            if hasattr(pack,'app') and capture_missing_native_references(app,paths)!=native_missing:
+                raise RuntimeError('Source missing native reference inventory changed during snapshot')
             if int(get0(app,'GetProcessID'))!=pid or process_identity(pid)!=identity:
                 raise RuntimeError('Snapshot target identity changed after save')
             evidence.update(status='complete',source_preserved=True,

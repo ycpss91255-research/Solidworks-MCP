@@ -114,3 +114,41 @@ The earlier stdio-child repair process stalled before Python initialization.
 The desktop-parent worker path completed the isolated repair instead; request
 tokens and the helper ownership/identity checks still apply. A response timeout
 does not cause this service to launch a replacement worker.
+
+## Fresh restore and rack validation
+
+A fresh owned PID 39612 reopened the complete MR12 package and verified all
+2,853 occurrences including referenced configurations, 1,405 private primary
+sources and volume 34.57444172181828 m³. All 1,408 file hashes remained unchanged.
+It returned the same validated missing-suppressed-reference error 2, warning 0,
+and then exited normally. Evidence: `copy-staging-fresh-restore-proof.json`.
+
+The rack fixture uses copied files from `後推式貨架_原生聯動_v4.SLDASM`; no
+formal model was opened in the test CAD. Closed-file private reference rewrites
+prepared its inputs, and all original file hashes stayed unchanged. A renamed
+fixture/package produced invalid mirrored wheel occurrences. Keeping original
+basenames in distinct private subfolders fixed the actual test: seven files and
+all 108 occurrences were verified, source disk/RAM state was preserved and the
+private root reopened with error 0. The native metadata no longer adds prefixes.
+
+One beam already references the absent `D:/push_back/1重型货架.SLDASM` context.
+Such existing absent native context links are captured by source owner, retained
+exactly and verified from closed final copies. They remain explicit source
+limitations; they are not recovered files. New missing paths, existing external
+files and changed missing-context inventories still reject completion. Recorded
+and resolved aliases may be paired only when native reference counts, order and
+labels agree and the resolved path is in the enumerated source set.
+
+Evidence: ignored `test-results/rack-private-proof/manual-backup.json`,
+`fixture-input.json` and `state-differences.json`. The current non-CAD suite
+passes 210 tests. The real default-mode reconnect test also passed: native
+preferences were AutoRecover enabled, backup disabled, one-minute mode; both
+MCP connections used that 60-second policy without a preference write. The
+first MCP exited, worker PID 43684 produced a complete batch, and the second
+MCP reused the same worker and creation identity. Two complete seven-file
+packages were independently validated, 84.860372 seconds apart (one native
+interval after the prior package work); formal source hashes stayed unchanged.
+The private stop marker then stopped that identified worker normally.
+Evidence: `rack-private-proof/native-timed-reconnect-proof.json` and the two
+`native-*-connect.json` files. A fresh-process rack restore, regression validation
+of the MR12 path with preserved basenames and final deployment audit remain.
