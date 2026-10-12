@@ -163,6 +163,19 @@ class AssemblyRecoveryTests(unittest.TestCase):
                 with self.assertRaisesRegex(SnapshotError,'Source state or disk files changed') as caught:self.snapshot()
                 self.assertEqual(caught.exception.data['status'],'failed')
                 self.part.write_bytes(b'saved 5 mm part');self.app.docs[1].GetSaveFlag=True
+    def test_occurrence_state_is_recorded_and_rechecked(self):
+        state={'configuration':'MR12','occurrences':[{'source_path':str(self.part),'suppressed':True}]}
+        result=snapshot_package(self.app,123,self.directory,pack_factory=lambda d:self.pack,
+                                state_reader=lambda d:state)
+        self.assertEqual(result['assembly_occurrence_state'],state)
+        self.assertEqual(result['assembly_occurrence_state_after'],state)
+    def test_suppression_change_cannot_be_hidden_by_unchanged_dirty_flag(self):
+        states=iter([{'configuration':'MR12','occurrences':[{'suppressed':True}]},
+                     {'configuration':'MR12','occurrences':[{'suppressed':False}]}])
+        with self.assertRaisesRegex(SnapshotError,'suppression changed') as caught:
+            snapshot_package(self.app,123,self.directory,pack_factory=lambda d:self.pack,
+                             state_reader=lambda d:next(states))
+        self.assertEqual(caught.exception.data['status'],'failed')
     def test_target_reuse_cannot_save(self):
         with patch('solidworks_mcp.assembly_recovery.process_identity',return_value='different'):
             with self.assertRaisesRegex(SnapshotError,'identity changed'):self.snapshot()

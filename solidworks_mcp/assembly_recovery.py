@@ -12,7 +12,7 @@ def document_state(doc):
             'dirty':bool(get0(doc,'GetSaveFlag'))}
 
 def snapshot_package(app,pid,directory,document_adapter=lambda doc:doc,pack_factory=None,allowed_types=(2,3),document=None,
-                     allow_step_activation=False,idle=lambda:True):
+                     allow_step_activation=False,idle=lambda:True,state_reader=None):
     root=Path(directory)
     if not root.is_absolute():raise ValueError('Snapshot directory must be absolute')
     if not isinstance(pid,int) or pid<=0 or int(get0(app,'GetProcessID'))!=pid:
@@ -38,6 +38,10 @@ def snapshot_package(app,pid,directory,document_adapter=lambda doc:doc,pack_fact
             from .native_pack import NativePack
             major=int(str(get0(app,'RevisionNumber')).split('.')[0])
             pack_factory=lambda doc:NativePack(doc,major)
+            if kind==2 and state_reader is None:
+                from .component_states import capture_assembly_state
+                state_reader=lambda model:capture_assembly_state(model,major)
+        assembly_state=state_reader(doc) if state_reader is not None else None
         pack=pack_factory(doc)
         raw_paths=pack.documents()
         if any(not Path(path).is_absolute() for path in raw_paths):
@@ -80,6 +84,7 @@ def snapshot_package(app,pid,directory,document_adapter=lambda doc:doc,pack_fact
                   'source':before,'source_files_sha256':sources,'loaded_sources':loaded_before,
                   'manifest_path':str(manifest),'validated_scope':'saved '+document_type+' with saved part/assembly references and byte-identical STEP dependencies'}
         evidence['step_source_files']=step_sources
+        if assembly_state is not None:evidence['assembly_occurrence_state']=assembly_state
         if document is not None:evidence['active_before']=active_before
         def record():
             temporary=generation/'manifest.tmp'
@@ -143,6 +148,11 @@ def snapshot_package(app,pid,directory,document_adapter=lambda doc:doc,pack_fact
                     evidence['unresolved_step_references']=leaks
                 if leaks:raise RuntimeError('Copied STEP references still point outside the private package; recovery is incomplete')
             after=document_state(doc);evidence['source_after']=after
+            if state_reader is not None:
+                state_after=state_reader(doc)
+                evidence['assembly_occurrence_state_after']=state_after
+                if state_after!=assembly_state:
+                    raise RuntimeError('Assembly occurrence configuration, placement or suppression changed during snapshot')
             if document is not None:
                 evidence['active_after']=active_state()
                 if evidence['active_after']!=active_before:
