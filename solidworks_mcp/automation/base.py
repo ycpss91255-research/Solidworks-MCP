@@ -42,6 +42,8 @@ class SolidWorksAutomation:
         self._configured_target = self._target_pid
         self._auto_launch = os.environ.get('SOLIDWORKS_AUTO_LAUNCH') == '1'
         self._target_com_initialized = False
+        self._recovery_startup_enabled = os.environ.get('SOLIDWORKS_RECOVERY_MONITOR') == '1'
+        self._recovery_monitor_error = None
         
         logger.info("SolidWorksAutomation initialized")
     
@@ -161,16 +163,28 @@ class SolidWorksAutomation:
         if self._auto_launch:
             try:
                 from .managed_session import connect_managed
-                return connect_managed(self)
+                result = connect_managed(self)
             except Exception as exc:
                 return self._result(False, f'Managed connection failed: {exc}',
                                     SwErrors.swConnectionError)
-        if self._target_pid is None:
+        elif self._target_pid is None:
             return self._result(False,
                 'SOLIDWORKS_TARGET_PID is required. No SolidWorks process was launched. '
                 'Configure the intended running PID and restart the MCP connection.',
                 SwErrors.swConnectionError)
-        return self._connect_target()
+        else:
+            result = self._connect_target()
+        if result['success'] and getattr(self,'_recovery_startup_enabled',False):
+            self._recovery_monitor_error = None
+            try:
+                from ..recovery_service import ensure_recovery_worker
+                recovery = ensure_recovery_worker(result['data']['pid'])
+                if recovery is not None: result['data']['recovery_monitor'] = recovery
+            except Exception as exc:
+                self._recovery_monitor_error = str(exc)
+                result.setdefault('data', {})['recovery_monitor_error'] = str(exc)
+                logger.warning('Configured recovery monitor did not start: %s', exc)
+        return result
 
     def disconnect(self) -> Dict:
         """

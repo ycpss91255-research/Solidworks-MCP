@@ -153,7 +153,7 @@ snapshots during parent cleanup or implement automatic MCP monitor startup.
 
 ## Opt-in MCP connection hook
 
-The `connect_solidworks` endpoint starts or reuses the session's worker only
+Each successful PID-bound connection starts or reuses the session's worker only
 when these explicitly chosen environment values are supplied:
 
 ```text
@@ -173,10 +173,12 @@ monitor mutex. A launch mutex serializes connection hooks for that session.
 
 Create `requested.stop` inside that recovery directory to request shutdown.
 The hook respects that marker and never removes it automatically. Recovery
-startup errors are returned as `recovery_monitor_error` in the connection
-details; CAD connection success does not imply recovery is running. Ordinary
-implicit CAD connections do not start this hook: explicitly call
-`connect_solidworks` after enabling the configuration.
+startup errors are returned as `recovery_monitor_error` in connection and CAD
+tool responses; CAD connection success does not imply recovery is running.
+This hook also runs when a CAD tool connects implicitly. Restart MCP after
+enabling the configuration so its automation object loads the new settings.
+The recovery worker explicitly disables this connection hook and automatic CAD
+launch; its own attach cannot recursively start another worker.
 
 Live SW2023 verification on private PID 34340 passed: the initial MCP connection
 launched worker PID 29232; ending that MCP stdio session left the worker alive,
@@ -339,3 +341,26 @@ and `drawing-timed-recovery/monitor.json` below the ignored native test root.
 These tests do not prove multisheet, BOM/table, detached/detailing-mode drawings,
 linked external assets, or drawing views of nested assemblies. Native
 AutoRecover remains separate from this independent recovery implementation.
+
+## Implicit connection integration
+
+The startup hook now lives in the base PID-bound connection method, so an agent
+that directly calls a CAD tool cannot skip the configured recovery startup.
+Both attach-only and managed connections pass their actual resolved PID to the
+hook only after COM connection success. Connection failure does not start a
+worker. Recovery startup failure is recorded and surfaced in subsequent tool
+responses rather than reported as a running worker. A connected CAD process
+can still be used; the error explicitly means automatic recovery is unavailable.
+
+A fresh MCP on owned SW2023 PID 34340 first called `execute_python` without a
+prior `connect_solidworks`. That implicit connection published worker PID 28396.
+The explicit connect afterward reported the same worker as reused. Ending that
+MCP session left the worker alive; a second drawing snapshot completed after
+60 seconds. A second fresh MCP again connected implicitly and reused the same
+worker PID and creation time. The private stop marker then stopped the worker.
+The recovery backend disabled its own startup hook, avoiding recursive worker
+creation despite inheriting the enabled environment. Evidence is in
+`sw-implicit-mcp-recovery/integration-result.json` and `monitor.json` below the
+ignored native test root. This is a normal MCP-exit test; forced crash/job-close
+lifetime remains a separate pending live test. Existing chat configs remain
+unchanged.

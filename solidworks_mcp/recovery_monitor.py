@@ -49,6 +49,7 @@ class CadBackend:
         self.automation._target_pid=str(pid)
         self.automation._configured_target=str(pid)
         self.automation._auto_launch=False
+        self.automation._recovery_startup_enabled=False
         self.pid=pid;self.directory=directory
         self.assembly_enabled=os.environ.get('SOLIDWORKS_RECOVERY_ASSEMBLIES')=='1'
         self.drawing_enabled=os.environ.get('SOLIDWORKS_RECOVERY_DRAWINGS')=='1'

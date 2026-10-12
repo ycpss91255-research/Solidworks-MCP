@@ -95,6 +95,7 @@ class MonitorTests(unittest.TestCase):
         with patch('solidworks_mcp.automation.SolidWorksAutomation',return_value=automation):
             backend=CadBackend(123,self.root)
         self.assertFalse(automation._auto_launch)
+        self.assertFalse(automation._recovery_startup_enabled)
         self.assertEqual(automation._target_pid,'123')
         self.assertEqual(automation._configured_target,'123')
         automation.connect.assert_not_called()
