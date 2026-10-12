@@ -37,9 +37,9 @@ def snapshot_assembly(app,pid,directory,document_adapter=lambda doc:doc,pack_fac
         source_key=path_key(before['path'])
         if source_key not in {path_key(p) for p in paths}:
             raise ValueError('Package does not include its active source assembly')
-        # Nested assemblies and non-CAD dependencies need additional restore tests.
-        if any(Path(p).suffix.casefold()!='.sldprt' for p in paths if path_key(p)!=source_key):
-            raise ValueError('Experimental assembly recovery supports saved assemblies with part references only')
+        # Non-CAD dependencies need separate restoration validation.
+        if any(Path(p).suffix.casefold() not in ('.sldprt','.sldasm') for p in paths):
+            raise ValueError('Experimental assembly recovery supports saved part and assembly references only')
         sources={p:fingerprint(p) for p in paths}
         if any(value is None for value in sources.values()):
             raise ValueError('Package contains missing or unsaved source files')
@@ -57,7 +57,7 @@ def snapshot_assembly(app,pid,directory,document_adapter=lambda doc:doc,pack_fac
         evidence={'status':'writing','pid':pid,'process_start_time':identity,
                   'created_at':datetime.now(timezone.utc).isoformat(),'document_type':'assembly',
                   'source':before,'source_files_sha256':sources,'loaded_sources':loaded_before,
-                  'manifest_path':str(manifest),'validated_scope':'saved assembly with part references'}
+                  'manifest_path':str(manifest),'validated_scope':'saved assembly with saved part and assembly references'}
         def record():
             temporary=generation/'manifest.tmp'
             temporary.write_text(json.dumps(evidence,indent=2,ensure_ascii=False),encoding='utf-8')

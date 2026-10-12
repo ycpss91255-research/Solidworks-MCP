@@ -47,12 +47,24 @@ class AssemblyRecoveryTests(unittest.TestCase):
         self.app.GetProcessID=456
         with self.assertRaisesRegex(ValueError,'configured PID'):self.snapshot()
         self.assertFalse(self.directory.exists());self.assertEqual(self.pack.saved,0)
-    def test_nested_missing_and_relative_sources_cannot_save(self):
+    def test_missing_and_relative_sources_cannot_save(self):
         for invalid in (str(self.root/'nested.SLDASM'),str(self.root/'missing.SLDPRT'),'relative.SLDPRT'):
             with self.subTest(invalid=invalid):
                 self.pack.paths=[str(self.assembly),invalid]
                 with self.assertRaises(ValueError):self.snapshot()
                 self.assertEqual(self.pack.saved,0)
+    def test_saved_nested_assembly_is_copied_and_its_source_preserved(self):
+        nested=self.root/'nested.SLDASM';nested.write_bytes(b'saved child assembly')
+        self.app.docs.append(Doc(nested,2));self.pack.paths.append(str(nested))
+        result=self.snapshot()
+        self.assertEqual(len(result['package_files']),3)
+        self.assertEqual(nested.read_bytes(),b'saved child assembly')
+        self.assertTrue(self.app.docs[-1].GetSaveFlag)
+    def test_existing_non_cad_dependency_is_rejected_before_save(self):
+        dependency=self.root/'linked.txt';dependency.write_bytes(b'external data')
+        self.pack.paths.append(str(dependency))
+        with self.assertRaisesRegex(ValueError,'part and assembly references'):self.snapshot()
+        self.assertEqual(self.pack.saved,0)
     def test_destination_escape_is_rejected_before_save(self):
         self.pack.destinations=lambda directory,prefix:[str(directory/'copy.SLDASM'),str(self.root/'escape.SLDPRT')]
         with self.assertRaisesRegex(SnapshotError,'new private'):self.snapshot()

@@ -5,7 +5,7 @@ already-connected, PID-bound MCP. This is the first implemented recovery-copy
 operation; it does not restore SolidWorks native AutoRecover or provide a
 timer by itself. An opt-in monitor is described below. The endpoint also offers
 an experimental saved-assembly package for assemblies whose package source list
-contains only that assembly and saved part files. Nested assemblies, drawings,
+contains saved assembly and part files. Drawings,
 missing files and non-CAD dependencies are rejected. External reference files
 belonging to a part copied through the part backend are not packaged.
 The overall journal / recovery goal remains incomplete.
@@ -242,7 +242,7 @@ https://help.solidworks.com/2023/English/api/sldworksapi/SOLIDWORKS.Interop.sldw
 
 The existing `create_recovery_snapshot` endpoint now dispatches active saved
 assemblies to the native Pack and Go backend. It requires a saved assembly and
-saved part reference files; nested assemblies, missing/unsaved files and
+saved part or nested assembly reference files; missing/unsaved files and
 non-CAD package dependencies are rejected before saving. Each generation has
 unique prefixed output filenames. All destinations are checked to be new files
 inside the private generation before Pack and Go runs. The manifest records
@@ -278,8 +278,32 @@ unchanged. Evidence: `assembly-timed-recovery/monitor.json` and
 root. The two working CAD PIDs retained their creation identities and were not
 controlled. The assembly option has not been enabled in existing chat configs.
 
-Validation remains incomplete for parent transforms/mates, configurations,
-virtual/lightweight/suppressed components, nested assemblies, external-reference
+Validation remains incomplete for mates, configurations,
+virtual/lightweight/suppressed components, external-reference
 semantics and drawings. The package API's successful save status does not by
 itself prove those cases are recoverable. Native AutoRecover remains unverified;
 this is an independent recovery-package mechanism.
+
+## Unsaved transforms and nested assembly verification
+
+A subsequent flat-assembly endpoint test moved its part instance to X=0.123 m
+without saving. Reopening the endpoint's package recovered that transform and
+the unsaved 7 mm part dimension while preserving source disk hashes. This proves
+this direct placement change, not mate edits or every transform/configuration
+combination. Evidence: `assembly-recovery-probe/unsaved-transform.json` and
+`transform-endpoint-restore-result.json` under the ignored native test root.
+
+The backend now accepts saved nested assembly references. A private two-level
+fixture contained a root assembly, one child assembly and one part. The root's
+unsaved X translation was 0.456 m; the child's part placement was X=0.123 m,
+and the lowest part changed from its saved 7 mm baseline to 8 mm without saving.
+The native prototype package and then the actual endpoint package both reopened
+with those values and part volume 2.513274122871835e-6 cubic metres. Both levels'
+actual reference paths pointed into their own package; all three source file
+hashes remained unchanged. This verifies one resolved two-level assembly,
+not arbitrary depth, mate/configuration changes or special component states.
+Evidence: `nested-recovery-probe/package-result.json`, `restore-result.json`,
+`endpoint-report.json` and `endpoint-restore-result.json` below
+`test-results/native-journal`. Timed nested restore has not yet been tested;
+the prior timer evidence covers the flat assembly. No existing chat config was
+changed to enable assembly recovery.

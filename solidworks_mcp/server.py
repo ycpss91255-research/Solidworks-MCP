@@ -141,7 +141,7 @@ async def list_tools() -> list[Tool]:
         ),
         Tool(
             name="create_recovery_snapshot",
-            description="Create a private recovery copy of the active part, or an experimental saved assembly package with part references. Preserves source paths, disk files and unsaved flags. Requires an existing PID connection. Nested assemblies, drawings and non-CAD dependencies are unsupported. This does not restore native AutoRecover.",
+            description="Create a private recovery copy of the active part, or an experimental saved assembly package with saved part and nested assembly references. Preserves source paths, disk files and unsaved flags. Requires an existing PID connection. Drawings and non-CAD dependencies are unsupported. This does not restore native AutoRecover.",
             inputSchema={"type":"object","properties":{
                 "directory":{"type":"string","description":"Absolute directory for this session's recovery copies"}},
                 "required":["directory"]}
