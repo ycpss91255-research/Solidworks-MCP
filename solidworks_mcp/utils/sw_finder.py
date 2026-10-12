@@ -228,6 +228,24 @@ class SolidWorksFinder:
             if os.path.exists(template_path):
                 logger.info(f"Found {template_type} template in ProgramData: {template_path}")
                 return template_path
+
+        # Localized installations may name the default template 零件.PRTDOT,
+        # 組合件.ASMDOT, etc. Select by extension only when unambiguous.
+        directories = ([os.path.join(sw_dir, subdir) for subdir in cls.TEMPLATE_SUBDIRS]
+                       if sw_dir else []) + list(cls.PROGRAMDATA_TEMPLATE_PATHS)
+        extension = os.path.splitext(template_name)[1].casefold()
+        for directory in directories:
+            try:
+                candidates = [entry.path for entry in os.scandir(directory)
+                              if entry.is_file() and os.path.splitext(entry.name)[1].casefold() == extension]
+            except (FileNotFoundError, NotADirectoryError, PermissionError):
+                continue
+            if len(candidates) == 1:
+                logger.info('Found localized %s template: %s', template_type, candidates[0])
+                return candidates[0]
+            if len(candidates) > 1:
+                logger.warning('Multiple %s templates in %s; refusing an arbitrary choice', template_type, directory)
+                return None
         
         logger.warning(f"Template not found: {template_type}")
         return None

@@ -385,3 +385,35 @@ condition indirectly; a live CAD test of that precise condition remains pending.
 The first two diagnostic attempts failed before job assignment (result parsing
 and the pywin32 unnamed-job argument); their workers stopped via their private
 markers, and no CAD process was terminated. No production configuration changed.
+
+## Fresh managed startup and unsaved new part
+
+A fresh production-path managed MCP launched its own CAD PID 38376 using a new
+absolute session file while the three existing CAD instances remained live.
+It bound that PID, requested dismissal of the exact startup journal warning,
+and started its own recovery worker. The initial handler event's `closed` field
+was false at observation time; later PID-scoped inspection found no visible
+dialogs, and CAD document operations proceeded. Do not interpret that initial
+field as proof of instantaneous dismissal.
+
+The first `create_new_part` failed because template discovery only searched
+English filenames. The installed template was `零件.PRTDOT`. Discovery now
+retains the existing standard-name precedence, then selects a localized file
+by its template extension only when the directory contains exactly one match.
+Multiple custom matches return no choice instead of selecting arbitrarily.
+Reconnecting reused PID 38376; no extra CAD process was launched for the retry.
+
+After the fix, the MCP created a new part and a 9 mm cylinder entirely through
+API calls, without ever assigning an original file path. The automatic worker
+created a native part snapshot at its next interval. Both before and after
+states retained an empty source path and dirty flag. Reopening that snapshot
+through the same PID's MCP recovered one solid body with volume
+2.8274333882308137e-6 cubic metres; the original unnamed, dirty part remained
+loaded and unchanged. The worker was stopped through its private marker, and
+both test CAD instances plus the two working instances remain open.
+
+Evidence under the ignored native root: `combined-startup-proof/connection.json`,
+`continued-connection.json`, `new-part.json`, `snapshot-proof.json`,
+`restore-result.json` and `recovery-v2/monitor.json`. This verifies an unsaved new
+part; unsaved new assembly/drawing roots remain unsupported by the package
+backend. No production chat configuration was changed during this test.
