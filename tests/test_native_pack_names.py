@@ -35,5 +35,10 @@ class PackNameTests(unittest.TestCase):
         p=self.pack(['C:/one.SLDPRT','C:/two.SLDPRT'])
         p.pack.GetDocumentSaveToNames.side_effect=lambda:(['C:/original/one.SLDPRT','C:/private/two.SLDPRT'],[0,0],True)
         with self.assertRaisesRegex(RuntimeError,'escape'):p.destinations('C:/private','r-')
+    def test_native_long_destination_is_rejected_before_save(self):
+        p=self.pack(['C:/part.SLDPRT'])
+        p.pack.GetDocumentSaveToNames.side_effect=lambda:(['C:/private/'+('x'*250)+'.SLDPRT'],[0],True)
+        with self.assertRaisesRegex(RuntimeError,'259-character'):p.destinations('C:/private','r-')
+        p.pack.SetDocumentSaveToNames.assert_not_called()
 
 if __name__=='__main__':unittest.main()

@@ -88,3 +88,42 @@ Ignored evidence: `step-reference-owners.json`, `step-save-resolution.json`,
 `step-coexist-save-resolution.json` and `step-repair-integration.json` under
 `test-results/mr12-isolated-proof`. The suite passes 168 tests, including
 failure paths and the package's post-repair acceptance guard.
+
+## Full-model test: remaining cache boundary
+
+The private full MR12 fixture was loaded read-only in test PID 6060. Hidden
+loading alone left Pack and Go's native count at zero; activating that same
+document through API without rebuild yielded all 1,405 sources, entirely
+inside the private fixture. A flat layout produced only 1,399 unique output
+names for 1,405 entries, so flattening is not a valid path-length workaround.
+
+A new compact private generation copied all 1,405 outputs, but failed the
+STEP repair preflight: with the source full model still loaded in this PID,
+the three new STEP owners resolved to the source generation. Even matching
+STEP basename copies beside the owners and in mirrored source folders, and
+a temporary per-application working-directory change, did not redirect the
+loaded-source resolution. The original working directory was restored.
+Copy-saving new private owners while that full source remained loaded also
+retained the source-generation STEP paths.
+
+Only the test PID's 1,230 loaded private documents were then closed. Resolution
+changed to the adjacent private basename copies. With those copies explicitly
+included in the allowed private STEP set and their byte hashes matched to the
+package's primary STEP copies, the empty test application successfully repaired
+all three owners. The failed full-generation manifest remains failed; this
+repair probe does not finalize it or prove full-model restoration.
+
+This demonstrates a loaded-source resolution boundary not covered by the
+earlier same-PID small-part tests. Automatic full MR12 backup is still not
+validated. A repair design must avoid that cache without closing a user's
+working documents and account for every additional STEP copy in its manifest.
+Do not bypass preflight or ask users to close working models as a backup step.
+
+New default recovery roots and compact owner/generation names address path
+length independently of this unresolved cache issue. The suite passes 171
+tests. Ignored evidence includes `hidden-pack-diagnosis.json`,
+`full-private-open-preview.json`, `fresh-flat-preview.json`,
+`step-new-generation-save-proof.json`, `step-closed-source-resolution.json`,
+and `step-empty-helper-repair-proof.json` under `test-results/mr12-isolated-proof`.
+The failed full test generation is recorded at
+`C:/SWP/04f0/p3671d40b49/aq9ya4up8/manifest.json`; it is a private test artifact.

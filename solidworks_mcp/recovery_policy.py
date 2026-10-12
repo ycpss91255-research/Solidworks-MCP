@@ -1,5 +1,5 @@
 """Read recovery preferences from the bound CAD instance without changing them."""
-import math
+import math,hashlib,os
 from pathlib import Path
 
 # SW2023 swconst.tlb: swAutoSaveEnable, swBackupEnable, swAutoSaveInterval,
@@ -35,7 +35,10 @@ def automatic_policy(app, pid, environment):
         raise ValueError('Automatic recovery requires an absolute owned session file')
     directory = environment.get('SOLIDWORKS_RECOVERY_DIRECTORY')
     if directory is None:
-        directory = str(session.parent/'recovery'/session.stem)
+        local=Path(environment.get('LOCALAPPDATA') or os.environ.get('LOCALAPPDATA',''))
+        if not local.is_absolute():raise ValueError('Automatic recovery requires an absolute LOCALAPPDATA directory')
+        key=hashlib.sha256(str(session.resolve()).casefold().encode()).hexdigest()[:16]
+        directory = str(local/'SWMCP'/key)
     settings = {'interval_seconds':seconds}
     for key, variable in [('assemblies','ASSEMBLIES'),('drawings','DRAWINGS'),
                           ('all_documents','ALL_DOCUMENTS'),('background_activation','BACKGROUND_ACTIVATION')]:

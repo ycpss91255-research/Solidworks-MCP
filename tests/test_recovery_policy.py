@@ -9,12 +9,13 @@ class RecoveryPolicyTests(unittest.TestCase):
         a.GetUserPreferenceToggle.side_effect=lambda n:{319:auto,320:backup}[n]
         a.GetUserPreferenceIntegerValue.side_effect=lambda n:{3:minutes,301:mode}[n]
         return a
-    def env(self):return {'SOLIDWORKS_SESSION_FILE':'C:/work/.codex/session.json'}
+    def env(self):return {'SOLIDWORKS_SESSION_FILE':'C:/work/.codex/session.json','LOCALAPPDATA':'C:/users/test/AppData/Local'}
     def test_default_follows_enabled_autorecover_and_interval(self):
         p=automatic_policy(self.app(),123,self.env())
         self.assertTrue(p['enabled']);self.assertEqual(p['settings']['interval_seconds'],300)
         self.assertTrue(all(p['settings'][k] for k in ('assemblies','drawings','all_documents','background_activation')))
-        self.assertEqual(p['directory'],'C:\\work\\.codex\\recovery\\session')
+        self.assertTrue(p['directory'].startswith('C:\\users\\test\\AppData\\Local\\SWMCP\\'))
+        self.assertEqual(len(p['directory'].rsplit('\\',1)[1]),16)
     def test_both_disabled_never_launches(self):
         a=self.app(False,False)
         with patch.dict('os.environ',{},clear=True),patch('solidworks_mcp.recovery_service.start_desktop_process') as launch:
@@ -53,5 +54,12 @@ class RecoveryPolicyTests(unittest.TestCase):
         self.assertTrue(matching_settings(before,after,True))
         self.assertFalse(matching_settings(before,dict(after,assemblies=False),True))
         self.assertFalse(matching_settings(dict(before,interval_seconds=float('nan')),after,True))
+    def test_default_directory_distinguishes_same_named_sessions(self):
+        first=automatic_policy(self.app(),123,self.env())['directory']
+        second=automatic_policy(self.app(),123,dict(self.env(),SOLIDWORKS_SESSION_FILE='C:/other/.codex/session.json'))['directory']
+        self.assertNotEqual(first,second)
+    def test_relative_local_appdata_is_rejected(self):
+        with self.assertRaisesRegex(ValueError,'LOCALAPPDATA'):
+            automatic_policy(self.app(),123,dict(self.env(),LOCALAPPDATA='relative'))
 
 if __name__=='__main__':unittest.main()

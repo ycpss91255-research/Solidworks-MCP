@@ -72,7 +72,12 @@ for that case. Read failures and missing ownership state return a visible
 `recovery_monitor_error`, not a claim that recovery is disabled or protected.
 
 Without a directory override, copies go under
-`<session-file-parent>/recovery/<session-file-stem>`. Automatic mode enables
+`%LOCALAPPDATA%/SWMCP/<hash-of-absolute-session-file>`. The 16-character session
+hash separates sessions with identical state filenames. New package owner and
+generation names are compact; full PID/creation ownership remains in the
+manifest. Existing generations stay in place. A native output path of 260 or
+more characters is rejected before save with a shorter-directory diagnostic.
+No shared Windows long-path or 8.3 settings are changed. Automatic mode enables
 parts, saved assemblies/drawings, all-document scanning and guarded temporary
 activation by default, honoring individual explicit scope overrides. It still
 has the documented unsupported-reference/root limits. The worker records its
@@ -95,6 +100,11 @@ Workers from older code without preference tracking must be stopped normally
 before a new connection can reuse that session; no duplicate is launched.
 The CLI launcher/verifier does not start backup workers;
 the owning MCP does after attachment.
+
+After this directory-default change, stop the verified old session worker
+normally before reconnecting to adopt the new directory. A new directory is
+not permission to bypass the existing session monitor lock or create a second
+worker. Explicit directory overrides keep their selected location.
 
 On 2026-10-12, isolated PID 16296 read AutoRecover enabled, backup disabled and
 a native one-minute interval. A real bound backend and one scheduler tick

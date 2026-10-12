@@ -68,9 +68,12 @@ def snapshot_package(app,pid,directory,document_adapter=lambda doc:doc,pack_fact
         step_sources=[p for p in paths if Path(p).suffix.casefold() in STEP_EXTENSIONS]
         if any(loaded_before[p] and loaded_before[p]['dirty'] for p in step_sources):
             raise ValueError('Dirty STEP documents require a native recovery copy; refusing a saved-baseline-only package')
-        owner=root.resolve()/f'pid-{pid}-{hashlib.sha256(identity.encode()).hexdigest()[:12]}'
+        # Short names preserve room for native Pack and Go's source hierarchy.
+        # Ownership still includes both PID and creation time in the digest and
+        # full manifest; folders are separate under each session's private root.
+        owner=root.resolve()/('p'+hashlib.sha256(f'{pid}:{identity}'.encode()).hexdigest()[:10])
         owner.mkdir(parents=True,exist_ok=True)
-        generation=Path(tempfile.mkdtemp(prefix=document_type+'-',dir=owner))
+        generation=Path(tempfile.mkdtemp(prefix=document_type[0],dir=owner))
         manifest=generation/'manifest.json'
         evidence={'status':'writing','pid':pid,'process_start_time':identity,
                   'created_at':datetime.now(timezone.utc).isoformat(),'document_type':document_type,

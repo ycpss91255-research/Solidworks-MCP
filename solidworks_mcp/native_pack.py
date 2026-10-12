@@ -58,6 +58,8 @@ class NativePack:
         # arrays were rejected; native folder assignment returned unique names.
         paths,statuses,success=self.pack.GetDocumentSaveToNames()
         if not success or any(statuses):raise RuntimeError('Cannot resolve private package destinations')
+        if any(len(path)>=260 for path in paths):
+            raise RuntimeError('Native package path exceeds the validated 259-character limit; choose a shorter private recovery directory')
         from .private_paths import canonical_outputs
         canonical=canonical_outputs(paths)
         root=Path(directory).resolve()

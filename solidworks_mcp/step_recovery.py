@@ -71,7 +71,7 @@ def repair_step_links(app,pid,generation,mapping,adapter,allow_activation=False,
                     if active()!=before:raise RuntimeError('STEP repair did not restore the active document')
             verify()
             # Only replace a closed, validated private output. Assembly links
-            # keep the package filename; SaveAs Copy preserves native identity.
+            # keep the package filename.
             if str(Path(output).resolve()).casefold() not in outputs:
                 raise RuntimeError('STEP repair destination changed')
             temporary.replace(output)
