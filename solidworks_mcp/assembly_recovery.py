@@ -12,7 +12,7 @@ def document_state(doc):
             'dirty':bool(get0(doc,'GetSaveFlag'))}
 
 def snapshot_package(app,pid,directory,document_adapter=lambda doc:doc,pack_factory=None,allowed_types=(2,3),document=None,
-                     allow_step_activation=False,idle=lambda:True,state_reader=None):
+                     allow_step_activation=False,idle=lambda:True,state_reader=None,package_processor=None):
     root=Path(directory)
     if not root.is_absolute():raise ValueError('Snapshot directory must be absolute')
     if not isinstance(pid,int) or pid<=0 or int(get0(app,'GetProcessID'))!=pid:
@@ -120,6 +120,14 @@ def snapshot_package(app,pid,directory,document_adapter=lambda doc:doc,pack_fact
             for source in step_sources:
                 if fingerprint(mapping[source])!=sources[source]:
                     raise RuntimeError('STEP dependency copy does not match its saved source')
+            if package_processor is not None:
+                # The processor has its own configured helper; it must not
+                # repair in, retarget or finalize this source application's PID.
+                record()
+                proof=package_processor(evidence)
+                from .package_repair import validate_repair_result
+                validate_repair_result(evidence,proof)
+                evidence['independent_package_repair']=proof
             if step_sources:
                 # A copied STEP is insufficient if a saved import still points
                 # to the original. Search=False reads recorded paths, rather
@@ -133,7 +141,7 @@ def snapshot_package(app,pid,directory,document_adapter=lambda doc:doc,pack_fact
                         if Path(reference).suffix.casefold() in STEP_EXTENSIONS and not Path(reference).resolve().is_relative_to(generation.resolve()):
                             leaks.append({'document':output,'reference':reference})
                 evidence['unresolved_step_references']=leaks
-                if leaks and allow_step_activation:
+                if leaks and allow_step_activation and package_processor is None:
                     from .step_recovery import repair_step_links
                     evidence['step_reference_repairs']=repair_step_links(app,pid,generation,mapping,
                         document_adapter,allow_activation=True,idle=idle)
@@ -164,6 +172,8 @@ def snapshot_package(app,pid,directory,document_adapter=lambda doc:doc,pack_fact
                 raise RuntimeError('Snapshot target identity changed after save')
             evidence.update(status='complete',source_preserved=True,
                             package_files_sha256={p:fingerprint(p) for p in outputs})
+            if package_processor is not None:
+                evidence['package_files_sha256']=validate_repair_result(evidence,proof)
             record();return evidence
         except Exception as exc:
             evidence.update(status='failed',error=str(exc));record()

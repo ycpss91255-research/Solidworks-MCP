@@ -169,6 +169,28 @@ class AssemblyRecoveryTests(unittest.TestCase):
                                 state_reader=lambda d:state)
         self.assertEqual(result['assembly_occurrence_state'],state)
         self.assertEqual(result['assembly_occurrence_state_after'],state)
+    def test_independent_processor_is_validated_before_source_finalizes(self):
+        state={'configuration':'MR12','occurrences':[]}
+        def processor(evidence):
+            self.assertEqual(evidence['status'],'writing')
+            from solidworks_mcp.recovery_snapshot import fingerprint
+            return {'status':'repaired','helper_pid':456,'helper_start_time':'helper-start',
+                    'assembly_state_restoration':{'verified_occurrences':0},'reopen_errors':0,
+                    'step_aliases':{},'package_files_sha256':{p:fingerprint(p) for p in evidence['package_files'].values()}}
+        result=snapshot_package(self.app,123,self.directory,pack_factory=lambda d:self.pack,
+                                state_reader=lambda d:state,package_processor=processor)
+        self.assertEqual(result['status'],'complete')
+        self.assertTrue(result['source_preserved'])
+        self.assertEqual(result['independent_package_repair']['helper_pid'],456)
+    def test_processor_load_error_cannot_finalize_source_manifest(self):
+        state={'configuration':'MR12','occurrences':[]}
+        def processor(evidence):
+            return {'status':'repaired','helper_pid':456,'helper_start_time':'helper-start',
+                    'assembly_state_restoration':{'verified_occurrences':0},'reopen_errors':2}
+        with self.assertRaisesRegex(SnapshotError,'load errors') as caught:
+            snapshot_package(self.app,123,self.directory,pack_factory=lambda d:self.pack,
+                             state_reader=lambda d:state,package_processor=processor)
+        self.assertEqual(caught.exception.data['status'],'failed')
     def test_suppression_change_cannot_be_hidden_by_unchanged_dirty_flag(self):
         states=iter([{'configuration':'MR12','occurrences':[{'suppressed':True}]},
                      {'configuration':'MR12','occurrences':[{'suppressed':False}]}])
