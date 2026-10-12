@@ -2,6 +2,7 @@
 from .recovery_snapshot import get0,held_process,snapshot_part
 from .assembly_recovery import document_state,snapshot_package
 from .automation.managed_session import process_identity
+import traceback
 
 def snapshot_documents(app,pid,directory,documents,adapter,allow_activation=False,idle=lambda:True):
     with held_process(pid) as identity:
@@ -49,5 +50,5 @@ def snapshot_documents(app,pid,directory,documents,adapter,allow_activation=Fals
             report['status']='complete'
             return {'success':True,'data':report}
         except Exception as exc:
-            report.update(status='failed',error=str(exc))
+            report.update(status='failed',error=str(exc),error_traceback=traceback.format_exc())
             return {'success':False,'message':str(exc),'data':report}

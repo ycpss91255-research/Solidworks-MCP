@@ -2,7 +2,7 @@
 from contextlib import contextmanager
 from datetime import datetime,timezone
 from pathlib import Path
-import argparse,hashlib,json,math,time,os
+import argparse,hashlib,json,math,time,os,traceback
 import win32api,win32con,win32event,win32gui,win32process
 from .automation.managed_session import process_identity,write_state
 from .recovery_snapshot import get0
@@ -175,7 +175,7 @@ def run_monitor(pid,identity,directory,status_file,interval,backend,
     except KeyboardInterrupt:
         record('stopped',reason='keyboard_interrupt')
     except Exception as exc:
-        record('failed',error=str(exc))
+        record('failed',error=str(exc),error_traceback=traceback.format_exc())
     finally:
         try:backend.close()
         except Exception as exc:record('failed',error=f'Connection cleanup failed: {exc}')

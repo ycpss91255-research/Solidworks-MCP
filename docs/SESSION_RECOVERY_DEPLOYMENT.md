@@ -132,6 +132,15 @@ and isolated restore are still pending. The user's authorization for a new
 restore-only test instance has been requested; do not interpret passing unit
 tests or a filename-assignment probe as proof of complete MR12 recovery.
 
+The monitor and failed batch now retain exception tracebacks to distinguish an
+application attachment failure from an invalidated document/reference during
+enumeration or copying. Later read-only verification resolved PID 24056 again,
+with 35 open documents, but the previously failing generic-robot root was no
+longer loaded. Its current worker was live and `waiting_clean`, not producing
+another snapshot because it found no dirty supported document. These observations
+do not prove the earlier disconnection's cause or successful MR12 recovery.
+The rack worker continued producing snapshots (22 confirmed at that check).
+
 Use an independent checkout/worktree with an absolute session file and private
 log and recovery directories. Keep the PID of another chat out of this config.
 The MCP command must point to this fork's `solidworks_mcp_server.py` and its

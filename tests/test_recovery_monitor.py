@@ -60,6 +60,7 @@ class MonitorTests(unittest.TestCase):
         result=self.run_monitor()
         self.assertEqual(result['status'],'failed');self.assertEqual(self.backend.connects,1)
         self.assertEqual(len(self.backend.calls),1);self.assertEqual(result['snapshots'],0)
+        self.assertIn('copy failed',result['error_traceback'])
     def test_incomplete_or_foreign_snapshot_cannot_be_counted(self):
         for report in ({'status':'writing','pid':123,'process_start_time':'start'},
                        {'status':'complete','pid':456,'process_start_time':'start'}):
