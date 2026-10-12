@@ -106,6 +106,32 @@ worker's current `monitor.json` for actual snapshot progress, not just startup.
 The 142-test suite covers enabled/disabled preferences, backup-only mode, PID
 mismatch, COM read failure, invalid interval modes and explicit overrides.
 
+### MR12 recovery work in progress
+
+The detailed failure identified three STEP dependencies (`SWR12.5-15.stp`,
+`VUF10-20.stp`, `JNPN10.stp`). The package backend now accepts `.stp`/`.step`
+dependencies and requires each private STEP copy's SHA256 to match its saved
+source. Dirty loaded STEP documents are rejected rather than claiming that an
+unchanged saved baseline recovers their edits. Missing dependencies and other
+unsupported file types remain visible failures.
+
+A subsequent real MR12 attempt reached destination assignment and failed on
+incomplete/colliding destinations. NativePack now assigns each source its own
+private filename in source order, with a stable path-derived suffix for
+duplicate basenames, instead of a global folder override. The native API accepts
+a typed BSTR SAFEARRAY; readback must retain every requested destination. A real
+read-only rack probe assigned three destinations without saving any file or
+changing its active source state. See the official
+[SetSaveToName override behavior](https://help.solidworks.com/2021/english/api/sldworksapi/SOLIDWORKS.Interop.sldworks~SOLIDWORKS.Interop.sldworks.IPackAndGo~SetSaveToName.html)
+and [per-document assignment contract](https://help.solidworks.com/2021/english/api/sldworksapi/solidworks.interop.sldworks~solidworks.interop.sldworks.ipackandgo~setdocumentsavetonames.html).
+
+The non-CAD suite passes 149 tests. A later owned MR12 worker ended with a COM
+object-disconnection error; the cause is not established and no replacement CAD
+application was launched. A successful complete MR12 STEP-containing backup
+and isolated restore are still pending. The user's authorization for a new
+restore-only test instance has been requested; do not interpret passing unit
+tests or a filename-assignment probe as proof of complete MR12 recovery.
+
 Use an independent checkout/worktree with an absolute session file and private
 log and recovery directories. Keep the PID of another chat out of this config.
 The MCP command must point to this fork's `solidworks_mcp_server.py` and its

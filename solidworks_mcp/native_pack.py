@@ -37,9 +37,30 @@ class NativePack:
         if not success:raise RuntimeError('Cannot enumerate Pack and Go source files')
         return list(paths)
     def destinations(self,directory,prefix):
-        if not self.pack.SetSaveToName(True,str(directory)):raise RuntimeError('Cannot assign private package directory')
-        self.pack.AddPrefix=prefix
+        import hashlib
+        from comtypes import BSTR
+        from comtypes.automation import VARIANT
+        from comtypes.safearray import _midlSAFEARRAY
+        sources=self.documents()
+        counts={}
+        for source in sources:
+            name=Path(source).name.casefold();counts[name]=counts.get(name,0)+1
+        outputs=[]
+        for source in sources:
+            name=Path(source).name
+            unique=hashlib.sha256(str(Path(source).resolve()).casefold().encode()).hexdigest()[:12]+'-' if counts[name.casefold()]>1 else ''
+            outputs.append(str(Path(directory)/(prefix+unique+name)))
+        # Global folder override flattens duplicate basenames. Assign each
+        # document explicitly and let Pack and Go rewrite its references.
+        self.pack.SetSaveToName(False,'')
+        self.pack.AddPrefix=''
+        self.pack.AddSuffix=''
+        names=VARIANT(_midlSAFEARRAY(BSTR).create(outputs))
+        if not self.pack.SetDocumentSaveToNames(names):
+            raise RuntimeError('Cannot assign private per-document package names')
         paths,statuses,success=self.pack.GetDocumentSaveToNames()
         if not success or any(statuses):raise RuntimeError('Cannot resolve private package destinations')
+        if len(paths)!=len(outputs) or any(str(Path(a).resolve()).casefold()!=str(Path(b).resolve()).casefold() for a,b in zip(paths,outputs)):
+            raise RuntimeError('Pack and Go did not retain the requested private destinations')
         return list(paths)
     def save(self):return list(self.extension.SavePackAndGo(self.pack))

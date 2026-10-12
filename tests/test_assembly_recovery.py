@@ -75,6 +75,23 @@ class AssemblyRecoveryTests(unittest.TestCase):
         self.pack.paths.append(str(dependency))
         with self.assertRaisesRegex(ValueError,'part and assembly references'):self.snapshot()
         self.assertEqual(self.pack.saved,0)
+    def test_step_dependencies_are_complete_byte_identical_private_copies(self):
+        step=self.root/'sensor.stp';step.write_bytes(b'ISO-10303-21; geometry')
+        self.pack.paths.append(str(step))
+        self.pack.action=lambda:Path(self.pack.outputs[-1]).write_bytes(step.read_bytes())
+        result=self.snapshot()
+        self.assertEqual(result['step_source_files'],[str(step)])
+        self.assertEqual(Path(result['package_files'][str(step)]).read_bytes(),step.read_bytes())
+        self.assertTrue(result['source_preserved'])
+    def test_modified_step_copy_is_rejected(self):
+        step=self.root/'sensor.step';step.write_bytes(b'original neutral geometry')
+        self.pack.paths.append(str(step))
+        with self.assertRaisesRegex(SnapshotError,'STEP dependency copy'):self.snapshot()
+    def test_dirty_loaded_step_does_not_claim_saved_baseline_is_recovery(self):
+        step=self.root/'sensor.stp';step.write_bytes(b'neutral baseline')
+        self.pack.paths.append(str(step));self.app.docs.append(Doc(step,1))
+        with self.assertRaisesRegex(ValueError,'Dirty STEP'):self.snapshot()
+        self.assertEqual(self.pack.saved,0)
     def test_drawing_package_preserves_drawing_and_model_sources(self):
         drawing=self.root/'source.SLDDRW';drawing.write_bytes(b'saved drawing')
         self.app.docs[0]=Doc(drawing,3);self.app.ActiveDoc=self.app.docs[0]

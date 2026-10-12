@@ -5,6 +5,8 @@ import hashlib,json,tempfile,uuid
 from .recovery_snapshot import get0,held_process,fingerprint,SnapshotError
 from .automation.managed_session import process_identity
 
+STEP_EXTENSIONS={'.step','.stp'}
+
 def document_state(doc):
     return {'path':str(get0(doc,'GetPathName')),'title':str(get0(doc,'GetTitle')),
             'dirty':bool(get0(doc,'GetSaveFlag'))}
@@ -46,8 +48,9 @@ def snapshot_package(app,pid,directory,document_adapter=lambda doc:doc,pack_fact
         source_key=path_key(before['path'])
         if source_key not in {path_key(p) for p in paths}:
             raise ValueError('Package does not include its active source document')
-        # Non-CAD dependencies need separate restoration validation.
-        unsupported=[p for p in paths if path_key(p)!=source_key and Path(p).suffix.casefold() not in ('.sldprt','.sldasm')]
+        # Include the STEP source dependencies exposed by 3D Interconnect.
+        supported={'.sldprt','.sldasm'}|STEP_EXTENSIONS
+        unsupported=[p for p in paths if path_key(p)!=source_key and Path(p).suffix.casefold() not in supported]
         if unsupported:
             raise ValueError('Experimental package recovery supports saved part and assembly references only; '
                              f'unsupported references for {before["path"]}: {unsupported}')
@@ -61,6 +64,9 @@ def snapshot_package(app,pid,directory,document_adapter=lambda doc:doc,pack_fact
                 result[path]=document_state(document_adapter(loaded)) if loaded is not None else None
             return result
         loaded_before=loaded_states()
+        step_sources=[p for p in paths if Path(p).suffix.casefold() in STEP_EXTENSIONS]
+        if any(loaded_before[p] and loaded_before[p]['dirty'] for p in step_sources):
+            raise ValueError('Dirty STEP documents require a native recovery copy; refusing a saved-baseline-only package')
         owner=root.resolve()/f'pid-{pid}-{hashlib.sha256(identity.encode()).hexdigest()[:12]}'
         owner.mkdir(parents=True,exist_ok=True)
         generation=Path(tempfile.mkdtemp(prefix=document_type+'-',dir=owner))
@@ -68,7 +74,8 @@ def snapshot_package(app,pid,directory,document_adapter=lambda doc:doc,pack_fact
         evidence={'status':'writing','pid':pid,'process_start_time':identity,
                   'created_at':datetime.now(timezone.utc).isoformat(),'document_type':document_type,
                   'source':before,'source_files_sha256':sources,'loaded_sources':loaded_before,
-                  'manifest_path':str(manifest),'validated_scope':'saved '+document_type+' with saved part and assembly references'}
+                  'manifest_path':str(manifest),'validated_scope':'saved '+document_type+' with saved part/assembly references and byte-identical STEP dependencies'}
+        evidence['step_source_files']=step_sources
         if document is not None:evidence['active_before']=active_before
         def record():
             temporary=generation/'manifest.tmp'
@@ -93,6 +100,9 @@ def snapshot_package(app,pid,directory,document_adapter=lambda doc:doc,pack_fact
             if len(statuses)!=len(paths) or any(statuses):raise RuntimeError('Pack and Go save failed')
             if any(not Path(p).is_file() or Path(p).stat().st_size==0 for p in outputs):
                 raise RuntimeError('Package output is missing or empty')
+            for source in step_sources:
+                if fingerprint(mapping[source])!=sources[source]:
+                    raise RuntimeError('STEP dependency copy does not match its saved source')
             after=document_state(doc);evidence['source_after']=after
             if document is not None:
                 evidence['active_after']=active_state()
