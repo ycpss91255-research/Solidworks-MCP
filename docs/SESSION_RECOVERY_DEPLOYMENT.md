@@ -123,10 +123,10 @@ worker's separate startup/health checks.
 
 ## This machine's deployment boundary (2026-10-12)
 
-A read-only completion audit still found the SW2023 `ExtReferences` value
+Before the maintenance window, a read-only audit found the SW2023 `ExtReferences` value
 `SolidWorks Journal Folders` set to
 `C:\Users\CURRENT_USER\AppData\Roaming\SolidWorks\SOLIDWORKS 2023`, which
-does not exist. The production shared path has therefore **not** been repaired.
+does not exist. At that point the production shared path had not been repaired.
 The process-local journal experiments and validated private-copy recovery do
 not prove this explicit path requirement complete. Correcting a per-user
 setting while other working instances may read it has not been validated as
@@ -158,6 +158,42 @@ failure, retained external changes and existing-backup protection. The full
 suite passes 132 tests. This prepares the path correction without applying it
 to working sessions. It neither makes journals independent nor restores native
 AutoRecover; those remain distinct from correcting the invalid directory.
+
+### Completed maintenance and post-repair validation
+
+After the user closed all CAD and authorized residual-process closure, the
+authoritative inventory was empty. The repair command backed up the original
+value and assigned the real APPDATA path, with no process present after writing.
+Readback confirmed the directory exists and `CURRENT_USER` is absent. Evidence:
+ignored `test-results/journal-path-applied-20261012.json`.
+
+Two new production-launcher sessions then used separate state files. PID 40060
+started first with no journal warning event; PID 35176 started second and still
+encountered the occupied-journal warning. The exact-PID handler sent its OK
+action. Its immediate `closed` observation was false, so that event alone is
+not proof of closure. A subsequent exact-PID dialog inventory was clear and
+the second instance successfully created a new unnamed 9 mm cylinder.
+Thus correcting the bad directory does not eliminate journal contention.
+
+The second session's independent all-document worker produced a native copy
+at the configured 60-second interval after its initial MCP exited. A new MCP
+resolved the same CAD PID and reused worker 34932. The restore driver initially
+failed to unwrap the generated API's `OpenDoc6` tuple; after correcting that
+driver, the already-created copy reopened and recovered the expected volume
+2.8274333882308137e-6 cubic metres, while the original retained its empty path
+and dirty flag. No application replacement or extra CAD launch was used to
+recover from that driver error. The first session's creation identity remained
+unchanged. Both test applications subsequently exited through their bound APIs,
+and the worker's stop marker caused its confirmed exit. Final inventory was
+empty and the corrected registry value persisted.
+
+Evidence: ignored `test-results/post-path-{a,b}.{session,connection}.json`,
+`post-path-proof/recovery/monitor.json` and `post-path-proof/result.json`.
+Together with the earlier seven-document restore and reconnect tests, this
+verifies the implemented private-copy alternative within the documented scope.
+Native AutoRecover remains un-restored. Recovery options must still be enabled
+separately in each intended session; these tests did not enable another chat's
+worker or move this chat's host to the prepared worktree.
 
 The registered `solidworks-recovery/solidworks_data` worktree has its own config,
 state, logs and recovery directory. Its target 38376 was intentionally backed
