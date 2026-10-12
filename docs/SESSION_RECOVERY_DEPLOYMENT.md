@@ -83,6 +83,12 @@ seed PID belonging to another chat. Reload/restart the MCP connection after
 configuration changes. A file edit alone does not prove the running host used
 the new settings.
 
+A persistent worker also records its effective recovery options. Reconnect
+rejects a live worker with different or missing settings instead of claiming
+the new options took effect or creating a duplicate. To change recovery
+options, stop that owned worker, verify its original process handle exited,
+explicitly clear its private stop marker, and start the configured replacement.
+
 Connect and check the resolved PID, `session_file`, recovery worker PID and
 creation time. Inspect `monitor.json`; reopen a private copy and verify the
 expected unsaved geometry/reference before trusting a recovery case. Keep
@@ -103,6 +109,16 @@ up and closed at the user's request. Automatic CAD launch is disabled there.
 A real stdio MCP loaded that exact TOML, refused the absent PID, and left the
 three existing CAD process identities unchanged. Ignored evidence:
 `test-results/prepared-config-no-launch-proof.json`.
+
+The all-document MCP integration subsequently passed on the older owned PID
+34340: two seven-document batches continued after the first MCP exited;
+matching settings reused the same worker while different settings were
+rejected. That worker stopped normally. The user then requested closing the
+remaining test CAD. Seven fresh native copies preserved its unsaved work,
+and its own PID-bound API closed its documents and application. Both owned
+test CAD PIDs are now absent; the two working CAD instances were preserved.
+See the ignored `all-mcp-reconnect/integration-result.json` and
+`final-closure-report.json` under `test-results/native-journal`.
 
 The calling chat still executes in the shared `Downloads/solidworks_data`
 checkout. Its session file resolves to the rack chat's PID 12616. That shared

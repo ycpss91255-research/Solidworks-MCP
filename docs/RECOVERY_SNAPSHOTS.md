@@ -555,6 +555,40 @@ Ignored evidence: `native-journal/all-document-timer/integration-result.json`,
 `restore-6.json`, and `monitor.json`. The non-CAD suite passes 122 tests,
 including restoration on package failure, external-view changes, busy commands,
 foreign snapshots, incomplete batches and unprotected-document warnings.
-The new all-document mode has passed CLI timer/restore validation; its own
-MCP worker-start/reconnect integration remains to be exercised. Existing
-production chat configurations were not changed to enable these options.
+The subsequent MCP worker-start/reconnect validation is recorded below.
+Existing production chat configurations were not changed to enable these options.
+
+## Multi-document MCP reconnect and settings verification
+
+Worker status now records its effective interval, assembly/drawing support,
+all-document scanning and background-activation options. A reconnect reuses a
+live worker only when these match the requested settings. Missing or different
+settings return an explicit error without launching another worker. Health
+checks also detect a changed status configuration. To change options, request
+that session's worker stop, verify its original PID/creation handle exited,
+and explicitly clear its owned stop marker before starting the configured
+replacement. Restarting MCP alone does not change a surviving worker's settings.
+
+Real SW2023 integration on owned CAD 34340 launched worker 3200 with all four
+scope options enabled and a 60-second interval. The initial MCP stdio server
+exited; the same worker remained live and completed two seven-document batches.
+A new MCP requesting active-only mode reported the settings mismatch and did
+not replace the worker. A subsequent MCP with the original settings reused the
+same worker PID and creation time, reporting the matching options. Startup
+reservation was cleared only after the worker's confirmed status. The private
+stop marker then caused the worker to exit. Source disk hashes and the two
+working CAD creation identities remained unchanged.
+
+Evidence: ignored `native-journal/all-mcp-reconnect/integration-result.json`
+and `monitor.json`. The complete non-CAD suite passes 125 tests. This extends
+the earlier normal-exit/reconnect evidence to the actual multi-document mode;
+it does not repeat the previously documented forced-termination fixture.
+
+After these tests, the user requested closing unneeded test CAD. Seven loaded
+documents received fresh complete private native copies, including their
+unsaved edits. The strict PID-bound MCP then closed those documents and called
+`ExitApp` on 34340 only. A separate process-identity check confirmed its exit
+and preserved working PIDs 9336 and 12616. No new CAD instance was launched.
+Evidence: ignored `native-journal/final-closure-report.json` and native copies
+under `final-closure-backups`. Both owned test CAD instances are now closed;
+the prepared independent-worktree config keeps automatic launch disabled.

@@ -5,6 +5,7 @@ import win32api,win32con,win32event,win32process
 from .automation.managed_session import process_identity,write_state
 from .recovery_monitor import monitor_lock,validate_status_path
 from .desktop_process import start_desktop_process
+from .recovery_settings import recovery_settings
 
 def worker_identity(pid):
     try:
@@ -33,6 +34,8 @@ def recovery_worker_error(pid,worker):
         expected=(str(Path(sys._base_executable).resolve()).casefold(),status['worker_start_time'])
         if worker_identity(status['worker_pid'])!=expected:
             return 'Recovery worker exited or its process identity changed'
+        if not worker.get('settings') or status.get('settings')!=worker['settings']:
+            return 'Recovery worker settings changed or cannot be verified'
         if status.get('unprotected_documents'):
             return 'Recovery monitor has unsupported dirty documents; inspect unprotected_documents in its status file'
         return None
@@ -47,6 +50,7 @@ def ensure_recovery_worker(pid):
         raise ValueError('Recovery monitor requires absolute session and private recovery paths')
     interval=float(os.environ.get('SOLIDWORKS_RECOVERY_INTERVAL','60'))
     if not math.isfinite(interval) or interval<=0:raise ValueError('Recovery interval must be positive and finite')
+    settings=recovery_settings(interval)
     status=directory/'monitor.json';marker=directory/'requested.stop'
     validate_status_path(directory,status,session)
     expected=json.loads(session.read_text(encoding='utf-8'))
@@ -75,9 +79,11 @@ def ensure_recovery_worker(pid):
                     raise RuntimeError('Existing recovery worker identity mismatch; refusing a duplicate')
                 if previous['status'] in ('failed','stopped'):
                     raise RuntimeError('Existing recovery worker is finishing shutdown; no replacement was launched')
+                if previous.get('settings')!=settings:
+                    raise RuntimeError('Existing recovery worker settings differ or are unverified; stop that worker before applying new settings')
                 if pending:pending_path.unlink()
                 return {'worker_pid':previous['worker_pid'],'worker_start_time':previous['worker_start_time'],
-                        'process_start_time':expected['start_time'],'status_file':str(status),'reused':True}
+                        'process_start_time':expected['start_time'],'settings':settings,'status_file':str(status),'reused':True}
             if pending:
                 # Matching worker-written status plus its absent handle proves
                 # this reserved attempt is terminal, unlike a polling timeout.
@@ -105,9 +111,10 @@ def ensure_recovery_worker(pid):
                         raise RuntimeError('Recovery worker startup target mismatch')
                     if current['status']=='failed':raise RuntimeError(current.get('error','Recovery worker failed'))
                     if current['status']=='stopped':raise RuntimeError('Recovery worker stopped during startup')
+                    if current.get('settings')!=settings:raise RuntimeError('Recovery worker startup settings mismatch')
                     pending_path.unlink()
                     return {'worker_pid':actual,'worker_start_time':current['worker_start_time'],
-                            'process_start_time':expected['start_time'],'status_file':str(status),'reused':False}
+                            'process_start_time':expected['start_time'],'settings':settings,'status_file':str(status),'reused':False}
             if worker_identity(worker) is None:raise RuntimeError('Recovery worker exited before startup confirmation')
             time.sleep(0.1)
         raise RuntimeError(f'Recovery worker {worker} startup observation timed out; do not launch a replacement')

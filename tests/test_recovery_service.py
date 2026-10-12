@@ -14,7 +14,9 @@ class RecoveryServiceTests(unittest.TestCase):
                           'SOLIDWORKS_RECOVERY_DIRECTORY':str(self.root)}
         self.record={'kind':'part_recovery_monitor','session_file':str(self.session.resolve()),
                      'pid':123,'process_start_time':'cad-start','worker_pid':456,
-                     'worker_start_time':'worker-start','status':'starting'}
+                     'worker_start_time':'worker-start','status':'starting',
+                     'settings':{'interval_seconds':60.0,'assemblies':False,'drawings':False,
+                                 'all_documents':False,'background_activation':False}}
     def invoke(self,identity=None,launcher=None):
         with patch.dict(os.environ,self.environment,clear=True), \
              patch('solidworks_mcp.recovery_service.process_identity',return_value='cad-start'), \
@@ -33,7 +35,9 @@ class RecoveryServiceTests(unittest.TestCase):
              patch('solidworks_mcp.recovery_service.worker_identity',return_value=actual), \
              patch('solidworks_mcp.recovery_service.start_desktop_process') as launch:
             error=recovery_worker_error(123,{'worker_pid':456,'worker_start_time':'worker-start',
-                                            'process_start_time':'cad-start','status_file':str(self.status)})
+                                            'process_start_time':'cad-start','status_file':str(self.status),
+                                            'settings':{'interval_seconds':60.0,'assemblies':False,'drawings':False,
+                                                        'all_documents':False,'background_activation':False}})
             launch.assert_not_called()
             return error
     def test_running_worker_health_is_verified(self):
@@ -61,6 +65,22 @@ class RecoveryServiceTests(unittest.TestCase):
         self.status.write_text(json.dumps(self.record))
         result,count=self.invoke((str(Path(sys._base_executable).resolve()).casefold(),'worker-start'))
         self.assertTrue(result['reused']);self.assertEqual(count,0)
+    def test_old_worker_cannot_claim_new_all_document_settings(self):
+        self.status.write_text(json.dumps(self.record));self.environment['SOLIDWORKS_RECOVERY_ALL_DOCUMENTS']='1'
+        with patch.dict(os.environ,self.environment,clear=True), \
+             patch('solidworks_mcp.recovery_service.process_identity',return_value='cad-start'), \
+             patch('solidworks_mcp.recovery_service.monitor_lock',return_value=nullcontext()), \
+             patch('solidworks_mcp.recovery_service.worker_identity',return_value=(str(Path(sys._base_executable).resolve()).casefold(),'worker-start')), \
+             patch('solidworks_mcp.recovery_service.start_desktop_process') as launch:
+            with self.assertRaisesRegex(RuntimeError,'settings differ'):ensure_recovery_worker(123)
+            launch.assert_not_called()
+    def test_worker_without_settings_is_not_silently_reused(self):
+        del self.record['settings'];self.status.write_text(json.dumps(self.record))
+        with self.assertRaisesRegex(RuntimeError,'unverified'):
+            self.invoke((str(Path(sys._base_executable).resolve()).casefold(),'worker-start'))
+    def test_health_reports_rewritten_worker_settings(self):
+        self.record['settings']['all_documents']=True
+        self.assertIn('settings changed',self.health())
     def test_reused_worker_pid_refuses_duplicate(self):
         self.status.write_text(json.dumps(self.record))
         with self.assertRaisesRegex(RuntimeError,'identity mismatch'):

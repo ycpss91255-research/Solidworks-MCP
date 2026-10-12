@@ -6,6 +6,7 @@ import argparse,hashlib,json,math,time,os
 import win32api,win32con,win32event,win32gui,win32process
 from .automation.managed_session import process_identity,write_state
 from .recovery_snapshot import get0
+from .recovery_settings import recovery_settings
 
 def validate_status_path(directory,status_file,session_file=None):
     directory=Path(directory);status_file=Path(status_file)
@@ -128,7 +129,8 @@ def run_monitor(pid,identity,directory,status_file,interval,backend,
     validate_status_path(directory,status_file,session_file)
     state={'kind':'part_recovery_monitor','pid':pid,'process_start_time':identity,'worker_pid':__import__('os').getpid(),
            'worker_start_time':win32process.GetProcessTimes(win32api.GetCurrentProcess())['CreationTime'].isoformat(),
-           'directory':str(directory),'interval_seconds':interval,'status':'starting','ticks':0,'snapshots':0}
+           'directory':str(directory),'interval_seconds':interval,'settings':recovery_settings(interval),
+           'status':'starting','ticks':0,'snapshots':0}
     if session_file:state['session_file']=str(Path(session_file).resolve())
     if startup_token:state['startup_token']=startup_token
     def record(status,**values):
