@@ -2,7 +2,7 @@ import json,os,sys,tempfile,unittest
 from pathlib import Path
 from contextlib import nullcontext
 from unittest.mock import patch
-from solidworks_mcp.recovery_service import ensure_recovery_worker
+from solidworks_mcp.recovery_service import ensure_recovery_worker,recovery_worker_error
 
 class RecoveryServiceTests(unittest.TestCase):
     def setUp(self):
@@ -26,6 +26,34 @@ class RecoveryServiceTests(unittest.TestCase):
     def test_disabled_has_no_process_or_file_side_effect(self):
         with patch.dict(os.environ,{},clear=True),patch('solidworks_mcp.recovery_service.start_desktop_process') as launch:
             self.assertIsNone(ensure_recovery_worker(123));launch.assert_not_called()
+    def health(self,identity='live'):
+        self.status.write_text(json.dumps(self.record))
+        actual=(str(Path(sys._base_executable).resolve()).casefold(),'worker-start') if identity=='live' else identity
+        with patch('solidworks_mcp.recovery_service.process_identity',return_value='cad-start'), \
+             patch('solidworks_mcp.recovery_service.worker_identity',return_value=actual), \
+             patch('solidworks_mcp.recovery_service.start_desktop_process') as launch:
+            error=recovery_worker_error(123,{'worker_pid':456,'worker_start_time':'worker-start',
+                                            'process_start_time':'cad-start','status_file':str(self.status)})
+            launch.assert_not_called()
+            return error
+    def test_running_worker_health_is_verified(self):
+        self.assertIsNone(self.health())
+    def test_failure_after_start_is_reported_even_if_process_still_live(self):
+        self.record.update(status='failed',error='Save failed')
+        self.assertIn('Save failed',self.health())
+    def test_user_stopped_worker_is_reported(self):
+        self.record.update(status='stopped',reason='stop_requested')
+        self.assertIn('stop_requested',self.health(None))
+    def test_worker_exit_without_terminal_status_is_reported(self):
+        self.assertIn('exited',self.health(None))
+    def test_reused_worker_pid_is_not_treated_as_healthy(self):
+        self.assertIn('identity changed',self.health(('foreign.exe','new-start')))
+    def test_other_worker_status_is_not_adopted(self):
+        self.record['worker_pid']=789
+        self.assertIn('identity changed',self.health())
+    def test_rewritten_status_cannot_adopt_reused_worker_pid(self):
+        self.record['worker_start_time']='replacement-start'
+        self.assertIn('identity changed',self.health())
     def test_same_live_worker_reused_after_mcp_restart(self):
         self.status.write_text(json.dumps(self.record))
         result,count=self.invoke((str(Path(sys._base_executable).resolve()).casefold(),'worker-start'))

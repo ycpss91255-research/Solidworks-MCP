@@ -417,3 +417,36 @@ Evidence under the ignored native root: `combined-startup-proof/connection.json`
 `restore-result.json` and `recovery-v2/monitor.json`. This verifies an unsaved new
 part; unsaved new assembly/drawing roots remain unsupported by the package
 backend. No production chat configuration was changed during this test.
+
+## Recovery health after startup and test shutdown
+
+Tool responses now refresh the health of the worker attached at connection time.
+They report a later failure, requested stop, missing/unreadable status, dead
+worker, or changed process identity through `recovery_monitor_error`. The check
+holds the initially observed CAD and worker creation identities; rewriting a
+status file cannot adopt a replacement worker with a reused PID. It observes
+processes and status files only, without COM calls, launch, or reconnection.
+Successful CAD operations can therefore still report that recovery is stopped.
+No heartbeat timeout is interpreted as process exit.
+
+The regression suite passes 99 tests, including post-start failure and process
+reuse scenarios. A read-only check against the actual stopped worker 30396's
+status and live CAD 34340 reports `Recovery monitor stopped: stop_requested`.
+Evidence is in ignored `test-results/recovery-health-proof.json`.
+
+At the user's request to close unneeded test instances, the strict PID-bound
+MCP rechecked PID 38376's creation time and its sole unnamed 9 mm cylinder,
+created a fresh private native recovery copy, closed that document, and called
+`ExitApp` on that application only. Process inventory confirms 38376 exited;
+working PIDs 9336 and 12616 and older test PID 34340 retained their creation
+times. The older test remains open because it holds user-modified unsaved work.
+Its original files were not saved or replaced. The closure copy is under the
+ignored `native-journal/closure-backup-38376` directory.
+
+A registered independent CAD worktree has its own session/log/recovery paths,
+but this chat's current shared-checkout MCP was not retargeted. Its prepared
+configuration's automatic launch is now disabled after the intentional test
+shutdown, so loading that configuration cannot silently reopen CAD. Enabling
+and verifying that worktree's active host connection remains a deployment step.
+Native AutoRecover remains unsupported for the second instance; the private
+snapshot solution and its previously documented scope limits still apply.

@@ -552,7 +552,7 @@ async def call_tool(name: str, arguments: dict) -> list[TextContent]:
         else:
             result = sw_automation._result(False, f"Unknown tool: {name}", SwErrors.swUnknownError)
         
-        recovery_error = getattr(sw_automation, '_recovery_monitor_error', None)
+        recovery_error = sw_automation.recovery_monitor_error()
         if isinstance(recovery_error, str) and recovery_error:
             result.setdefault('data', {})['recovery_monitor_error'] = recovery_error
         logger.info(f"Result: success={result['success']}")

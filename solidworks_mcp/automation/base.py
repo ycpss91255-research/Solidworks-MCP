@@ -44,6 +44,7 @@ class SolidWorksAutomation:
         self._target_com_initialized = False
         self._recovery_startup_enabled = os.environ.get('SOLIDWORKS_RECOVERY_MONITOR') == '1'
         self._recovery_monitor_error = None
+        self._recovery_worker = None
         
         logger.info("SolidWorksAutomation initialized")
     
@@ -176,15 +177,25 @@ class SolidWorksAutomation:
             result = self._connect_target()
         if result['success'] and getattr(self,'_recovery_startup_enabled',False):
             self._recovery_monitor_error = None
+            self._recovery_worker = None
             try:
                 from ..recovery_service import ensure_recovery_worker
                 recovery = ensure_recovery_worker(result['data']['pid'])
+                self._recovery_worker = recovery
                 if recovery is not None: result['data']['recovery_monitor'] = recovery
             except Exception as exc:
                 self._recovery_monitor_error = str(exc)
                 result.setdefault('data', {})['recovery_monitor_error'] = str(exc)
                 logger.warning('Configured recovery monitor did not start: %s', exc)
         return result
+
+    def recovery_monitor_error(self):
+        """Refresh recovery health for tool responses, with no startup side effects."""
+        worker=getattr(self,'_recovery_worker',None)
+        if worker is not None:
+            from ..recovery_service import recovery_worker_error
+            self._recovery_monitor_error=recovery_worker_error(self._target_pid,worker)
+        return getattr(self,'_recovery_monitor_error',None)
 
     def disconnect(self) -> Dict:
         """

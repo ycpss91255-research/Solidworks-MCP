@@ -18,6 +18,25 @@ def worker_identity(pid):
                 win32process.GetProcessTimes(handle)['CreationTime'].isoformat())
     finally:handle.Close()
 
+def recovery_worker_error(pid,worker):
+    """Observe the connected worker without launching or reconnecting anything."""
+    try:
+        status=json.loads(Path(worker['status_file']).read_text(encoding='utf-8'))
+        if (status['worker_pid']!=worker['worker_pid'] or status['pid']!=int(pid)
+                or status['worker_start_time']!=worker['worker_start_time']
+                or status['process_start_time']!=worker['process_start_time']):
+            return 'Recovery worker status identity changed; monitoring is unverified'
+        if process_identity(int(pid))!=status['process_start_time']:
+            return 'Recovery target exited or its process identity changed'
+        if status['status'] in ('failed','stopped'):
+            return 'Recovery monitor '+status['status']+': '+str(status.get('error',status.get('reason','no reason recorded')))
+        expected=(str(Path(sys._base_executable).resolve()).casefold(),status['worker_start_time'])
+        if worker_identity(status['worker_pid'])!=expected:
+            return 'Recovery worker exited or its process identity changed'
+        return None
+    except Exception as exc:
+        return f'Recovery monitor health could not be verified: {exc}'
+
 def ensure_recovery_worker(pid):
     if os.environ.get('SOLIDWORKS_RECOVERY_MONITOR')!='1':return None
     session=Path(os.environ.get('SOLIDWORKS_SESSION_FILE',''))
@@ -42,7 +61,8 @@ def ensure_recovery_worker(pid):
                     raise RuntimeError('Existing recovery worker identity mismatch; refusing a duplicate')
                 if previous['status'] in ('failed','stopped'):
                     raise RuntimeError('Existing recovery worker is finishing shutdown; no replacement was launched')
-                return {'worker_pid':previous['worker_pid'],'status_file':str(status),'reused':True}
+                return {'worker_pid':previous['worker_pid'],'worker_start_time':previous['worker_start_time'],
+                        'process_start_time':expected['start_time'],'status_file':str(status),'reused':True}
         if marker.exists():raise RuntimeError('Recovery stop marker exists; monitor remains stopped')
         root=Path(__file__).resolve().parents[1]
         token=uuid.uuid4().hex
@@ -62,7 +82,8 @@ def ensure_recovery_worker(pid):
                     if current.get('pid')!=int(pid) or current.get('process_start_time')!=expected['start_time']:
                         raise RuntimeError('Recovery worker startup target mismatch')
                     if current['status']=='failed':raise RuntimeError(current.get('error','Recovery worker failed'))
-                    return {'worker_pid':actual,'status_file':str(status),'reused':False}
+                    return {'worker_pid':actual,'worker_start_time':current['worker_start_time'],
+                            'process_start_time':expected['start_time'],'status_file':str(status),'reused':False}
             if worker_identity(worker) is None:raise RuntimeError('Recovery worker exited before startup confirmation')
             time.sleep(0.1)
         raise RuntimeError(f'Recovery worker {worker} startup observation timed out; do not launch a replacement')

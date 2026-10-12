@@ -45,5 +45,14 @@ class RecoveryConnectionTests(unittest.TestCase):
                  'success':True,'message':'copy','error_code':0,'error_name':'swSuccess'}):
             result=asyncio.run(server.call_tool('create_recovery_snapshot',{'directory':'C:/private'}))
         self.assertIn('recovery_monitor_error',result[0].text)
+    def test_connected_worker_failure_refreshes_on_tool_response(self):
+        from solidworks_mcp import server
+        with patch.object(server.sw_automation,'_recovery_worker',{'worker_pid':456},create=True), \
+             patch('solidworks_mcp.recovery_service.recovery_worker_error',return_value='Recovery monitor failed: save error') as health, \
+             patch.object(server.sw_automation,'create_recovery_snapshot',return_value={
+                 'success':True,'message':'copy','error_code':0,'error_name':'swSuccess'}):
+            result=asyncio.run(server.call_tool('create_recovery_snapshot',{'directory':'C:/private'}))
+        health.assert_called_once()
+        self.assertIn('Recovery monitor failed: save error',result[0].text)
 
 if __name__=='__main__':unittest.main()
