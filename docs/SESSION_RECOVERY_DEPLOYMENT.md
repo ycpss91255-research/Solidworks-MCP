@@ -101,7 +101,38 @@ without closing CAD. A worker startup observation timeout retains an owned
 `worker-startup.json` reservation. Inspect the original attempt; do not clear
 it or start another worker merely because observation expired.
 
+## Long MCP calls and observation timeouts
+
+The host's `tool_timeout_sec` limits how long a caller waits; it is not evidence
+that the SolidWorks COM operation stopped. On 2026-10-12 the rack session's
+face/edge/vertex traversal began at 17:28:50.751 and returned success at
+17:31:18.401 (147.650 seconds), after the host's 90-second wait had expired.
+A subsequent connection resolved the same PID 12616 and later calls succeeded.
+This distinguishes that incident from a failed PID attachment. The shared
+configuration was not changed or restarted during this diagnosis.
+
+After such a timeout, inspect the original server log and process identity
+before retrying a mutation, reconnecting or requesting another instance. Keep
+the existing session file and target: a live target must never be replaced
+merely because its caller timed out. Split large COM traversals into bounded
+read-only calls. If a longer call is required, a per-session host configuration
+can use `tool_timeout_sec = 300`, then reload its MCP connection when no call is
+pending. The longer wait does not cancel stuck COM operations or establish that
+an unfinished operation is safe to repeat. It also does not change the recovery
+worker's separate startup/health checks.
+
 ## This machine's deployment boundary (2026-10-12)
+
+A read-only completion audit still found the SW2023 `ExtReferences` value
+`SolidWorks Journal Folders` set to
+`C:\Users\CURRENT_USER\AppData\Roaming\SolidWorks\SOLIDWORKS 2023`, which
+does not exist. The production shared path has therefore **not** been repaired.
+The process-local journal experiments and validated private-copy recovery do
+not prove this explicit path requirement complete. Correcting a per-user
+setting while other working instances may read it has not been validated as
+non-interfering; this audit did not write that setting or call their CAD APIs.
+The ignored `test-results/native-journal/completion-audit.json` also rechecked
+the stored native-copy hashes in the reconnect and final-closure batches.
 
 The registered `solidworks-recovery/solidworks_data` worktree has its own config,
 state, logs and recovery directory. Its target 38376 was intentionally backed
