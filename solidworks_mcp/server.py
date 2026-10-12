@@ -140,6 +140,13 @@ async def list_tools() -> list[Tool]:
             }
         ),
         Tool(
+            name="create_recovery_snapshot",
+            description="Create a private recovery copy of the active part while preserving its original path, saved file and unsaved flag. Requires an existing PID connection. Assemblies and drawings are unsupported; external reference files are not packaged. This does not restore native AutoRecover.",
+            inputSchema={"type":"object","properties":{
+                "directory":{"type":"string","description":"Absolute directory for this session's recovery copies"}},
+                "required":["directory"]}
+        ),
+        Tool(
             name="get_document_info",
             description="Get information about the active document.",
             inputSchema={"type": "object", "properties": {}, "required": []}
@@ -413,6 +420,9 @@ async def call_tool(name: str, arguments: dict) -> list[TextContent]:
         
         elif name == "save_document":
             result = sw_automation.save_document(arguments.get("filepath"))
+
+        elif name == "create_recovery_snapshot":
+            result = sw_automation.create_recovery_snapshot(arguments.get("directory", ""))
         
         elif name == "close_document":
             result = sw_automation.close_document(arguments.get("save", False))
