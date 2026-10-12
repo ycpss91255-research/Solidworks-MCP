@@ -30,7 +30,8 @@ def snapshot_documents(app,pid,directory,documents,adapter,allow_activation=Fals
                             # swDontRebuildActiveDoc=1. Never choose the prompt/rebuild modes.
                             app.ActivateDoc3(target['title'],False,1,0)
                             if key(current())!=key(target):raise RuntimeError('Recovery package activation selected another document')
-                        snapshot=snapshot_package(app,pid,directory,adapter)
+                        snapshot=snapshot_package(app,pid,directory,adapter,
+                            allow_step_activation=allow_activation,idle=idle)
                     finally:
                         verify()
                         if switching:

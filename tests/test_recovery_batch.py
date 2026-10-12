@@ -38,7 +38,7 @@ class BatchTests(unittest.TestCase):
         self.assertFalse(result['success']);self.assertEqual(len(result['data']['snapshots']),1)
         self.assertIs(self.app.ActiveDoc,self.original)
     def test_external_view_change_is_not_overridden(self):
-        def package(*args):self.app.ActiveDoc=self.external;return dict(self.complete)
+        def package(*args,**kwargs):self.app.ActiveDoc=self.external;return dict(self.complete)
         with patch('solidworks_mcp.recovery_batch.snapshot_package',side_effect=package):
             result=self.run_batch([self.assembly],allow_activation=True)
         self.assertFalse(result['success']);self.assertIs(self.app.ActiveDoc,self.external)
@@ -51,7 +51,7 @@ class BatchTests(unittest.TestCase):
             result=self.run_batch([self.part])
         self.assertFalse(result['success']);self.assertEqual(result['data']['snapshots'],[])
     def test_pid_change_does_not_force_view_restore_on_another_target(self):
-        def package(*args):self.app.GetProcessID=999;return dict(self.complete)
+        def package(*args,**kwargs):self.app.GetProcessID=999;return dict(self.complete)
         with patch('solidworks_mcp.recovery_batch.snapshot_package',side_effect=package):
             result=self.run_batch([self.assembly],allow_activation=True)
         self.assertFalse(result['success']);self.assertEqual(len(self.calls),1)

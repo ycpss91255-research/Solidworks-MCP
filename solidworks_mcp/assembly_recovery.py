@@ -11,7 +11,8 @@ def document_state(doc):
     return {'path':str(get0(doc,'GetPathName')),'title':str(get0(doc,'GetTitle')),
             'dirty':bool(get0(doc,'GetSaveFlag'))}
 
-def snapshot_package(app,pid,directory,document_adapter=lambda doc:doc,pack_factory=None,allowed_types=(2,3),document=None):
+def snapshot_package(app,pid,directory,document_adapter=lambda doc:doc,pack_factory=None,allowed_types=(2,3),document=None,
+                     allow_step_activation=False,idle=lambda:True):
     root=Path(directory)
     if not root.is_absolute():raise ValueError('Snapshot directory must be absolute')
     if not isinstance(pid,int) or pid<=0 or int(get0(app,'GetProcessID'))!=pid:
@@ -124,6 +125,19 @@ def snapshot_package(app,pid,directory,document_adapter=lambda doc:doc,pack_fact
                         if Path(reference).suffix.casefold() in STEP_EXTENSIONS and not Path(reference).resolve().is_relative_to(generation.resolve()):
                             leaks.append({'document':output,'reference':reference})
                 evidence['unresolved_step_references']=leaks
+                if leaks and allow_step_activation:
+                    from .step_recovery import repair_step_links
+                    evidence['step_reference_repairs']=repair_step_links(app,pid,generation,mapping,
+                        document_adapter,allow_activation=True,idle=idle)
+                    leaks=[]
+                    for source,output in mapping.items():
+                        if Path(source).suffix.casefold() not in ('.sldprt','.sldasm'):continue
+                        references=list(app.GetDocumentDependencies2(output,False,False,False) or ())
+                        if len(references)%2:raise RuntimeError('Cannot verify repaired STEP dependency list')
+                        for reference in references[1::2]:
+                            if Path(reference).suffix.casefold() in STEP_EXTENSIONS and not Path(reference).resolve().is_relative_to(generation.resolve()):
+                                leaks.append({'document':output,'reference':reference})
+                    evidence['unresolved_step_references']=leaks
                 if leaks:raise RuntimeError('Copied STEP references still point outside the private package; recovery is incomplete')
             after=document_state(doc);evidence['source_after']=after
             if document is not None:

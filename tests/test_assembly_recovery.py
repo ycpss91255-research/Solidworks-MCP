@@ -95,6 +95,30 @@ class AssemblyRecoveryTests(unittest.TestCase):
         self.app.GetDocumentDependencies2=lambda *args:['sensor',str(step)]
         with self.assertRaisesRegex(SnapshotError,'STEP references still point outside') as result:self.snapshot()
         self.assertTrue(result.exception.data['unresolved_step_references'])
+    def test_enabled_step_repair_is_rechecked_before_completion(self):
+        step=self.root/'sensor.stp';step.write_bytes(b'neutral source')
+        self.pack.paths.append(str(step))
+        self.pack.action=lambda:Path(self.pack.outputs[-1]).write_bytes(step.read_bytes())
+        self.app.GetDocumentDependencies2=lambda *args:['sensor',str(step)]
+        def repair(*args,**kwargs):
+            self.assertTrue(kwargs['allow_activation'])
+            self.app.GetDocumentDependencies2=lambda *args:['sensor',self.pack.outputs[-1]]
+            return [{'document':self.pack.outputs[1]}]
+        with patch('solidworks_mcp.step_recovery.repair_step_links',side_effect=repair):
+            result=snapshot_package(self.app,123,self.directory,pack_factory=lambda d:self.pack,
+                                    allow_step_activation=True)
+        self.assertEqual(result['status'],'complete')
+        self.assertEqual(result['unresolved_step_references'],[])
+        self.assertTrue(result['step_reference_repairs'])
+    def test_attempted_step_repair_cannot_bypass_unresolved_reference_guard(self):
+        step=self.root/'sensor.stp';step.write_bytes(b'neutral source')
+        self.pack.paths.append(str(step))
+        self.pack.action=lambda:Path(self.pack.outputs[-1]).write_bytes(step.read_bytes())
+        self.app.GetDocumentDependencies2=lambda *args:['sensor',str(step)]
+        with patch('solidworks_mcp.step_recovery.repair_step_links',return_value=[]):
+            with self.assertRaisesRegex(SnapshotError,'STEP references still point outside'):
+                snapshot_package(self.app,123,self.directory,pack_factory=lambda d:self.pack,
+                                 allow_step_activation=True)
     def test_native_only_statuses_still_require_every_step_file(self):
         step=self.root/'sensor.stp';step.write_bytes(b'neutral source')
         self.pack.paths.append(str(step))

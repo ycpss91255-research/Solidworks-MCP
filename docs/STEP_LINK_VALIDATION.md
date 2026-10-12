@@ -46,9 +46,45 @@ interface marshal generalization used for investigation is retained there as
   applies to imported features; its presence does not imply applicability to
   this `MBimport` feature in the tested release.
 
-The cause of the STEP commit refusal and a lossless reference repair remain
-unresolved. Do not disable the guard or break source links to claim success.
+The cause of the feature parameter commit refusal remains unresolved. The
+following different native save path has now repaired the three tested parts.
+Do not disable the reference guard or break source links to claim success.
 
 The test application closed normally through its PID-bound API. PID 3264
 was subsequently absent; working PIDs 2836 and 19780 retained their creation
 times. No forced process termination was used.
+
+## Native copy-save repair
+
+An empty independent test PID 6060 inspected all 1,402 native documents in
+the detached fixture without opening the full assembly. Exactly three parts
+recorded STEP paths outside that private tree: SWR12.5-15, OL12-20 (VUF10-20),
+and JNPN10. Opening these private copies allowed reference search to resolve
+the private STEP files. `SaveAs3` with Silent | Copy wrote those resolved paths
+into the saved native copies; this needed no import-feature parameter setter.
+Reopening the copies preserved each part's body count and volume.
+
+`step_recovery.py` implements the validated path with PID/creation checks,
+read-only opens, exact returned-path checks, private destination validation,
+mandatory private STEP resolution, copy-save to a temporary file, recorded
+reference verification, close, and replacement of only the private output.
+It refuses already-open backup documents and unsupported assembly STEP owners.
+Temporary activation must be enabled; commands/dialogs interrupt the operation.
+
+Real same-PID integration kept three loaded source *fixture* parts dirty while
+repairing separate `r-` copies. All three recorded STEP links became private;
+source disk hashes and dirty/path/title state were unchanged, the active source
+was restored, and exactly the same three source documents remained open.
+No working session PID was targeted. These sources were private test fixtures,
+not the user's formal MR12 files.
+
+Automatic assembly/drawing batches with enabled background activation invoke
+this repair after detecting outside STEP links, then recheck every recorded
+STEP dependency. A failed repair cannot produce a complete generation. The
+full MR12 package and assembly-level restoration still require validation;
+the previously failed full generation remains failed and is only a fixture.
+
+Ignored evidence: `step-reference-owners.json`, `step-save-resolution.json`,
+`step-coexist-save-resolution.json` and `step-repair-integration.json` under
+`test-results/mr12-isolated-proof`. The suite passes 168 tests, including
+failure paths and the package's post-repair acceptance guard.
