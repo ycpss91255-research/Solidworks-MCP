@@ -64,7 +64,39 @@ $env:SWMCP_TEST_JOURNAL_DLL = (Resolve-Path ./journal_redirect.dll).Path
 python /path/to/checkout/tests/verify_journal_redirect_native.py
 ```
 
-The native test uses disposable helper processes and a fake locked journal.
+Optional `--recovery-private-dir <absolute-new-empty-directory>` adds a
+process-local view of the exact current user's SolidWorks General key's
+`AutoRecover Directory` value. RegQueryValueExA/W returns the private folder;
+RegSetValueExA/W accepts only that exact private assignment without writing
+the shared value. A different assignment is denied. All other values and keys
+pass through. The bootstrap reads the real HKCU native key identity and passes
+it to the new process; no shared registry lease or override is used.
+
+Build instructions remain the same; `recovery_registry.c` must be alongside
+`journal_redirect.c`. Verify the optional preference hooks with:
+
+```powershell
+python /path/to/checkout/tests/verify_recovery_registry_native.py
+```
+
+This fixture checks separate-process persistent-value preservation, unrelated
+keys and values, wide/ANSI reads, size-only queries and small buffers. It uses
+temporary test registry keys and does not touch SolidWorks settings.
+
+An actual optional-preference test subsequently used a new empty PID 37152.
+The API returned the private recovery directory and an explicit assignment
+returned true while an independent MCP server read the persistent value as
+unchanged. Two independent MCP connections created a baseline part and made
+unsaved sketch edits. After 182 seconds from the saved baseline, including a
+further edit after the one-minute interval, the private recovery directory
+was still empty. AutoRecover remains unverified. The test's documents and
+process were then closed via its own MCP; the working PIDs were preserved.
+
+Next investigate startup initialization timing: private directory readback
+does not prove that the recovery engine initialized or that its timer is
+active. Do not deploy these experiments as a completed recovery fix.
+
+The native journal test uses disposable helper processes and a fake locked journal.
 It verifies normal and malformed NT opens, backup operations, owner rejection,
 and an unrelated file. It never starts or connects to SolidWorks.
 

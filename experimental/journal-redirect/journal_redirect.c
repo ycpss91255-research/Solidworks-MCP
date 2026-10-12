@@ -139,6 +139,7 @@ __declspec(dllexport) DWORD WINAPI StopJournalRedirect(LPVOID unused) {
     if(owner!=GetCurrentProcessId()) return 1;
     MH_DisableHook(MH_ALL_HOOKS); MH_Uninitialize(); owner=0; return 0;
 }
+#include "recovery_registry.c"
 BOOL WINAPI DllMain(HINSTANCE module,DWORD reason,LPVOID reserved) {
     if(reason==DLL_PROCESS_ATTACH) DisableThreadLibraryCalls(module);
     return TRUE;

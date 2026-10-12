@@ -3,11 +3,30 @@ import ctypes as c
 from ctypes import wintypes as w
 from pathlib import Path
 import win32process
+import winreg
+import re
+
+class RecoveryConfig(c.Structure):
+    _fields_=[('owner_pid',w.DWORD),('key',w.WCHAR*1024),('directory',w.WCHAR*1024)]
+
+def registry_key_name(subkey):
+    """Read the exact native HKCU key identity; never writes the registry."""
+    nt=c.WinDLL('ntdll')
+    nt.NtQueryKey.argtypes=[w.HANDLE,w.ULONG,c.c_void_p,w.ULONG,c.POINTER(w.ULONG)]
+    nt.NtQueryKey.restype=c.c_long
+    with winreg.OpenKey(winreg.HKEY_CURRENT_USER,subkey,0,winreg.KEY_QUERY_VALUE) as key:
+        buffer=c.create_string_buffer(4096)
+        needed=w.ULONG()
+        status=nt.NtQueryKey(int(key),3,buffer,len(buffer),c.byref(needed))
+        if status<0:raise RuntimeError(f'Native registry key identity failed: {status:#x}')
+        length=int.from_bytes(buffer.raw[:4],'little')
+        if length>4092 or length%2:raise RuntimeError('Invalid native registry key identity')
+        return buffer.raw[4:4+length].decode('utf-16le')
 
 class Config(c.Structure):
     _fields_=[('owner_pid',w.DWORD),('source',w.WCHAR*1024),('destination',w.WCHAR*1024)]
 
-def initialize_created(process,pid,dll,source,destination):
+def initialize_created(process,pid,dll,source,destination,recovery_directory=None):
     dll=Path(dll).resolve(strict=True)
     source=Path(source).resolve(strict=True)
     destination=Path(destination).resolve()
@@ -61,3 +80,13 @@ def initialize_created(process,pid,dll,source,destination):
     cfg=Config(pid,str(source),str(destination))
     code=call(entry,bytes(cfg))
     if code:raise RuntimeError(f'New-process journal routing initialization failed: {code}')
+    if recovery_directory:
+        recovery=Path(recovery_directory).resolve()
+        if len(str(recovery))>=1024 or not re.fullmatch(r'SOLIDWORKS 20\d\d',source.name,re.IGNORECASE):
+            raise ValueError('Invalid experimental recovery directory or SolidWorks version folder')
+        recovery.mkdir(parents=True,exist_ok=True)
+        key=registry_key_name('Software\\SolidWorks\\'+source.name+'\\General')
+        cfg=RecoveryConfig(pid,key,str(recovery))
+        entry=c.cast(local.InitializeRecoveryRedirect,c.c_void_p).value-local._handle+matches[0]
+        code=call(entry,bytes(cfg))
+        if code:raise RuntimeError(f'New-process recovery routing initialization failed: {code}')

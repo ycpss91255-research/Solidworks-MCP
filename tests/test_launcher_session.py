@@ -7,6 +7,18 @@ from launch_solidworks import launch_session
 
 
 class LauncherSessionTests(unittest.TestCase):
+    def test_private_recovery_cannot_be_inside_shared_journal_directory(self):
+        with tempfile.TemporaryDirectory() as folder:
+            root=Path(folder)
+            dll=root/'test.dll';dll.write_bytes(b'fixture')
+            source=root/'shared';source.mkdir()
+            with patch('launch_solidworks._launch_locked') as start:
+                with self.assertRaisesRegex(ValueError,'outside the shared journal folder'):
+                    launch_session('SLDWORKS.exe',root/'state.json',
+                        journal_redirect=(dll,source,root/'private',source/'recovery'))
+                start.assert_not_called()
+            self.assertFalse((source/'recovery').exists())
+
     def test_stale_session_cannot_reuse_a_nonempty_private_journal(self):
         with tempfile.TemporaryDirectory() as folder:
             root=Path(folder)
