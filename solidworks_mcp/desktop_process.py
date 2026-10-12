@@ -10,7 +10,7 @@ import win32api
 import win32process
 
 
-def start_desktop_process(executable, cwd, arguments=()):
+def start_desktop_process(executable, cwd, arguments=(), before_resume=None):
     k = c.WinDLL('kernel32', use_last_error=True)
     u = c.WinDLL('user32', use_last_error=True)
     u.GetShellWindow.restype = w.HWND
@@ -72,9 +72,22 @@ def start_desktop_process(executable, cwd, arguments=()):
         info = ProcessInfo()
         command = c.create_unicode_buffer(subprocess.list2cmdline([str(executable), *arguments]))
         if not k.CreateProcessW(str(executable), command, None, None, False,
-                                0x80010, None, str(cwd), c.byref(startup), c.byref(info)):
+                                0x80010 | (4 if before_resume else 0), None, str(cwd), c.byref(startup), c.byref(info)):
             raise c.WinError(c.get_last_error())
         try:
+            if before_resume:
+                try:
+                    before_resume(info.process, info.pid)
+                    k.ResumeThread.argtypes = [w.HANDLE]
+                    k.ResumeThread.restype = w.DWORD
+                    if k.ResumeThread(info.thread) == 0xFFFFFFFF:
+                        raise c.WinError(c.get_last_error())
+                except BaseException:
+                    # Only this freshly created, still-suspended process can be
+                    # stopped. It has never been returned or used for CAD work.
+                    k.TerminateProcess.argtypes = [w.HANDLE,w.UINT]
+                    k.TerminateProcess(info.process, 1)
+                    raise
             return info.pid
         finally:
             k.CloseHandle(info.thread)

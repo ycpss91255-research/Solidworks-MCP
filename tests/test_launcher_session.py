@@ -7,6 +7,22 @@ from launch_solidworks import launch_session
 
 
 class LauncherSessionTests(unittest.TestCase):
+    def test_stale_session_cannot_reuse_a_nonempty_private_journal(self):
+        with tempfile.TemporaryDirectory() as folder:
+            root=Path(folder)
+            state=root/'session.json'
+            state.write_text(json.dumps({'pid':123,'start_time':'old'}))
+            dll=root/'test.dll';dll.write_bytes(b'fixture')
+            source=root/'source';source.mkdir()
+            destination=root/'private';destination.mkdir()
+            (destination/'swxJRNL.swj').write_text('preserved')
+            with patch('launch_solidworks._launch_locked') as start, \
+                 patch('solidworks_mcp.automation.managed_session.process_identity', return_value=None):
+                with self.assertRaisesRegex(ValueError,'empty private directory'):
+                    launch_session('SLDWORKS.exe',state,journal_redirect=(dll,source,destination))
+                start.assert_not_called()
+            self.assertEqual((destination/'swxJRNL.swj').read_text(),'preserved')
+
     def test_repeat_launch_reuses_only_this_sessions_pid(self):
         with tempfile.TemporaryDirectory() as folder:
             state = Path(folder)/'session.json'
