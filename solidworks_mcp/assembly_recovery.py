@@ -86,10 +86,13 @@ def snapshot_package(app,pid,directory,document_adapter=lambda doc:doc,pack_fact
             outputs=pack.destinations(generation,'r'+uuid.uuid4().hex[:8]+'-')
             if len(outputs)!=len(paths) or len({str(p).casefold() for p in outputs})!=len(outputs):
                 raise RuntimeError('Package destinations are incomplete or collide')
-            for path in outputs:
+            from .private_paths import canonical_outputs
+            canonical=canonical_outputs(outputs)
+            source_keys={path_key(p) for p in paths}
+            for path,resolved in zip(outputs,canonical):
                 destination=Path(path)
-                if (not destination.is_absolute() or not destination.resolve().is_relative_to(generation.resolve())
-                        or destination.exists() or path_key(destination) in {path_key(p) for p in paths}):
+                if (not destination.is_absolute() or not resolved.is_relative_to(generation.resolve())
+                        or destination.exists() or str(resolved).casefold() in source_keys):
                     raise RuntimeError('Package destination is not a new private file')
             mapping=dict(zip(paths,map(str,outputs)))
             evidence['package_files']=mapping
@@ -97,12 +100,31 @@ def snapshot_package(app,pid,directory,document_adapter=lambda doc:doc,pack_fact
             if int(get0(app,'GetProcessID'))!=pid or process_identity(pid)!=identity:
                 raise RuntimeError('Snapshot target identity changed before save')
             statuses=pack.save();evidence['save_statuses']=statuses
-            if len(statuses)!=len(paths) or any(statuses):raise RuntimeError('Pack and Go save failed')
+            # SW2023's real mixed package returned only native-document codes,
+            # while also copying its three STEP sources. File completeness and
+            # STEP content are independently mandatory below.
+            allowed_counts={len(paths),len(paths)-len(step_sources)}
+            if len(statuses) not in allowed_counts or any(statuses):raise RuntimeError('Pack and Go save failed')
+            evidence['save_status_count']=len(statuses)
             if any(not Path(p).is_file() or Path(p).stat().st_size==0 for p in outputs):
                 raise RuntimeError('Package output is missing or empty')
             for source in step_sources:
                 if fingerprint(mapping[source])!=sources[source]:
                     raise RuntimeError('STEP dependency copy does not match its saved source')
+            if step_sources:
+                # A copied STEP is insufficient if a saved import still points
+                # to the original. Search=False reads recorded paths, rather
+                # than masking them through SolidWorks' reference search rules.
+                leaks=[]
+                for source,output in mapping.items():
+                    if Path(source).suffix.casefold() not in ('.sldprt','.sldasm'):continue
+                    references=list(app.GetDocumentDependencies2(output,False,False,False) or ())
+                    if len(references)%2:raise RuntimeError('Cannot verify recorded STEP dependency list')
+                    for reference in references[1::2]:
+                        if Path(reference).suffix.casefold() in STEP_EXTENSIONS and not Path(reference).resolve().is_relative_to(generation.resolve()):
+                            leaks.append({'document':output,'reference':reference})
+                evidence['unresolved_step_references']=leaks
+                if leaks:raise RuntimeError('Copied STEP references still point outside the private package; recovery is incomplete')
             after=document_state(doc);evidence['source_after']=after
             if document is not None:
                 evidence['active_after']=active_state()

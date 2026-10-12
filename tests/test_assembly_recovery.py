@@ -12,6 +12,7 @@ class App:
     GetProcessID=123
     def __init__(self,docs):self.docs=docs;self.ActiveDoc=docs[0]
     def GetOpenDocumentByName(self,path):return next((d for d in self.docs if d.GetPathName==path),None)
+    def GetDocumentDependencies2(self,*args):return []
 class Pack:
     def __init__(self,app):self.app=app;self.paths=[d.GetPathName for d in app.docs];self.saved=0;self.action=None
     def documents(self):return self.paths
@@ -87,6 +88,28 @@ class AssemblyRecoveryTests(unittest.TestCase):
         step=self.root/'sensor.step';step.write_bytes(b'original neutral geometry')
         self.pack.paths.append(str(step))
         with self.assertRaisesRegex(SnapshotError,'STEP dependency copy'):self.snapshot()
+    def test_original_step_link_prevents_complete_recovery_claim(self):
+        step=self.root/'sensor.stp';step.write_bytes(b'neutral source')
+        self.pack.paths.append(str(step))
+        self.pack.action=lambda:Path(self.pack.outputs[-1]).write_bytes(step.read_bytes())
+        self.app.GetDocumentDependencies2=lambda *args:['sensor',str(step)]
+        with self.assertRaisesRegex(SnapshotError,'STEP references still point outside') as result:self.snapshot()
+        self.assertTrue(result.exception.data['unresolved_step_references'])
+    def test_native_only_statuses_still_require_every_step_file(self):
+        step=self.root/'sensor.stp';step.write_bytes(b'neutral source')
+        self.pack.paths.append(str(step))
+        original=self.pack.save
+        def save():
+            result=original();Path(self.pack.outputs[-1]).write_bytes(step.read_bytes())
+            return result[:-1]
+        self.pack.save=save
+        result=self.snapshot()
+        self.assertEqual(result['save_status_count'],2)
+        self.assertEqual(len(result['package_files']),3)
+        def missing():
+            result=save();Path(self.pack.outputs[-1]).unlink();return result
+        self.pack.save=missing
+        with self.assertRaisesRegex(SnapshotError,'output is missing'):self.snapshot()
     def test_dirty_loaded_step_does_not_claim_saved_baseline_is_recovery(self):
         step=self.root/'sensor.stp';step.write_bytes(b'neutral baseline')
         self.pack.paths.append(str(step));self.app.docs.append(Doc(step,1))

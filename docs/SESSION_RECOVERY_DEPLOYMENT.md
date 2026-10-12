@@ -141,6 +141,56 @@ another snapshot because it found no dirty supported document. These observation
 do not prove the earlier disconnection's cause or successful MR12 recovery.
 The rack worker continued producing snapshots (22 confirmed at that check).
 
+### Isolated full-model investigation (not yet a passed recovery test)
+
+The user subsequently authorized isolated testing without repeated permission
+questions. A fresh guarded test PID 38376 used its own creation identity and
+session file; the two working configurations were not retargeted. The full MR12
+source was opened read-only. Its initial dataset contained 2,853 components and
+1,402 source files, including three STEP dependencies.
+
+Real probes rejected both BSTR and VARIANT per-document naming arrays, including
+identity assignments. The implementation now uses the native folder override
+with `FlattenToSingleFolder=False`, which returned unique private destinations.
+An existing NTFS short directory alias is used when available, without changing
+Windows settings. A short `r-` filename prefix avoids the three outputs that
+exceeded MAX_PATH under the former ten-character prefix. SW2023 returned 1,399
+zero save codes for the mixed 1,402-file package; complete file presence and
+byte-identical STEP copies remain mandatory, independently of that count.
+
+The original pre-save validation rebuilt all source path keys for every output,
+causing almost two million resolutions for this model. Source keys are now
+computed once and output parent resolutions cached, retaining canonical escape,
+collision and source-overwrite checks. The complete suite passes 153 tests.
+
+Later full copies produced all 1,405 files, but the formal root's disk hash
+changed during copying and the source-consistency guard rejected them. These
+generations remain failed artifacts; none was promoted to a valid recovery.
+One was used solely as a detached test fixture. Opening it revealed that two
+3D Interconnect links still referred to original STEP locations. Closed-file
+dependency inspection with search disabled also found an old D: reference;
+search-enabled inspection had hidden it by resolving to a private copy.
+`ReplaceReferencedDocument` returned false for these STEP links. Consequently
+STEP packages now fail explicitly if their recorded links remain outside the
+private generation, rather than claiming that copied STEP bytes alone prove
+self-contained recovery.
+
+A pywin32 imported-feature output-parameter probe then produced RPC failure and
+test PID 38376 exited. Application event 1000 records that PID (0x95e8) at
+21:33 on 2026-10-12, first in `slduiu.dll` (c0000005), then `ntdll.dll`
+(c0000374). CAD probing was stopped. The older rack PID 26356 (0x66f4) had a
+separate d3d11.dll crash at 21:19, before that imported-feature probe, and its
+session state later recorded PID 19780. This timing distinguishes the events
+but does not rule out indirect resource effects of loading the full test model.
+No test process was deliberately terminated and no other PID was controlled.
+Do not repeat the unsafe output-parameter probe; further CAD tests must use a
+properly marshaled interface and avoid unsupported feature types.
+
+Ignored investigation evidence is under `test-results/mr12-isolated-proof/`:
+source geometry, failed generation manifests, naming probes, recorded STEP
+dependencies, detached-fixture linkage inspection and tool outputs. Complete
+MR12 automatic backup and isolated restoration remain unverified.
+
 Use an independent checkout/worktree with an absolute session file and private
 log and recovery directories. Keep the PID of another chat out of this config.
 The MCP command must point to this fork's `solidworks_mcp_server.py` and its
