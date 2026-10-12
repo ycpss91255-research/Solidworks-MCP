@@ -152,3 +152,43 @@ The private stop marker then stopped that identified worker normally.
 Evidence: `rack-private-proof/native-timed-reconnect-proof.json` and the two
 `native-*-connect.json` files. A fresh-process rack restore, regression validation
 of the MR12 path with preserved basenames and final deployment audit remain.
+
+The fresh rack restore then passed in owned PID 27296: all 108 occurrences,
+referenced configurations, seven private sources and volume
+0.06739667792959786 m³ matched the timed snapshot, with error/warning 0 and
+unchanged backup hashes. It exited normally. Evidence:
+`rack-private-proof/fresh-restore-proof.json`.
+
+MR12 regression with preserved basenames also completed: source PID 35832,
+helper PID 40620, all 2,853 occurrences and source disk/RAM state preserved.
+The complete package has 1,405 primaries and two additional STEP aliases (one
+alias is already a primary), totaling 1,407 hashes. Evidence:
+`mr12-isolated-proof/preserved-names-complete.json`.
+
+Read-only deployment inspection found the existing MR12 worker PID 24684 still
+live with its old status `snapshot_in_progress`, last updated around 00:14,
+and no `follow_native_preferences` flag. It was not stopped or retargeted, and
+its status does not prove present protection. The two working CAD PIDs were
+not controlled. Updating production sessions remains a separate incomplete
+deployment step; this document does not claim their workers were migrated.
+
+Current local work groups output files by a compact canonical-parent hash,
+retaining basenames and STEP adjacency instead of reproducing the deep source
+hierarchy. This keeps room in the default `%LOCALAPPDATA%/SWMCP/<session-hash>`
+root. The real default-directory MR12 run passed: 1,405 primaries, 1,407 hashes,
+2,853 verified occurrences and preserved source disk/RAM state. Windows resolved
+the requested LocalAppData folder to the Codex package's LocalCache directory;
+the final manifest and all mappings retain that authoritative canonical root.
+Evidence: `mr12-isolated-proof/compact-default-complete.json`. The non-CAD suite
+passes 211 tests. A fresh restore of this compact generation remains pending.
+
+Nonblocking `py-spy` stack inspection of the old MR12 worker pinpointed its
+wait in `NativePack.__init__` at `extension.GetPackAndGo()` (old line 34), before
+package saves. This is evidence of its current wait, not a diagnosis of the
+underlying SolidWorks cause. It was neither paused nor terminated. The ordinary
+document-dependency API was tested as a possible replacement on this chat's
+fixture; it omitted six saved inactive dependencies and three STEP sources,
+so it cannot replace Pack and Go enumeration without additional verified
+coverage. A separate extension-dependency probe returned a server exception;
+it was not used as a fallback. See `BACKUP_WORKER_MIGRATION.md` for the pending,
+cross-chat-authorized deployment plan.

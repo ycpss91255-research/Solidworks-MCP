@@ -22,22 +22,25 @@ class PackNameTests(unittest.TestCase):
         self.assertEqual(len(set(v.casefold() for v in outputs)),3)
         self.assertTrue(all(Path(v).is_relative_to(Path('C:/private')) for v in outputs))
         self.assertEqual([Path(v).name for v in outputs],['sensor.SLDPRT','SENSOR.sldprt','assembly.SLDASM'])
-        p.pack.SetSaveToName.assert_called_once_with(True,'C:/private')
-        self.assertFalse(p.pack.FlattenToSingleFolder)
+        p.pack.SetSaveToName.assert_not_called()
         p.pack.SetDocumentSaveToNames.assert_not_called()
     def test_step_source_extension_is_preserved(self):
         p=self.pack(['C:/part.SLDPRT','C:/external.stp'])
         self.assertEqual(Path(p.destinations('C:/private','r-')[1]).suffix,'.stp')
-    def test_native_name_assignment_failure_is_not_success(self):
-        p=self.pack(['C:/part.SLDPRT']);p.pack.SetSaveToName.side_effect=None;p.pack.SetSaveToName.return_value=False
-        with self.assertRaisesRegex(RuntimeError,'package directory'):p.destinations('C:/private','r-')
-    def test_native_destination_escape_is_rejected(self):
-        p=self.pack(['C:/one.SLDPRT','C:/two.SLDPRT'])
-        p.pack.GetDocumentSaveToNames.side_effect=lambda:(['C:/original/one.SLDPRT','C:/private/two.SLDPRT'],[0,0],True)
-        with self.assertRaisesRegex(RuntimeError,'escape'):p.destinations('C:/private','r-')
+    def test_native_enumeration_failure_is_not_success(self):
+        p=self.pack(['C:/part.SLDPRT']);p.pack.GetDocumentNames.return_value=([],False)
+        with self.assertRaisesRegex(RuntimeError,'enumerate'):p.destinations('C:/private','r-')
+    def test_deep_source_hierarchy_does_not_lengthen_outputs(self):
+        p=self.pack(['C:/'+('deep/'*50)+'part.SLDPRT'])
+        output=p.destinations('C:/Users/test/AppData/Local/SWMCP/123456789abcdef0/generation','')[0]
+        self.assertLess(len(output),120);self.assertEqual(Path(output).name,'part.SLDPRT')
+        p.pack.GetDocumentSaveToNames.assert_not_called()
+    def test_step_owner_and_source_in_same_folder_stay_together(self):
+        p=self.pack(['C:/input/sensor.SLDPRT','C:/input/sensor.stp'])
+        outputs=p.destinations('C:/private','')
+        self.assertEqual(Path(outputs[0]).parent,Path(outputs[1]).parent)
     def test_native_long_destination_is_rejected_before_save(self):
-        p=self.pack(['C:/part.SLDPRT'])
-        p.pack.GetDocumentSaveToNames.side_effect=lambda:(['C:/private/'+('x'*250)+'.SLDPRT'],[0],True)
+        p=self.pack(['C:/'+('x'*250)+'.SLDPRT'])
         with self.assertRaisesRegex(RuntimeError,'259-character'):p.destinations('C:/private','r-')
         p.pack.SetDocumentSaveToNames.assert_not_called()
 

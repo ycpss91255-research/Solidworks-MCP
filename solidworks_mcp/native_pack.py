@@ -50,24 +50,20 @@ class NativePack:
             target=win32api.GetShortPathName(target)
         except win32api.error:
             pass
-        self.pack.FlattenToSingleFolder=False
-        if not self.pack.SetSaveToName(True,target):
-            raise RuntimeError('Cannot assign private package directory')
-        # Preserve basenames: renaming mirrored rack references caused invalid
-        # child occurrences. Private generations and preserved subfolders
-        # provide isolation without changing component filenames.
-        self.pack.AddPrefix=''
-        self.pack.AddSuffix=''
-        # Let the native package preserve subfolders and handle STEP/virtual
-        # naming. On the real mixed MR12 package even identity SetDocumentSaveToNames
-        # arrays were rejected; native folder assignment returned unique names.
-        paths,statuses,success=self.pack.GetDocumentSaveToNames()
-        if not success or any(statuses):raise RuntimeError('Cannot resolve private package destinations')
+        import hashlib
+        if not Path(directory).is_absolute():raise ValueError('Package directory must be absolute')
+        root=Path(directory).resolve()
+        sources=self._sources if hasattr(self,'_sources') else self.documents()
+        # Keep basenames (mirrored references depend on them), but never copy
+        # the original deep folder hierarchy into the default recovery root.
+        # Canonical parent hashes group STEP owners/sources and separate files
+        # with identical names in different folders. The manifest keeps mapping.
+        paths=[str(Path(target)/('d'+hashlib.sha256(str(Path(source).resolve().parent).casefold().encode()).hexdigest()[:12])/Path(source).name)
+               for source in sources]
         if any(len(path)>=260 for path in paths):
             raise RuntimeError('Native package path exceeds the validated 259-character limit; choose a shorter private recovery directory')
         from .private_paths import canonical_outputs
         canonical=canonical_outputs(paths)
-        root=Path(directory).resolve()
         source_count=self._source_count if hasattr(self,'_source_count') else len(self.documents())
         if (len(paths)!=source_count or len({str(p).casefold() for p in canonical})!=len(paths)
                 or any(not p.is_relative_to(root) for p in canonical)):
@@ -101,3 +97,4 @@ class NativePack:
                 status=0
             statuses.append(status)
         return statuses
+

@@ -240,6 +240,12 @@ def repair_private_assembly(app,helper_pid,helper_session_file,evidence,module,
             doc=adapter(raw)
             if Path(get0(doc,'GetPathName')).resolve()!=Path(evidence['snapshot_path']).resolve():
                 raise RuntimeError('Helper opened another model; it was not saved or closed')
+            def verify_loaded_private():
+                for loaded in get0(app,'GetDocuments') or ():
+                    path=get0(adapter(loaded),'GetPathName')
+                    if not path or not Path(path).resolve().is_relative_to(root):
+                        raise RuntimeError('Helper loaded a document outside the private package; no save was attempted')
+            verify_loaded_private()
             app.ActivateDoc3(get0(doc,'GetTitle'),False,1,0)
             current=get0(get0(doc.ConfigurationManager,'ActiveConfiguration'),'Name')
             if current!=desired['configuration']:
@@ -247,6 +253,7 @@ def repair_private_assembly(app,helper_pid,helper_session_file,evidence,module,
                 current=get0(get0(doc.ConfigurationManager,'ActiveConfiguration'),'Name')
             if current!=desired['configuration']:
                 raise RuntimeError('Private assembly lacks the source configuration')
+            verify_loaded_private()
             return doc,result
         reverse={str(Path(v).resolve()).casefold():str(Path(k).resolve()).casefold()
                  for k,v in mapping.items()}
@@ -272,6 +279,8 @@ def repair_private_assembly(app,helper_pid,helper_session_file,evidence,module,
         saved=[]
         for raw in get0(app,'GetDocuments') or ():
             model=adapter(raw);path=get0(model,'GetPathName')
+            if not path or not Path(path).resolve().is_relative_to(root):
+                raise RuntimeError('Helper save inventory includes a non-private document')
             if bool(get0(model,'GetSaveFlag')) or Path(path).resolve()==Path(evidence['snapshot_path']).resolve():
                 verify()
                 if not Path(path).resolve().is_relative_to(root):raise RuntimeError('Helper save is not private')
