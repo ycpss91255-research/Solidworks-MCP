@@ -195,6 +195,22 @@ Native AutoRecover remains un-restored. Recovery options must still be enabled
 separately in each intended session; these tests did not enable another chat's
 worker or move this chat's host to the prepared worktree.
 
+### Direct automatic-dismissal observation
+
+At the user's request, another production-launcher pair used fresh owned state
+files (first PID 33884, second PID 22204). A test observer wrapped the existing
+handler's click method without adding another click or close action. It verified
+the same PID, exact warning and sole OK button immediately before the production
+click. The same HWND became invisible 0.021173 seconds later while still owned
+by PID 22204. The production handler subsequently recorded `closed: true`.
+This directly proves automatic dismissal in that run, rather than inferring it
+from a later empty dialog inventory. It does not prove the warning never appears
+or guarantee the same timing in every startup. Both empty owned test instances
+were closed through PID-bound MCP and their exits confirmed.
+
+Ignored evidence: `test-results/auto-close-repeat-observation.json`,
+`auto-close-repeat-b.connection.json` and `auto-close-repeat-cleanup.json`.
+
 The registered `solidworks-recovery/solidworks_data` worktree has its own config,
 state, logs and recovery directory. Its target 38376 was intentionally backed
 up and closed at the user's request. Automatic CAD launch is disabled there.
