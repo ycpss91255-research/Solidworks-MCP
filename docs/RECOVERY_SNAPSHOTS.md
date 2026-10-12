@@ -364,3 +364,24 @@ creation despite inheriting the enabled environment. Evidence is in
 ignored native test root. This is a normal MCP-exit test; forced crash/job-close
 lifetime remains a separate pending live test. Existing chat configs remain
 unchanged.
+
+## Forced MCP server termination
+
+A live SW2023 test forcibly terminated only its newly created MCP server PID
+5292 by closing a private Windows job with `KILL_ON_JOB_CLOSE`. The server PID
+and creation identity were obtained from that exact MCP connection and checked
+before assignment; no CAD PID or other session's MCP was assigned to the job.
+Recovery worker PID 30396 remained live and produced a second drawing package
+60 seconds later. A fresh MCP connected to the same CAD PID and reused that
+same worker PID and creation time. The private stop marker then stopped the
+worker. CAD PID 34340 and both working CAD PIDs retained their creation times.
+Evidence: `sw-crash-mcp-recovery-v3/integration-result.json` and `monitor.json`
+below the ignored native test root.
+
+The job assignment occurred after worker startup. This verifies abrupt MCP
+server termination, not worker creation while its parent is already inside that
+new job. The earlier native fake-backend lifetime fixture covers that launch
+condition indirectly; a live CAD test of that precise condition remains pending.
+The first two diagnostic attempts failed before job assignment (result parsing
+and the pywin32 unnamed-job argument); their workers stopped via their private
+markers, and no CAD process was terminated. No production configuration changed.
