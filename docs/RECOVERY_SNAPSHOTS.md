@@ -1,11 +1,13 @@
-# Explicit part recovery snapshots
+# Explicit recovery snapshots
 
 `create_recovery_snapshot` creates a native private part copy through an
 already-connected, PID-bound MCP. This is the first implemented recovery-copy
 operation; it does not restore SolidWorks native AutoRecover or provide a
-timer by itself. An opt-in foreground monitor is described below. Assemblies and drawings are deliberately unsupported until their
-references can be recovered and verified without saving original components.
-External reference files belonging to a part are not packaged by this tool.
+timer by itself. An opt-in monitor is described below. The endpoint also offers
+an experimental saved-assembly package for assemblies whose package source list
+contains only that assembly and saved part files. Nested assemblies, drawings,
+missing files and non-CAD dependencies are rejected. External reference files
+belonging to a part copied through the part backend are not packaged.
 The overall journal / recovery goal remains incomplete.
 
 The official Backup/Recover/Version help explicitly states that starting a
@@ -30,7 +32,7 @@ and each invocation creates a unique generation containing `part.SLDPRT` and
 `manifest.json`. Existing snapshots are retained; nothing is automatically
 overwritten or deleted. Restoration is a separate explicit open operation.
 
-The operation checks the configured application PID and holds a process handle.
+The part operation checks the configured application PID and holds a process handle.
 It fingerprints the saved original file, records its path, title and unsaved
 flag, and invokes only SaveAs3 with Silent|Copy (options 3). It checks the source
 state and fingerprint afterward and records a complete manifest only when the
@@ -229,9 +231,55 @@ The original assembly and component disk hashes remained unchanged. This
 proves a saved, single-component assembly can preserve this unsaved component
 edit and recover an independent reference. It does not prove unsaved parent
 transforms/mates, nested assemblies, virtual/lightweight/suppressed components,
-external references, configurations, or drawings. The prototype is not yet
-integrated into the snapshot endpoint or timer; assembly monitoring remains
-unsupported. Ignored evidence: `assembly-recovery-probe/pack-prefix-copy-result.json`
+external references, configurations, or drawings. This original prototype was
+followed by the experimental endpoint and timer integration described below.
+Ignored evidence: `assembly-recovery-probe/pack-prefix-copy-result.json`
 and `assembly-recovery-probe/pack-prefix-restore-result.json` below
 `test-results/native-journal`.
 https://help.solidworks.com/2023/English/api/sldworksapi/SOLIDWORKS.Interop.sldworks~SOLIDWORKS.Interop.sldworks.IModelDocExtension~SavePackAndGo.html
+
+## Experimental assembly endpoint and timed packages
+
+The existing `create_recovery_snapshot` endpoint now dispatches active saved
+assemblies to the native Pack and Go backend. It requires a saved assembly and
+saved part reference files; nested assemblies, missing/unsaved files and
+non-CAD package dependencies are rejected before saving. Each generation has
+unique prefixed output filenames. All destinations are checked to be new files
+inside the private generation before Pack and Go runs. The manifest records
+source file hashes and loaded source paths, titles and dirty flags; any change
+prevents a complete result. No fallback source Save or application launch is used.
+The installed type library must match the connected CAD's major version.
+
+The new endpoint was live-tested on owned SW2023 PID 34340. Its package reopened
+with one reference to its own copied part, preserving the unsaved 7 mm extrusion
+and expected volume while leaving source disk hashes unchanged. Ignored evidence:
+`assembly-recovery-probe/endpoint-report.json` and `endpoint-restore-result.json`
+below `test-results/native-journal`.
+
+Timed assembly copies require a separate explicit opt-in in the worker's
+environment (including the launching MCP environment when using the hook):
+
+```text
+SOLIDWORKS_RECOVERY_ASSEMBLIES=1
+```
+
+The normal default remains part snapshots. With this flag, the monitor checks
+both the active assembly's dirty flag and the dirty flags of its loaded
+component models. Thus a clean parent with a dirty child requests a snapshot;
+that branch has a non-CAD test, not a live clean-parent test yet. The legacy
+status marker `part_recovery_monitor` is retained for status-file compatibility.
+
+A bounded live CLI run created two assembly packages 60 seconds apart and exited
+at its two-tick limit. The second package reopened through the same PID's MCP
+and recovered its own part reference with a 7 mm extrusion and volume
+2.1991148575128554e-6 cubic metres. Source assembly and part disk hashes stayed
+unchanged. Evidence: `assembly-timed-recovery/monitor.json` and
+`assembly-recovery-probe/timed-restore-result.json` under the ignored native test
+root. The two working CAD PIDs retained their creation identities and were not
+controlled. The assembly option has not been enabled in existing chat configs.
+
+Validation remains incomplete for parent transforms/mates, configurations,
+virtual/lightweight/suppressed components, nested assemblies, external-reference
+semantics and drawings. The package API's successful save status does not by
+itself prove those cases are recoverable. Native AutoRecover remains unverified;
+this is an independent recovery-package mechanism.

@@ -2,7 +2,7 @@
 from contextlib import contextmanager
 from datetime import datetime,timezone
 from pathlib import Path
-import argparse,hashlib,json,math,time
+import argparse,hashlib,json,math,time,os
 import win32api,win32con,win32event,win32gui,win32process
 from .automation.managed_session import process_identity,write_state
 from .recovery_snapshot import get0
@@ -50,6 +50,7 @@ class CadBackend:
         self.automation._configured_target=str(pid)
         self.automation._auto_launch=False
         self.pid=pid;self.directory=directory
+        self.assembly_enabled=os.environ.get('SOLIDWORKS_RECOVERY_ASSEMBLIES')=='1'
     def connect(self):return self.automation.connect()
     def probe(self):
         if not self.automation.is_connected:raise RuntimeError('Configured MCP connection was lost')
@@ -63,8 +64,18 @@ class CadBackend:
         doc=app.ActiveDoc
         if doc is None:return {'state':'no_document'}
         doc=module.IModelDoc2(doc._oleobj_)
-        if int(get0(doc,'GetType'))!=1:return {'state':'unsupported_document'}
-        return {'state':'dirty' if bool(get0(doc,'GetSaveFlag')) else 'clean'}
+        kind=int(get0(doc,'GetType'))
+        dirty=bool(get0(doc,'GetSaveFlag'))
+        if kind==2 and self.assembly_enabled:
+            assembly=module.IAssemblyDoc(doc._oleobj_)
+            for raw_component in assembly.GetComponents(False) or ():
+                component=module.IComponent2(raw_component._oleobj_)
+                model=get0(component,'GetModelDoc2')
+                if model is not None and bool(get0(module.IModelDoc2(model._oleobj_),'GetSaveFlag')):
+                    dirty=True
+            return {'state':'dirty' if dirty else 'clean'}
+        if kind!=1:return {'state':'unsupported_document'}
+        return {'state':'dirty' if dirty else 'clean'}
     def snapshot(self):return self.automation.create_recovery_snapshot(str(self.directory))
     def close(self):self.automation.disconnect()
 

@@ -1,4 +1,5 @@
 import json,tempfile,unittest,sys,io
+from types import SimpleNamespace
 from contextlib import nullcontext,redirect_stdout
 from pathlib import Path
 from unittest.mock import Mock,patch
@@ -97,6 +98,27 @@ class MonitorTests(unittest.TestCase):
         self.assertEqual(automation._target_pid,'123')
         self.assertEqual(automation._configured_target,'123')
         automation.connect.assert_not_called()
+    def test_assembly_child_edits_trigger_copy_only_when_explicitly_enabled(self):
+        parent_object=object();child_object=object()
+        parent=SimpleNamespace(_oleobj_=parent_object,GetType=2,GetSaveFlag=False)
+        child=SimpleNamespace(_oleobj_=child_object,GetType=1,GetSaveFlag=True)
+        component=SimpleNamespace(_oleobj_=object(),GetModelDoc2=child)
+        raw=SimpleNamespace(_oleobj_=object(),RevisionNumber='31.5')
+        app=SimpleNamespace(GetProcessID=123,CommandInProgress=False,ActiveDoc=parent)
+        assembly=SimpleNamespace(GetComponents=lambda recursive:[component])
+        module=SimpleNamespace(ISldWorks=lambda obj:app,IAssemblyDoc=lambda obj:assembly,
+                               IComponent2=lambda obj:component,
+                               IModelDoc2=lambda obj:parent if obj is parent_object else child)
+        automation=Mock();automation.is_connected=True;automation.app=raw
+        with patch('solidworks_mcp.automation.SolidWorksAutomation',return_value=automation), \
+             patch('win32com.client.gencache.EnsureModule',return_value=module), \
+             patch.dict('os.environ',{'SOLIDWORKS_RECOVERY_ASSEMBLIES':'0'}):
+            backend=CadBackend(123,self.root)
+            self.assertEqual(backend.probe()['state'],'unsupported_document')
+            backend.assembly_enabled=True
+            self.assertEqual(backend.probe()['state'],'dirty')
+            child.GetSaveFlag=False
+            self.assertEqual(backend.probe()['state'],'clean')
     def test_cli_existing_stop_marker_does_not_connect(self):
         session=self.root/'session.json';marker=self.root/'requested.stop'
         session.write_text(json.dumps({'pid':123,'start_time':'start'}));marker.touch()

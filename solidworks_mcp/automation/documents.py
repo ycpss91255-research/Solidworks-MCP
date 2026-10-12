@@ -32,7 +32,7 @@ class DocumentOperations:
     """
 
     def create_recovery_snapshot(self,directory: str) -> Dict:
-        """Explicit private part copy. Requires an already connected PID."""
+        """Explicit private part copy or experimental saved assembly package."""
         if not self.is_connected:
             return self._result(False,'Connect to the configured PID before creating a recovery snapshot',
                                 SwErrors.swConnectionError,{'configured_pid':self._target_pid})
@@ -44,8 +44,14 @@ class DocumentOperations:
             major=int(str(revision).split('.')[0])
             module=win32com.client.gencache.EnsureModule('{83A33D31-27C5-11CE-BFD4-00400513BB57}',0,major,0)
             app=module.ISldWorks(self._sw_app._oleobj_)
-            result=snapshot_part(app,pid,directory,lambda doc:module.IModelDoc2(doc._oleobj_))
-            return self._result(True,'Created private part recovery snapshot',data=result)
+            adapter=lambda doc:module.IModelDoc2(doc._oleobj_)
+            active=app.ActiveDoc
+            if active is not None and adapter(active).GetType()==2:
+                from ..assembly_recovery import snapshot_assembly
+                result=snapshot_assembly(app,pid,directory,adapter)
+            else:
+                result=snapshot_part(app,pid,directory,adapter)
+            return self._result(True,'Created private recovery snapshot',data=result)
         except Exception as exc:
             return self._result(False,f'Recovery snapshot failed: {exc}',SwErrors.swFileSaveError,
                                 getattr(exc,'data',{'configured_pid':self._target_pid}))
