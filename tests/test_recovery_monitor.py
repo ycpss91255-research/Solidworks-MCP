@@ -99,6 +99,27 @@ class MonitorTests(unittest.TestCase):
         self.assertEqual(automation._target_pid,'123')
         self.assertEqual(automation._configured_target,'123')
         automation.connect.assert_not_called()
+    def test_all_document_probe_finds_dirty_background_part_with_clean_active_part(self):
+        active_object=object();background_object=object()
+        active=SimpleNamespace(_oleobj_=active_object,GetType=1,GetSaveFlag=False,GetPathName='C:/active.SLDPRT',GetTitle='active')
+        background=SimpleNamespace(_oleobj_=background_object,GetType=1,GetSaveFlag=True,GetPathName='C:/background.SLDPRT',GetTitle='background')
+        raw=SimpleNamespace(_oleobj_=object(),RevisionNumber='31.5')
+        app=SimpleNamespace(GetProcessID=123,CommandInProgress=False,ActiveDoc=active,GetDocuments=lambda:[active,background])
+        module=SimpleNamespace(ISldWorks=lambda obj:app,IModelDoc2=lambda obj:active if obj is active_object else background)
+        automation=Mock();automation.is_connected=True;automation.app=raw
+        with patch('solidworks_mcp.automation.SolidWorksAutomation',return_value=automation), \
+             patch('win32com.client.gencache.EnsureModule',return_value=module), \
+             patch.dict('os.environ',{'SOLIDWORKS_RECOVERY_ALL_DOCUMENTS':'1'}):
+            backend=CadBackend(123,self.root)
+            self.assertEqual(backend.probe()['state'],'dirty')
+            self.assertEqual(backend._batch_documents,[background])
+            self.assertIs(app.ActiveDoc,active)
+    def test_failed_batch_is_retained_in_monitor_status(self):
+        self.backend.snapshot=Mock(return_value={'success':False,'message':'second failed',
+            'data':{'status':'failed','snapshots':[{'status':'complete','pid':123}]}})
+        result=self.run_monitor()
+        self.assertEqual(result['status'],'failed')
+        self.assertEqual(len(result['last_failed_snapshot']['snapshots']),1)
     def test_assembly_child_edits_trigger_copy_only_when_explicitly_enabled(self):
         parent_object=object();child_object=object()
         parent=SimpleNamespace(_oleobj_=parent_object,GetType=2,GetSaveFlag=False)

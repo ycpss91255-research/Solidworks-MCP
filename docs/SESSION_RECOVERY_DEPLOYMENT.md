@@ -35,9 +35,17 @@ the API, implementation checks and chronological test evidence.
 | MCP normal exit and reconnect | Same worker remained live, produced a later copy and was reused |
 | Forced MCP termination | Private server job termination after worker startup; worker continued and was reused |
 
-The monitor currently protects the **active supported document**, together
-with its packaged references. It does not sweep every independently opened
-inactive document. A manual `create_recovery_snapshot` call can also select an
+The default monitor protects the **active supported document**, together
+with its packaged references. `SOLIDWORKS_RECOVERY_ALL_DOCUMENTS=1` instead scans
+open documents and selects dirty supported documents, including clean roots
+whose loaded references are dirty. Background part copies need no activation.
+Background assembly/drawing packages require the separate explicit setting
+`SOLIDWORKS_RECOVERY_BACKGROUND_ACTIVATION=1`: they temporarily activate the
+target through API without rebuilding, then restore the previous active
+document and its dirty state. This may visibly switch documents within that
+session; it never switches another PID. Unexpected external view changes stop
+the batch without forcing the user's prior view. A manual
+`create_recovery_snapshot` call can also select an
 already-open background part through its absolute `filepath`, without opening
 or activating it. Background assembly/drawing selection is not supported yet.
 The monitor skips commands in progress and visible dialogs; it does
@@ -63,6 +71,8 @@ SOLIDWORKS_RECOVERY_DIRECTORY=C:/work/session-a/.codex/recovery
 SOLIDWORKS_RECOVERY_INTERVAL=60
 SOLIDWORKS_RECOVERY_ASSEMBLIES=1
 SOLIDWORKS_RECOVERY_DRAWINGS=1
+SOLIDWORKS_RECOVERY_ALL_DOCUMENTS=1
+SOLIDWORKS_RECOVERY_BACKGROUND_ACTIVATION=1
 SOLIDWORKS_JOURNAL_WARNING_ACTION=dismiss
 ```
 

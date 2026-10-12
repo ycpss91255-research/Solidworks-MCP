@@ -507,3 +507,54 @@ Evidence under the ignored native test root: `background-part-copy-proof.json`,
 `background-endpoint-result.json` and `background-endpoint-restore-result.json`.
 The complete non-CAD suite passes 109 tests, including absent sources,
 unsupported types, path mismatch and active-document changes during copying.
+
+## Opt-in multi-document recovery batches
+
+`SOLIDWORKS_RECOVERY_ALL_DOCUMENTS=1` enumerates documents from the already
+bound application and snapshots dirty supported documents sequentially. It
+also checks loaded child/reference dirty flags for enabled assembly/drawing
+types. Each individual copy retains its own private generation and manifest;
+the monitor's `last_snapshot` is a batch containing those snapshot records.
+Unsupported dirty documents appear in `unprotected_documents`, including tool
+health warnings. On a failed copy, completed copies remain discoverable in
+`last_failed_snapshot`; the batch cannot be counted as complete.
+
+Background parts use their document interface directly. A real SW2023 probe
+of `GetPackAndGo` from a background assembly returned the active drawing's
+file list instead of the selected assembly. The existing source-membership
+guard rejected that probe before any file save. This observation does not
+establish a universal API restriction or its internal cause.
+
+For background assembly/drawing packages, the additional explicit flag
+`SOLIDWORKS_RECOVERY_BACKGROUND_ACTIVATION=1` permits temporary activation
+within that application's PID. The batch uses `ActivateDoc3` with
+`swDontRebuildActiveDoc=1`, packages the selected active root, and restores the
+original active document in a guarded finally block. A changed PID, command,
+dialog, or unexpected external view prevents forced restoration. This is an
+API operation, not keyboard/UI automation. It can visibly switch documents in
+its own session and remains disabled by default.
+Official enumeration:
+https://help.solidworks.com/2024/english/api/swconst/SolidWorks.Interop.swconst~SolidWorks.Interop.swconst.swRebuildOnActivation_e.html
+
+Real timed verification on owned PID 34340 completed two batches, 60 seconds
+after completion of the prior batch. Each contained three dirty parts, three
+dirty assemblies (including the nested fixture), and one dirty drawing.
+The second batch's **seven** roots were then reopened one at a time through
+the same PID-bound MCP. Every restored geometry was compared against the
+unsaved original: part dimensions/volumes, assembly component reference paths
+and complete transform arrays, and drawing notes/model references/geometry.
+Private references were mapped back to their corresponding source identities
+for comparison. All seven passed. Only temporary recovered copies were closed;
+each original remained loaded with the same dirty flag, disk SHA256 and geometry,
+and the prior active drawing was restored after each check. Working PIDs 9336
+and 12616 retained their process creation identities. No CAD instance was
+launched or exited. The bounded recovery worker stopped at its two-tick limit.
+
+Ignored evidence: `native-journal/all-document-timer/integration-result.json`,
+`restore-expected.json`, `restore-result.json`, `restore-0.json` through
+`restore-6.json`, and `monitor.json`. The non-CAD suite passes 122 tests,
+including restoration on package failure, external-view changes, busy commands,
+foreign snapshots, incomplete batches and unprotected-document warnings.
+The new all-document mode has passed CLI timer/restore validation; its own
+MCP worker-start/reconnect integration remains to be exercised. Existing
+production chat configurations were not changed to enable these options.

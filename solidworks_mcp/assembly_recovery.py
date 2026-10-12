@@ -9,19 +9,23 @@ def document_state(doc):
     return {'path':str(get0(doc,'GetPathName')),'title':str(get0(doc,'GetTitle')),
             'dirty':bool(get0(doc,'GetSaveFlag'))}
 
-def snapshot_package(app,pid,directory,document_adapter=lambda doc:doc,pack_factory=None,allowed_types=(2,3)):
+def snapshot_package(app,pid,directory,document_adapter=lambda doc:doc,pack_factory=None,allowed_types=(2,3),document=None):
     root=Path(directory)
     if not root.is_absolute():raise ValueError('Snapshot directory must be absolute')
     if not isinstance(pid,int) or pid<=0 or int(get0(app,'GetProcessID'))!=pid:
         raise ValueError('Snapshot application does not match the configured PID')
     with held_process(pid) as identity:
-        raw=get0(app,'ActiveDoc')
+        raw=document if document is not None else get0(app,'ActiveDoc')
         if raw is None:raise ValueError('No active document to package')
         doc=document_adapter(raw)
         kind=int(get0(doc,'GetType'))
         if kind not in allowed_types:raise ValueError('Package recovery requires a supported assembly or drawing')
         document_type='drawing' if kind==3 else 'assembly'
         before=document_state(doc)
+        def active_state():
+            current=get0(app,'ActiveDoc')
+            return document_state(document_adapter(current)) if current is not None else None
+        active_before=active_state() if document is not None else None
         if not before['path'] or fingerprint(before['path']) is None:
             raise ValueError('Package recovery requires an existing saved source document')
         expected_suffix='.slddrw' if kind==3 else '.sldasm'
@@ -63,6 +67,7 @@ def snapshot_package(app,pid,directory,document_adapter=lambda doc:doc,pack_fact
                   'created_at':datetime.now(timezone.utc).isoformat(),'document_type':document_type,
                   'source':before,'source_files_sha256':sources,'loaded_sources':loaded_before,
                   'manifest_path':str(manifest),'validated_scope':'saved '+document_type+' with saved part and assembly references'}
+        if document is not None:evidence['active_before']=active_before
         def record():
             temporary=generation/'manifest.tmp'
             temporary.write_text(json.dumps(evidence,indent=2,ensure_ascii=False),encoding='utf-8')
@@ -87,6 +92,10 @@ def snapshot_package(app,pid,directory,document_adapter=lambda doc:doc,pack_fact
             if any(not Path(p).is_file() or Path(p).stat().st_size==0 for p in outputs):
                 raise RuntimeError('Package output is missing or empty')
             after=document_state(doc);evidence['source_after']=after
+            if document is not None:
+                evidence['active_after']=active_state()
+                if evidence['active_after']!=active_before:
+                    raise RuntimeError('Active document changed during background package')
             if (after!=before or loaded_states()!=loaded_before
                     or any(fingerprint(p)!=sha for p,sha in sources.items())):
                 raise RuntimeError('Source state or disk files changed during assembly snapshot')

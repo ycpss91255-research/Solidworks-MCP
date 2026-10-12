@@ -53,6 +53,8 @@ class CadBackend:
         self.pid=pid;self.directory=directory
         self.assembly_enabled=os.environ.get('SOLIDWORKS_RECOVERY_ASSEMBLIES')=='1'
         self.drawing_enabled=os.environ.get('SOLIDWORKS_RECOVERY_DRAWINGS')=='1'
+        self.all_documents=os.environ.get('SOLIDWORKS_RECOVERY_ALL_DOCUMENTS')=='1'
+        self.background_activation=os.environ.get('SOLIDWORKS_RECOVERY_BACKGROUND_ACTIVATION')=='1'
     def connect(self):return self.automation.connect()
     def probe(self):
         if not self.automation.is_connected:raise RuntimeError('Configured MCP connection was lost')
@@ -63,9 +65,20 @@ class CadBackend:
         app=module.ISldWorks(raw._oleobj_)
         if int(get0(app,'GetProcessID'))!=self.pid:raise RuntimeError('Application PID mismatch')
         if app.CommandInProgress:return {'state':'busy'}
+        if self.all_documents:
+            self._batch_app=app;self._batch_adapter=lambda d:module.IModelDoc2(d._oleobj_)
+            self._batch_documents=[];self._unprotected=[]
+            for raw_doc in get0(app,'GetDocuments') or ():
+                model=self._batch_adapter(raw_doc);probe=self._probe_document(model,module)
+                if probe['state']=='dirty':self._batch_documents.append(raw_doc)
+                elif probe['state']=='unsupported_document' and bool(get0(model,'GetSaveFlag')):
+                    self._unprotected.append({'path':get0(model,'GetPathName'),'title':get0(model,'GetTitle')})
+            return {'state':'dirty' if self._batch_documents else 'clean','unprotected_documents':self._unprotected}
         doc=app.ActiveDoc
         if doc is None:return {'state':'no_document'}
         doc=module.IModelDoc2(doc._oleobj_)
+        return self._probe_document(doc,module)
+    def _probe_document(self,doc,module):
         kind=int(get0(doc,'GetType'))
         dirty=bool(get0(doc,'GetSaveFlag'))
         def assembly_children_dirty(model):
@@ -93,7 +106,15 @@ class CadBackend:
             return {'state':'dirty' if dirty else 'clean'}
         if kind!=1:return {'state':'unsupported_document'}
         return {'state':'dirty' if dirty else 'clean'}
-    def snapshot(self):return self.automation.create_recovery_snapshot(str(self.directory))
+    def snapshot(self):
+        if self.all_documents:
+            from .recovery_batch import snapshot_documents
+            result=snapshot_documents(self._batch_app,self.pid,str(self.directory),self._batch_documents,
+                self._batch_adapter,allow_activation=self.background_activation,
+                idle=lambda:not self._batch_app.CommandInProgress and not visible_dialog(self.pid))
+            result.setdefault('data',{})['unprotected_documents']=self._unprotected
+            return result
+        return self.automation.create_recovery_snapshot(str(self.directory))
     def close(self):self.automation.disconnect()
 
 def run_monitor(pid,identity,directory,status_file,interval,backend,
@@ -132,10 +153,13 @@ def run_monitor(pid,identity,directory,status_file,interval,backend,
                     if not result['success']:raise RuntimeError(result.get('message','Target connection failed'))
                     connected=True
                 probe=backend.probe()
+                if 'unprotected_documents' in probe:state['unprotected_documents']=probe['unprotected_documents']
                 if probe['state']=='dirty':
                     record('snapshot_in_progress')
                     result=backend.snapshot()
-                    if not result['success']:raise RuntimeError(result.get('message','Recovery snapshot failed'))
+                    if not result['success']:
+                        if result.get('data'):state['last_failed_snapshot']=result['data']
+                        raise RuntimeError(result.get('message','Recovery snapshot failed'))
                     snapshot=result.get('data',{})
                     if (snapshot.get('status')!='complete' or snapshot.get('pid')!=pid
                             or snapshot.get('process_start_time')!=identity):

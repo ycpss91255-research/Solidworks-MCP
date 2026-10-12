@@ -47,6 +47,16 @@ class AssemblyRecoveryTests(unittest.TestCase):
         self.app.GetProcessID=456
         with self.assertRaisesRegex(ValueError,'configured PID'):self.snapshot()
         self.assertFalse(self.directory.exists());self.assertEqual(self.pack.saved,0)
+    def test_background_package_preserves_active_document(self):
+        root=self.app.docs[0];self.app.ActiveDoc=self.app.docs[1]
+        result=snapshot_package(self.app,123,self.directory,pack_factory=lambda doc:self.pack,document=root)
+        self.assertEqual(result['active_before'],result['active_after'])
+        self.assertIs(self.app.ActiveDoc,self.app.docs[1]);self.assertEqual(result['status'],'complete')
+    def test_background_package_focus_change_is_failed(self):
+        root=self.app.docs[0];self.app.ActiveDoc=self.app.docs[1]
+        self.pack.action=lambda:setattr(self.app,'ActiveDoc',root)
+        with self.assertRaisesRegex(SnapshotError,'Active document changed'):
+            snapshot_package(self.app,123,self.directory,pack_factory=lambda doc:self.pack,document=root)
     def test_missing_and_relative_sources_cannot_save(self):
         for invalid in (str(self.root/'nested.SLDASM'),str(self.root/'missing.SLDPRT'),'relative.SLDPRT'):
             with self.subTest(invalid=invalid):

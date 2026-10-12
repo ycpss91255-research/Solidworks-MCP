@@ -33,6 +33,8 @@ def recovery_worker_error(pid,worker):
         expected=(str(Path(sys._base_executable).resolve()).casefold(),status['worker_start_time'])
         if worker_identity(status['worker_pid'])!=expected:
             return 'Recovery worker exited or its process identity changed'
+        if status.get('unprotected_documents'):
+            return 'Recovery monitor has unsupported dirty documents; inspect unprotected_documents in its status file'
         return None
     except Exception as exc:
         return f'Recovery monitor health could not be verified: {exc}'

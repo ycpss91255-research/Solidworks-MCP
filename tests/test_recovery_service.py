@@ -38,6 +38,9 @@ class RecoveryServiceTests(unittest.TestCase):
             return error
     def test_running_worker_health_is_verified(self):
         self.assertIsNone(self.health())
+    def test_unsupported_dirty_documents_are_not_silently_claimed_protected(self):
+        self.record['unprotected_documents']=[{'path':'C:/drawing.SLDDRW','title':'drawing'}]
+        self.assertIn('unsupported dirty documents',self.health())
     def test_failure_after_start_is_reported_even_if_process_still_live(self):
         self.record.update(status='failed',error='Save failed')
         self.assertIn('Save failed',self.health())
