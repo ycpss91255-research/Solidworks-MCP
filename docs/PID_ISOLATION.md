@@ -166,6 +166,35 @@ working isolation solution and remains experimental.
 
 ## Explicit journal warning acknowledgement
 
+### Additional real-instance isolation probes
+
+The owned empty SW 2023 instance reported the resolved actual user's roaming
+directory through `GetUserPreferenceStringValue(24)`, despite the registry's
+`CURRENT_USER` placeholder. This is direct evidence that the placeholder is not,
+by itself, the broken path previously inferred from a literal filesystem check.
+
+`SetUserPreferenceStringValue(24, private_folder)` returned true and changed that
+instance's API-reported preference. The shared registry value did not change,
+and no private journal handle appeared. Calling `RecordLine` with a diagnostic
+VBA comment also returned true, but the private `swxJRNL.swj` did not exist and
+the instance still had no journal handle. API and registry values were restored;
+the pre-existing instance retained its original journal. Successful API return
+values are therefore not sufficient proof of journaling or AutoRecover repair.
+
+A separate child-only `APPDATA` experiment was also unsuccessful. The child's
+actual environment contained the private roaming directory, but its API still
+reported the original user's journal directory, and the journal warning appeared.
+It was acknowledged only with the explicitly selected PID-scoped handler. The
+original working processes retained their PIDs. The temporary roaming CLI option
+was removed after this failed experiment; it is not advertised as a solution.
+
+These experiments narrow the remaining issue to actual startup journal routing
+or initialization, rather than MCP process selection. Full journal/AutoRecover
+isolation remains unverified. Relevant public API documentation:
+https://help.solidworks.com/2019/english/api/sldworksapi/solidworks.interop.sldworks~solidworks.interop.sldworks.isldworks~recordline.html
+
+### Acknowledgement configuration and verified limits
+
 For a CLI launch, choose `--journal-warning-action dismiss`. For managed MCP,
 set `SOLIDWORKS_JOURNAL_WARNING_ACTION='dismiss'` and restart its connection.
 Default is `manual`. Only the session's startup PID is watched; text must match
