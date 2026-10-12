@@ -64,6 +64,54 @@ def launch(executable):
         return _launch_locked(executable)
 
 
+def launch_journal_experiment(executable, folder, evidence):
+    """Explicit experiment, not the default or managed-MCP launch policy."""
+    from solidworks_mcp.journal_registry import JournalFolderLease
+    from solidworks_mcp.process_files import journal_handles
+    folder = Path(folder)
+    evidence = Path(evidence)
+    if not folder.is_absolute() or not evidence.is_absolute():
+        raise ValueError('Experiment folder and evidence must be absolute')
+    if folder.exists() and any(folder.iterdir()):
+        raise ValueError('Experiment requires a new, empty journal folder')
+    executable = Path(executable).resolve(strict=True)
+    if executable.name.casefold() != 'sldworks.exe':
+        raise ValueError('Expected the installed SLDWORKS.exe')
+    version = win32api.GetFileVersionInfo(str(executable), '\\')['FileVersionMS'] >> 16
+    if version < 10 or version > 100:
+        raise ValueError('Unrecognized SolidWorks executable version')
+    key_path = rf'Software\SolidWorks\SOLIDWORKS {version + 1992}\ExtReferences'
+    with launcher_lock():
+        before = running_pids()
+        if len(before) >= 2:
+            raise RuntimeError('Two or more SolidWorks instances already exist. No journal setting changed.')
+        baseline = journal_handles(before)
+        with JournalFolderLease(key_path, folder, evidence) as lease:
+            lease.state['preserved_journal_handles'] = baseline
+            pid = _launch_locked(executable)
+            lease.state['launched_pid'] = pid
+            lease._record('waiting_for_journal')
+            deadline = time.monotonic() + 45
+            while True:
+                if pid not in running_pids():
+                    raise RuntimeError(f'Experiment PID {pid} exited; do not launch an alternate')
+                rows = journal_handles([pid, *before])
+                own = [row for row in rows if row['pid'] == pid and
+                       Path(row['path']).resolve() == (folder / 'swxJRNL.swj').resolve()]
+                if own:
+                    if any(row not in rows for row in baseline):
+                        raise RuntimeError('An existing journal handle changed during experiment')
+                    lease.state['verified_journal_handles'] = rows
+                    lease._record('journal_opened')
+                    break
+                if time.monotonic() >= deadline:
+                    lease.state['observed_journal_handles'] = rows
+                    raise RuntimeError(f'PID {pid} did not open its assigned journal. '
+                                       'Registry will be restored; keep this PID for diagnosis.')
+                time.sleep(0.5)
+        return pid
+
+
 def _launch_locked(executable):
     if len(running_pids()) >= 2:
         raise RuntimeError('Two or more SolidWorks instances already exist. '
@@ -125,18 +173,26 @@ def main():
     mode.add_argument('--launch', action='store_true', help='Explicitly request one new instance')
     parser.add_argument('--exe', help='Installed SLDWORKS.exe path (optional)')
     parser.add_argument('--output', type=Path, help='Write the verified connection manifest')
+    parser.add_argument('--journal-dir', type=Path, help='Experimental unique journal folder; changes and restores the per-user registry value')
+    parser.add_argument('--journal-evidence', type=Path, help='Required absolute backup/evidence path for --journal-dir')
     args = parser.parse_args()
+    if bool(args.journal_dir) != bool(args.journal_evidence) or (args.journal_dir and not args.launch):
+        parser.error('Journal experiment requires --launch, --journal-dir and --journal-evidence together')
     pid = args.pid
     if args.launch:
         executable = args.exe or find_solidworks()
         if not executable:
             raise RuntimeError('SolidWorks installation not found; no process was launched')
-        pid = launch(executable)
+        pid = (launch_journal_experiment(executable, args.journal_dir, args.journal_evidence)
+               if args.journal_dir else launch(executable))
         print(f'Launched one instance: PID {pid}', flush=True)
     if not pid or pid <= 0:
         raise ValueError('A positive PID is required')
     os.environ['SOLIDWORKS_TARGET_PID'] = str(pid)
     automation = SolidWorksAutomation()
+    # CLI verification must inspect exactly --pid/the PID it just launched,
+    # even when the parent shell inherited a managed workspace environment.
+    automation._auto_launch = False
     try:
         deadline = time.monotonic() + (60 if args.launch else 0)
         while True:

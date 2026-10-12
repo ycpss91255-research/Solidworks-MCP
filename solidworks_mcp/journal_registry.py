@@ -5,6 +5,7 @@ journal. This changes a per-user setting briefly, not a per-process registry
 view. Real CAD behavior and other settings must be verified before integration.
 """
 import json
+import os
 from pathlib import Path
 import winreg
 
@@ -25,7 +26,9 @@ class JournalFolderLease:
 
     def _record(self, phase):
         self.state['phase'] = phase
-        self.evidence.write_text(json.dumps(self.state, indent=2), encoding='utf-8')
+        temporary = self.evidence.with_name(self.evidence.name + f'.{os.getpid()}.tmp')
+        temporary.write_text(json.dumps(self.state, indent=2), encoding='utf-8')
+        os.replace(temporary, self.evidence)
 
     def __enter__(self):
         if self.evidence.exists():

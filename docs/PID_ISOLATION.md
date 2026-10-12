@@ -122,7 +122,8 @@ recovery from the backup; this is not automatic crash recovery.
 
 Native tests use only disposable `HKCU/Software/SolidWorksMCPTests` keys.
 No actual SolidWorks journal settings were changed by these tests. The module
-is not wired into the launcher or MCP and does not establish CAD isolation.
+is available only through an explicitly requested CLI experiment; it is not
+enabled by default or in managed MCP startup, and does not establish CAD isolation.
 The registry is shared for the Windows user while a lease is active; holding
 our launch mutex cannot serialize manual launches or other programs' settings
 writes. Other running instances must retain their existing journal handles and
@@ -134,6 +135,22 @@ that folder's journal, restore the original setting, and verify both instances
 and MCP reconnects. Inspect startup UI independently of successful COM calls.
 Do not use broad silent startup flags or automatic dialog dismissal as proof
 that journal creation or AutoRecover works.
+
+Example experiment, only with a free instance slot:
+
+```powershell
+python launch_solidworks.py --launch --journal-dir C:/test/new-journal-folder --journal-evidence C:/test/new-journal-lease.json --output C:/test/new-session.json
+```
+
+Both journal arguments must be absolute, and the journal directory must be new
+or empty. The experiment derives the registry version from the installed exe,
+holds the launcher mutex, backs up the value, starts through the normal guarded
+launcher and waits up to 45 seconds for the new PID's journal handle. Existing
+journal handles must remain present. It restores the value before PID-bound COM
+verification. If verification fails after launch, the new PID is kept for
+diagnosis; no alternate is launched. Error evidence must be inspected before a
+retry. The 45-second registry lease may overlap another program's manual launch
+or settings write; this is an experimental limitation, not full registry isolation.
 
 `CURRENT_USER` appears in the default path shown by GoEngineer's journal-warning
 documentation. Its literal appearance alone does not prove a configuration
