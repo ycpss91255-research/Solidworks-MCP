@@ -206,10 +206,32 @@ assembly and changed only its private component from 5 to 7 mm without saving.
 `IModelDocExtension.GetPackAndGo` returned `DISP_E_PARAMNOTOPTIONAL` through its
 generated wrapper and explicit interface dispatch. Its runtime method DISPID
 was confirmed as 207; property invocation returned `DISP_E_BADPARAMCOUNT`.
-No recovery package was produced, so neither unsaved component preservation
-nor assembly reference restoration has passed. The probe documents remain
+That initial dispatch attempt produced no recovery package. The probe documents remain
 loaded in test PID 34340. The separately loaded `ui-baseline.SLDPRT` retained
 its unsaved 6 mm edit and unchanged saved-file SHA256. Ignored diagnostic state:
 `test-results/native-journal/assembly-recovery-probe/status.json`. Do not enable
 assembly monitoring based on this failed probe.
+
+The subsequent native COM vtable probe succeeded. It marshalled the extension
+from the existing PID-bound MCP object into the installed type library's
+`IModelDocExtension` interface, without another application bind or launch.
+`GetPackAndGo` returned the saved assembly and its component. `SavePackAndGo`
+returned two zero status codes and created private native copies while retaining
+both source files' SHA256 values and unsaved flags. Reopening the packaged
+component recovered the unsaved 7 mm extrusion with volume
+2.1991148575128554e-6 cubic metres.
+
+A second package used a unique `recovered-` filename prefix. Reopening
+`recovered-assembly.SLDASM` through the same PID's MCP loaded one component
+whose actual reference path pointed inside that package to
+`recovered-component.SLDPRT`; its dimension was 7 mm and its volume matched.
+The original assembly and component disk hashes remained unchanged. This
+proves a saved, single-component assembly can preserve this unsaved component
+edit and recover an independent reference. It does not prove unsaved parent
+transforms/mates, nested assemblies, virtual/lightweight/suppressed components,
+external references, configurations, or drawings. The prototype is not yet
+integrated into the snapshot endpoint or timer; assembly monitoring remains
+unsupported. Ignored evidence: `assembly-recovery-probe/pack-prefix-copy-result.json`
+and `assembly-recovery-probe/pack-prefix-restore-result.json` below
+`test-results/native-journal`.
 https://help.solidworks.com/2023/English/api/sldworksapi/SOLIDWORKS.Interop.sldworks~SOLIDWORKS.Interop.sldworks.IModelDocExtension~SavePackAndGo.html
