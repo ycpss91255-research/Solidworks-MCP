@@ -47,6 +47,23 @@ class SnapshotTests(unittest.TestCase):
         self.app.GetProcessID=456
         with self.assertRaisesRegex(ValueError,'configured PID'):self.snapshot()
         self.assertFalse(self.destination.exists());self.assertEqual(self.part.calls,[])
+    def test_background_part_copy_leaves_active_document_unchanged(self):
+        background_path=self.root/'background.SLDPRT';background_path.write_bytes(b'baseline')
+        background=Part(background_path)
+        result=snapshot_part(self.app,123,self.destination,document=background)
+        self.assertEqual(result['source']['path'],str(background_path))
+        self.assertEqual(result['active_before'],result['active_after'])
+        self.assertIs(self.app.ActiveDoc,self.part)
+        self.assertEqual(self.part.calls,[]);self.assertTrue(background.GetSaveFlag)
+    def test_background_copy_that_changes_active_document_is_reported_failed(self):
+        background=Part(self.source)
+        save=background.SaveAs3
+        def changing_save(*args):
+            result=save(*args);self.app.ActiveDoc=background;self.app.ActiveDoc.GetTitle='other'
+            return result
+        background.SaveAs3=changing_save
+        with self.assertRaisesRegex(SnapshotError,'Active document changed'):
+            snapshot_part(self.app,123,self.destination,document=background)
     def test_loaded_part_can_be_copied_when_original_file_is_missing(self):
         self.source.unlink()
         result=self.snapshot()
@@ -82,6 +99,11 @@ class SnapshotTests(unittest.TestCase):
         self.assertEqual(self.part.calls,[])
 
 class SnapshotConnectionTests(unittest.TestCase):
+    def setUp(self):
+        temporary=tempfile.TemporaryDirectory();self.addCleanup(temporary.cleanup)
+        self.root=Path(temporary.name);self.source=self.root/'source.SLDPRT'
+        self.source.write_bytes(b'saved baseline')
+        self.part=Part(self.source);self.destination=self.root/'recovery'
     def test_disconnected_snapshot_does_not_trigger_managed_startup(self):
         automation=Mock(spec=DocumentOperations)
         automation.is_connected=False
@@ -100,3 +122,36 @@ class SnapshotConnectionTests(unittest.TestCase):
             reply=asyncio.run(server.call_tool('create_recovery_snapshot',{'directory':'C:/private/recovery'}))
             self.assertTrue(reply[0].text.startswith('[SUCCESS]'))
             save.assert_called_once_with('C:/private/recovery')
+        self.assertIn('filepath',schema.inputSchema['properties'])
+        with patch.object(server.sw_automation,'create_recovery_snapshot',return_value={
+            'success':True,'message':'snapshot','error_code':0,'error_name':'swSuccess'}) as save:
+            asyncio.run(server.call_tool('create_recovery_snapshot',{'directory':'C:/private/recovery','filepath':'C:/test.SLDPRT'}))
+            save.assert_called_once_with('C:/private/recovery',filepath='C:/test.SLDPRT')
+    def background_endpoint(self,document,requested=None):
+        from types import SimpleNamespace
+        app=SimpleNamespace(GetOpenDocumentByName=Mock(return_value=document))
+        raw=SimpleNamespace(_oleobj_=object(),RevisionNumber='31.5')
+        module=SimpleNamespace(ISldWorks=lambda obj:app,IModelDoc2=lambda obj:self.part)
+        automation=SimpleNamespace(is_connected=True,_target_pid='123',_sw_app=raw,
+            _result=lambda success,message,error_code=None,data=None:{'success':success,'message':message,'data':data})
+        with patch('win32com.client.gencache.EnsureModule',return_value=module):
+            return DocumentOperations.create_recovery_snapshot(automation,str(self.destination),
+                filepath=requested if requested is not None else str(self.source)),app
+    def test_background_endpoint_does_not_open_missing_source(self):
+        result,app=self.background_endpoint(None)
+        self.assertFalse(result['success']);self.assertIn('not open',result['message'])
+        self.assertEqual(self.part.calls,[]);self.assertFalse(self.destination.exists())
+        app.GetOpenDocumentByName.assert_called_once_with(str(self.source))
+    def test_background_endpoint_rejects_package_types_without_saving(self):
+        from types import SimpleNamespace
+        self.part.GetType=2
+        result,_=self.background_endpoint(SimpleNamespace(_oleobj_=object()))
+        self.assertFalse(result['success']);self.assertIn('parts only',result['message'])
+        self.assertEqual(self.part.calls,[])
+    def test_background_endpoint_requires_absolute_matching_path(self):
+        from types import SimpleNamespace
+        result,app=self.background_endpoint(None,'relative.SLDPRT')
+        self.assertFalse(result['success']);app.GetOpenDocumentByName.assert_not_called()
+        result,_=self.background_endpoint(SimpleNamespace(_oleobj_=object()),str(self.root/'other.SLDPRT'))
+        self.assertFalse(result['success']);self.assertIn('path mismatch',result['message'])
+        self.assertEqual(self.part.calls,[])

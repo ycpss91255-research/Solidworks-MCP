@@ -37,7 +37,10 @@ the API, implementation checks and chronological test evidence.
 
 The monitor currently protects the **active supported document**, together
 with its packaged references. It does not sweep every independently opened
-inactive document. It skips commands in progress and visible dialogs; it does
+inactive document. A manual `create_recovery_snapshot` call can also select an
+already-open background part through its absolute `filepath`, without opening
+or activating it. Background assembly/drawing selection is not supported yet.
+The monitor skips commands in progress and visible dialogs; it does
 not interrupt a blocked COM call. Part copies do not package external
 references. New unsaved assembly/drawing roots are rejected. Mates,
 configurations, special component states, advanced drawings and arbitrary

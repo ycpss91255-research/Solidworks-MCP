@@ -141,9 +141,10 @@ async def list_tools() -> list[Tool]:
         ),
         Tool(
             name="create_recovery_snapshot",
-            description="Create a private recovery copy of the active part, or an experimental saved assembly/drawing package with saved part and nested assembly references. Preserves source paths, disk files and unsaved flags. Requires an existing PID connection. Missing/unsaved reference files and non-CAD dependencies are unsupported. This does not restore native AutoRecover.",
+            description="Create a private recovery copy of the active part, or an experimental saved assembly/drawing package with saved references. Optional filepath copies an already-open background part without activating or opening it. Preserves source paths, disk files and unsaved flags. Requires an existing PID connection. Missing/unsaved references and non-CAD dependencies are unsupported. This does not restore native AutoRecover.",
             inputSchema={"type":"object","properties":{
-                "directory":{"type":"string","description":"Absolute directory for this session's recovery copies"}},
+                "directory":{"type":"string","description":"Absolute directory for this session's recovery copies"},
+                "filepath":{"type":"string","description":"Optional absolute path of a part already open in this PID, for a background copy"}},
                 "required":["directory"]}
         ),
         Tool(
@@ -422,7 +423,10 @@ async def call_tool(name: str, arguments: dict) -> list[TextContent]:
             result = sw_automation.save_document(arguments.get("filepath"))
 
         elif name == "create_recovery_snapshot":
-            result = sw_automation.create_recovery_snapshot(arguments.get("directory", ""))
+            if 'filepath' in arguments:
+                result = sw_automation.create_recovery_snapshot(arguments.get("directory", ""),filepath=arguments['filepath'])
+            else:
+                result = sw_automation.create_recovery_snapshot(arguments.get("directory", ""))
         
         elif name == "close_document":
             result = sw_automation.close_document(arguments.get("save", False))

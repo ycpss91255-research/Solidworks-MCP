@@ -475,3 +475,35 @@ an observation timeout. No shared registry or another chat's state is changed.
 Tests cover delayed status, stale status, mismatched target, and a startup
 timeout followed by reconnect without a second launch. These are controlled
 process-interface tests; no new live CAD instance was started for this change.
+
+## Explicit background part copies
+
+The endpoint now accepts optional `filepath` for an already-open part in the
+configured application. Example:
+
+```json
+{"directory":"C:/work/session-a/.codex/recovery","filepath":"C:/work/session-a/part.SLDPRT"}
+```
+
+It resolves the source through that PID's `GetOpenDocumentByName`; a missing
+source, relative/mismatched path or non-part document is rejected. It never
+opens or activates the source and retains the existing silent-copy operation
+and PID/source guards. A background manifest additionally records the active
+document path, title and dirty flag before/after; a change prevents a complete
+result. Omitting `filepath` retains active-document behavior. The automatic
+monitor still processes its active root; this endpoint change does not yet
+implement periodic scanning of all background documents or unnamed ones.
+
+Real SW2023 verification used the retained owned PID 34340. Its drawing remained
+active while the endpoint copied the separately loaded dirty `ui-baseline`
+part. The source retained its unsaved 6 mm dimension and saved 5 mm baseline
+SHA256. Reopening the endpoint's private copy recovered 6 mm and volume
+1.884955592153876e-6 cubic metres. Only that temporary recovered copy was closed;
+the previous active drawing returned with unchanged dirty state and the
+original unsaved part remained loaded. Working PIDs 9336 and 12616 retained
+their creation identities; no CAD process was launched or closed.
+
+Evidence under the ignored native test root: `background-part-copy-proof.json`,
+`background-endpoint-result.json` and `background-endpoint-restore-result.json`.
+The complete non-CAD suite passes 109 tests, including absent sources,
+unsupported types, path mismatch and active-document changes during copying.

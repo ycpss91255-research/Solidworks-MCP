@@ -31,7 +31,7 @@ class DocumentOperations:
     - self._units: UnitConverter instance
     """
 
-    def create_recovery_snapshot(self,directory: str) -> Dict:
+    def create_recovery_snapshot(self,directory: str,filepath: Optional[str]=None) -> Dict:
         """Explicit private part copy or experimental assembly/drawing package."""
         if not self.is_connected:
             return self._result(False,'Connect to the configured PID before creating a recovery snapshot',
@@ -45,6 +45,22 @@ class DocumentOperations:
             module=win32com.client.gencache.EnsureModule('{83A33D31-27C5-11CE-BFD4-00400513BB57}',0,major,0)
             app=module.ISldWorks(self._sw_app._oleobj_)
             adapter=lambda doc:module.IModelDoc2(doc._oleobj_)
+            if filepath is not None:
+                from pathlib import Path
+                from ..recovery_snapshot import get0
+                requested=Path(filepath)
+                if not filepath or not requested.is_absolute():
+                    raise ValueError('Background recovery requires an absolute already-open part path')
+                document=app.GetOpenDocumentByName(str(requested))
+                if document is None:
+                    raise ValueError('Background recovery source is not open in the configured PID; no document was opened')
+                model=adapter(document)
+                if Path(str(get0(model,'GetPathName'))).resolve()!=requested.resolve():
+                    raise ValueError('Background recovery source path mismatch')
+                if int(get0(model,'GetType'))!=1:
+                    raise ValueError('Background recovery currently supports parts only')
+                result=snapshot_part(app,pid,directory,adapter,document=document)
+                return self._result(True,'Created private background part recovery snapshot',data=result)
             active=app.ActiveDoc
             if active is not None and adapter(active).GetType() in (2,3):
                 from ..assembly_recovery import snapshot_package

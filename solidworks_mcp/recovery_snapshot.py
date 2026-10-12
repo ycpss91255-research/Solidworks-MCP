@@ -39,7 +39,7 @@ class SnapshotError(RuntimeError):
         super().__init__(message)
         self.data=data
 
-def snapshot_part(app,pid,directory,document_adapter=lambda doc:doc):
+def snapshot_part(app,pid,directory,document_adapter=lambda doc:doc,document=None):
     """Copy the current part into a unique generation, with verified state.
 
     A connected, PID-verified application is required. Assemblies and drawings
@@ -51,13 +51,20 @@ def snapshot_part(app,pid,directory,document_adapter=lambda doc:doc):
     if not isinstance(pid,int) or pid<=0 or int(get0(app,'GetProcessID'))!=pid:
         raise ValueError('Snapshot application does not match the configured PID')
     with held_process(pid) as identity:
-        raw=get0(app,'ActiveDoc')
+        raw=document if document is not None else get0(app,'ActiveDoc')
         if raw is None:raise ValueError('No active document to snapshot')
         doc=document_adapter(raw)
         if int(get0(doc,'GetType'))!=1:
             raise ValueError('Recovery snapshot currently supports parts only; no document was saved')
         before={'path':str(get0(doc,'GetPathName')),'title':str(get0(doc,'GetTitle')),
                 'dirty':bool(get0(doc,'GetSaveFlag'))}
+        def active_state():
+            active=get0(app,'ActiveDoc')
+            if active is None:return None
+            active=document_adapter(active)
+            return {'path':str(get0(active,'GetPathName')),'title':str(get0(active,'GetTitle')),
+                    'dirty':bool(get0(active,'GetSaveFlag'))}
+        active_before=active_state() if document is not None else None
         original_hash=fingerprint(before['path'])
         owner=root.resolve()/f'pid-{pid}-{hashlib.sha256(identity.encode()).hexdigest()[:12]}'
         owner.mkdir(parents=True,exist_ok=True)
@@ -68,6 +75,7 @@ def snapshot_part(app,pid,directory,document_adapter=lambda doc:doc):
                   'created_at':datetime.now(timezone.utc).isoformat(),'source':before,
                   'source_sha256':original_hash,'snapshot_path':str(output),
                   'manifest_path':str(manifest),'document_type':'part'}
+        if document is not None:evidence['active_before']=active_before
         def record():
             temporary=generation/'manifest.tmp'
             temporary.write_text(json.dumps(evidence,indent=2,ensure_ascii=False),encoding='utf-8')
@@ -83,6 +91,10 @@ def snapshot_part(app,pid,directory,document_adapter=lambda doc:doc):
             after={'path':str(get0(doc,'GetPathName')),'title':str(get0(doc,'GetTitle')),
                    'dirty':bool(get0(doc,'GetSaveFlag'))}
             evidence['source_after']=after
+            if document is not None:
+                evidence['active_after']=active_state()
+                if evidence['active_after']!=active_before:
+                    raise RuntimeError('Active document changed during background snapshot')
             if status!=0 or not output.is_file() or output.stat().st_size==0:
                 raise RuntimeError(f'Recovery copy failed (save status {status})')
             if after!=before or fingerprint(before['path'])!=original_hash:
