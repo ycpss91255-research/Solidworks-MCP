@@ -188,6 +188,16 @@ It was acknowledged only with the explicitly selected PID-scoped handler. The
 original working processes retained their PIDs. The temporary roaming CLI option
 was removed after this failed experiment; it is not advertised as a solution.
 
+A disposable-process private-HKCU probe used the documented Windows
+`RegOverridePredefKey` API and a temporary test registry subtree. The override
+succeeded, but `SHGetFolderPathW(CSIDL_APPDATA)` still returned the real user's
+roaming directory instead of the private subtree's AppData setting. This does
+not prove SolidWorks startup behavior, but it rules out assuming that a private
+registry mapping alone will automatically redirect the Windows profile API.
+The actual SolidWorks registry keys and processes were not modified by this
+probe. Microsoft documentation states that the override is process-local:
+https://learn.microsoft.com/en-us/windows/win32/api/winreg/nf-winreg-regoverridepredefkey
+
 These experiments narrow the remaining issue to actual startup journal routing
 or initialization, rather than MCP process selection. Full journal/AutoRecover
 isolation remains unverified. Relevant public API documentation:
