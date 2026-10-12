@@ -16,10 +16,18 @@ static BOOL (WINAPI *original_delete)(LPCWSTR);
 static BOOL (WINAPI *original_copy)(LPCWSTR,LPCWSTR,BOOL);
 static BOOL (WINAPI *original_move)(LPCWSTR,LPCWSTR,DWORD);
 static NTSTATUS (NTAPI *original_nt_create)(PHANDLE,ACCESS_MASK,POBJECT_ATTRIBUTES,PIO_STATUS_BLOCK,PLARGE_INTEGER,ULONG,ULONG,ULONG,ULONG,PVOID,ULONG);
+static NTSTATUS (NTAPI *original_nt_open)(PHANDLE,ACCESS_MASK,POBJECT_ATTRIBUTES,PIO_STATUS_BLOCK,ULONG,ULONG);
+
+static BOOL journal_path(LPCWSTR path) {
+    LPCWSTR name;
+    if(!path) return FALSE;
+    name=wcsrchr(path,L'\\');name=name?name+1:path;
+    return !_wcsicmp(name,L"swxJRNL.swj") || !_wcsicmp(name,L"swxJRNL.bak");
+}
 
 /* -1: target path could not be routed safely; 0: unrelated; 1: redirected. */
 static int route(LPCWSTR path, WCHAR *output, size_t capacity) {
-    WCHAR full[2048]; WCHAR *name; DWORD length; size_t root_length;
+    WCHAR full[2048],parent[2048],basename[32]; WCHAR *name; DWORD length; size_t root_length;
     if (!path || !owner || GetCurrentProcessId()!=owner) return 0;
     /* Observed SW2023 fallback concatenates TEMP with the absolute folder.
        Match only that exact configured folder; never accept arbitrary suffixes. */
@@ -30,14 +38,19 @@ static int route(LPCWSTR path, WCHAR *output, size_t capacity) {
         if(wcslen(destination_root)+wcslen(name)+2>capacity) return -1;
         wcscpy(output,destination_root); wcscat(output,L"\\"); wcscat(output,name); return 1;
     }
+    if(!wcsncmp(path,L"\\\\?\\",4)) path+=4;
     length=GetFullPathNameW(path,2048,full,&name);
     if (!length || length>=2048 || !name) return 0;
     if (_wcsicmp(name,L"swxJRNL.swj") && _wcsicmp(name,L"swxJRNL.bak")) return 0;
-    root_length=wcslen(source_root);
-    if (_wcsnicmp(full,source_root,root_length) || full[root_length]!=L'\\' ||
-        name!=full+root_length+1) return 0;
-    if (wcslen(destination_root)+1+wcslen(name)+1>capacity) return -1;
-    wcscpy(output,destination_root); wcscat(output,L"\\"); wcscat(output,name);
+    if(name==full || name[-1]!=L'\\') return 0;
+    wcscpy(basename,name);name[-1]=0;
+    /* Expand only the existing parent directory, never the locked journal.
+       Short-name, mixed-name and extended-prefix spellings must identify the
+       same configured folder; other users/folders remain untouched. */
+    length=GetLongPathNameW(full,parent,2048);
+    if(!length || length>=2048 || _wcsicmp(parent,source_root)) return 0;
+    if (wcslen(destination_root)+1+wcslen(basename)+1>capacity) return -1;
+    wcscpy(output,destination_root); wcscat(output,L"\\"); wcscat(output,basename);
     return 1;
 }
 
@@ -54,7 +67,7 @@ static HANDLE WINAPI redirected_create(LPCWSTR path,DWORD access,DWORD sharing,L
     WCHAR mapped[2048]; int changed=route(path,mapped,2048); HANDLE result; DWORD error;
     if (changed<0) {SetLastError(ERROR_FILENAME_EXCED_RANGE); return INVALID_HANDLE_VALUE;}
     result=original_create(changed?mapped:path,access,sharing,security,disposition,attributes,template_file);
-    if (changed || (path && (wcsstr(path,L"swxJRNL") || wcsstr(path,L"swxjrnl")))) {error=GetLastError(); record(changed?L"CreateFileW ROUTED":L"CreateFileW UNMATCHED",changed?mapped:path,error); SetLastError(error);}
+    if (changed || journal_path(path)) {error=GetLastError(); record(changed?L"CreateFileW ROUTED":L"CreateFileW UNMATCHED",changed?mapped:path,error); if(changed)record(L"CreateFileW ORIGINAL",path,error); SetLastError(error);}
     return result;
 }
 static HANDLE WINAPI redirected_create_a(LPCSTR path,DWORD access,DWORD sharing,LPSECURITY_ATTRIBUTES security,DWORD disposition,DWORD attributes,HANDLE template_file) {
@@ -63,7 +76,7 @@ static HANDLE WINAPI redirected_create_a(LPCSTR path,DWORD access,DWORD sharing,
     else wide[0]=0;
     if(changed<0) {SetLastError(ERROR_FILENAME_EXCED_RANGE); return INVALID_HANDLE_VALUE;}
     result=changed?original_create(mapped,access,sharing,security,disposition,attributes,template_file):original_create_a(path,access,sharing,security,disposition,attributes,template_file);
-    if(changed || wcsstr(wide,L"swxJRNL") || wcsstr(wide,L"swxjrnl")) {error=GetLastError(); record(changed?L"CreateFileA ROUTED":L"CreateFileA UNMATCHED",changed?mapped:wide,error); SetLastError(error);}
+    if(changed || journal_path(wide)) {error=GetLastError(); record(changed?L"CreateFileA ROUTED":L"CreateFileA UNMATCHED",changed?mapped:wide,error); if(changed)record(L"CreateFileA ORIGINAL",wide,error); SetLastError(error);}
     return result;
 }
 static DWORD WINAPI redirected_attributes(LPCWSTR path) {
@@ -85,7 +98,24 @@ static NTSTATUS NTAPI redirected_nt_create(PHANDLE handle,ACCESS_MASK access,POB
         local=*attributes; local.ObjectName=&name; attributes=&local;
     }
     status=original_nt_create(handle,access,attributes,io,size,file_attributes,sharing,disposition,options,ea,ea_length);
-    if(changed || wcsstr(path,L"swxJRNL") || wcsstr(path,L"swxjrnl")) {DWORD error=GetLastError(); record(changed?L"NtCreateFile ROUTED":L"NtCreateFile UNMATCHED",changed?mapped:path,(DWORD)status); SetLastError(error);}
+    if(changed || journal_path(path)) {DWORD error=GetLastError(); record(changed?L"NtCreateFile ROUTED":L"NtCreateFile UNMATCHED",changed?mapped:path,(DWORD)status); if(changed)record(L"NtCreateFile ORIGINAL",path,(DWORD)status); SetLastError(error);}
+    return status;
+}
+static NTSTATUS NTAPI redirected_nt_open(PHANDLE handle,ACCESS_MASK access,POBJECT_ATTRIBUTES attributes,PIO_STATUS_BLOCK io,ULONG sharing,ULONG options) {
+    WCHAR path[2048],mapped[2048],ntpath[2052]; UNICODE_STRING name; OBJECT_ATTRIBUTES local; NTSTATUS status; int changed=0;
+    path[0]=0;
+    if(attributes && attributes->ObjectName && attributes->ObjectName->Buffer && attributes->ObjectName->Length<sizeof(path)) {
+        memcpy(path,attributes->ObjectName->Buffer,attributes->ObjectName->Length);
+        path[attributes->ObjectName->Length/sizeof(WCHAR)]=0;
+        if(!attributes->RootDirectory && !wcsncmp(path,L"\\??\\",4)) changed=route(path+4,mapped,2048);
+    }
+    if(changed>0) {
+        wcscpy(ntpath,L"\\??\\");wcscat(ntpath,mapped);
+        name.Buffer=ntpath;name.Length=(USHORT)(wcslen(ntpath)*2);name.MaximumLength=name.Length+2;
+        local=*attributes;local.ObjectName=&name;attributes=&local;
+    }
+    status=original_nt_open(handle,access,attributes,io,sharing,options);
+    if(changed || journal_path(path)) {DWORD error=GetLastError();record(changed?L"NtOpenFile ROUTED":L"NtOpenFile UNMATCHED",changed?mapped:path,(DWORD)status);if(changed)record(L"NtOpenFile ORIGINAL",path,(DWORD)status);SetLastError(error);}
     return status;
 }
 static BOOL WINAPI redirected_delete(LPCWSTR path) {
@@ -130,6 +160,7 @@ __declspec(dllexport) DWORD WINAPI InitializeJournalRedirect(LPVOID data) {
     INSTALL("CopyFileW", redirected_copy, original_copy);
     INSTALL("MoveFileExW", redirected_move, original_move);
     status=MH_CreateHookApi(L"ntdll","NtCreateFile",redirected_nt_create,(LPVOID*)&original_nt_create); if(status!=MH_OK) goto failed;
+    status=MH_CreateHookApi(L"ntdll","NtOpenFile",redirected_nt_open,(LPVOID*)&original_nt_open); if(status!=MH_OK) goto failed;
     status=MH_EnableHook(MH_ALL_HOOKS); if(status!=MH_OK) goto failed;
     record(L"INITIALIZED",destination_root,0); record(L"EXACT_FALLBACK_ROOT",malformed_source_root,0); return 0;
 failed:

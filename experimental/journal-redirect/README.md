@@ -159,6 +159,43 @@ reconfigure an existing instance. Use a new owned state and empty folders for
 an explicit new experiment. Recovery engine conditions and a usable recovery
 artifact still require investigation; this goal is not complete.
 
+## Initial journal probe correction and recovery-copy proof
+
+The native routing test now covers short parent paths, mixed casing,
+extended DOS prefixes, and direct NtOpenFile as well as NtCreateFile. Only an
+existing parent directory is expanded to compare against the exact configured
+source. The locked original journal is never opened for canonicalization.
+Diagnostics include the original spelling and perform case-insensitive
+basename matching, so uppercase calls are not silently missed.
+
+Actual PID 21752 showed that the initial journal probe was NtOpenFile. Routing
+that probe to an empty private directory returned STATUS_OBJECT_NAME_NOT_FOUND
+(0xC0000034), followed by the malformed TEMP fallback previously observed.
+The early bootstrap now exclusively creates a new empty private swxJRNL.swj
+before resuming the new process. It refuses to overwrite any existing file.
+Actual new PID 38544 then returned success for both its initial NtOpenFile and
+subsequent NtCreateFile using the normal source path redirected to the private
+journal. No malformed fallback or startup warning was observed in this run.
+The two existing workers retained their PID identities and original journal.
+
+A saved 5 mm cylinder was again modified to 6 mm. An observed poll about
+82 seconds after the baseline still found the native recovery folder empty;
+native AutoRecover remains unverified. Separately, SaveAs3 with Silent|Copy
+(options 3) produced a private recovery copy of the unsaved 6 mm geometry.
+Before and after that operation, source path, unsaved flag and measured volume
+were identical. Closing the source without saving, then reopening the copy
+through PID-bound MCP, recovered one body with volume
+1.884955592153876e-6 cubic metres. The original 5 mm baseline was independently
+opened afterward. This proves a recoverable snapshot for this single part;
+it does not implement automatic snapshots or prove assembly/reference recovery.
+
+A later reopen retest encountered a real low-memory warning. Its explicitly
+selected cancel action returned button 7 and observed closure, without errors.
+The test document and process were subsequently closed through their own MCP.
+No working instance was closed. Further CAD experiments should revalidate
+current resource availability and avoid repeatedly reopening loaded documents.
+No production preload or automatic recovery-copy policy has been enabled.
+
 The native journal test uses disposable helper processes and a fake locked journal.
 It verifies normal and malformed NT opens, backup operations, owner rejection,
 and an unrelated file. It never starts or connects to SolidWorks.

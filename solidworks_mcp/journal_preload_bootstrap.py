@@ -25,6 +25,11 @@ def preload_created(process,pid,dll,source,destination,recovery=None):
     dll=Path(dll).resolve(strict=True);source=Path(source).resolve(strict=True);destination=Path(destination).resolve()
     if any(len(str(p))>=1024 for p in (source,destination)) or source==destination:raise ValueError('Invalid private paths')
     destination.mkdir(parents=True,exist_ok=True)
+    # SW2023 first probes the existing journal with NtOpenFile. A missing
+    # private file sends it through a separate malformed fallback path.
+    # Create only a new empty file in the validated private folder.
+    with (destination/'swxJRNL.swj').open('xb'):
+        pass
     key='';recover=''
     if recovery:
         recover=str(Path(recovery).resolve());Path(recover).mkdir(parents=True,exist_ok=True)

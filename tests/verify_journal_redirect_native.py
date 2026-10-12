@@ -40,6 +40,13 @@ def child(source,destination,wrong=False):
         finally:k.CloseHandle(handle)
     try:
         write(source/'swxJRNL.swj','child-private-journal')
+        k.GetShortPathNameW.argtypes=[w.LPCWSTR,w.LPWSTR,w.DWORD]
+        short=c.create_unicode_buffer(2048)
+        assert k.GetShortPathNameW(str(source),short,2048)>0
+        for spelling in (short.value+'\\SWXJRNL.SWJ','\\\\?\\'+str(source)+'\\SWXJRNL.SWJ'):
+            handle=k.CreateFileW(spelling,0x80000000,3,None,3,0x80,None)
+            assert handle!=c.c_void_p(-1).value,(spelling,c.get_last_error())
+            k.CloseHandle(handle)
         # Exercise the exact invalid fallback observed in SW2023 through NT.
         class Unicode(c.Structure):
             _fields_=[('Length',w.USHORT),('MaximumLength',w.USHORT),('Buffer',w.LPWSTR)]
@@ -58,6 +65,15 @@ def child(source,destination,wrong=False):
         status=nt.NtCreateFile(c.byref(handle),0x40000000|0x100000,c.byref(attributes),c.byref(io),None,0x80,3,1,0x20,None,0)
         assert status==0,hex(status&0xffffffff)
         k.CloseHandle(handle)
+        valid='\\??\\'+short.value+'\\SWXJRNL.SWJ'
+        buffer=c.create_unicode_buffer(valid)
+        name=Unicode(len(valid)*2,(len(valid)+1)*2,c.cast(buffer,w.LPWSTR))
+        attributes.ObjectName=c.pointer(name)
+        nt.NtOpenFile.argtypes=[c.POINTER(w.HANDLE),w.DWORD,c.POINTER(Attributes),c.POINTER(IoStatus),w.ULONG,w.ULONG]
+        nt.NtOpenFile.restype=c.c_long
+        status=nt.NtOpenFile(c.byref(handle),0x80000000|0x100000,c.byref(attributes),c.byref(io),3,0x20)
+        assert status==0,hex(status&0xffffffff)
+        k.CloseHandle(handle)
         write(source/'model-control.txt','unrelated-file-in-original-folder')
         assert k.MoveFileExW(str(source/'swxJRNL.swj'),str(source/'swxJRNL.bak'),1)
         assert (destination/'swxJRNL.bak').read_text()=='child-private-journal'
@@ -65,7 +81,7 @@ def child(source,destination,wrong=False):
         assert k.CopyFileW(str(source/'swxJRNL.swj'),str(source/'swxJRNL.bak'),False)
         assert (destination/'swxJRNL.bak').read_text()=='second-private-journal'
         assert k.DeleteFileW(str(source/'swxJRNL.bak'))
-        print(json.dumps({'native_open_redirected':True,'invalid_nt_fallback_redirected':True,'backup_move_copy_delete_redirected':True,'unrelated_file_unmodified_routing':True}))
+        print(json.dumps({'native_open_redirected':True,'short_path_and_uppercase_redirected':True,'extended_prefix_redirected':True,'nt_open_redirected':True,'invalid_nt_fallback_redirected':True,'backup_move_copy_delete_redirected':True,'unrelated_file_unmodified_routing':True}))
     finally:
         assert lib.StopJournalRedirect(None)==0
 
