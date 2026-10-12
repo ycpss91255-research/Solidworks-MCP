@@ -42,15 +42,23 @@ def recovery_worker_error(pid,worker):
     except Exception as exc:
         return f'Recovery monitor health could not be verified: {exc}'
 
-def ensure_recovery_worker(pid):
-    if os.environ.get('SOLIDWORKS_RECOVERY_MONITOR')!='1':return None
+def ensure_recovery_worker(pid,app=None):
+    mode=os.environ.get('SOLIDWORKS_RECOVERY_MONITOR','auto')
+    if mode=='0':return None
+    if mode not in ('auto','1'):raise ValueError('Recovery monitor must be auto, 1 or 0')
+    policy=None
+    if mode=='auto':
+        if app is None:return None  # Legacy direct helper callers have no CAD binding.
+        from .recovery_policy import automatic_policy
+        policy=automatic_policy(app,pid,os.environ)
+        if not policy['enabled']:return None
     session=Path(os.environ.get('SOLIDWORKS_SESSION_FILE',''))
-    directory=Path(os.environ.get('SOLIDWORKS_RECOVERY_DIRECTORY',''))
+    directory=Path(policy['directory'] if policy else os.environ.get('SOLIDWORKS_RECOVERY_DIRECTORY',''))
     if not session.is_absolute() or not directory.is_absolute():
         raise ValueError('Recovery monitor requires absolute session and private recovery paths')
-    interval=float(os.environ.get('SOLIDWORKS_RECOVERY_INTERVAL','60'))
+    interval=policy['settings']['interval_seconds'] if policy else float(os.environ.get('SOLIDWORKS_RECOVERY_INTERVAL','60'))
     if not math.isfinite(interval) or interval<=0:raise ValueError('Recovery interval must be positive and finite')
-    settings=recovery_settings(interval)
+    settings=policy['settings'] if policy else recovery_settings(interval)
     status=directory/'monitor.json';marker=directory/'requested.stop'
     validate_status_path(directory,status,session)
     expected=json.loads(session.read_text(encoding='utf-8'))
@@ -83,7 +91,7 @@ def ensure_recovery_worker(pid):
                     raise RuntimeError('Existing recovery worker settings differ or are unverified; stop that worker before applying new settings')
                 if pending:pending_path.unlink()
                 return {'worker_pid':previous['worker_pid'],'worker_start_time':previous['worker_start_time'],
-                        'process_start_time':expected['start_time'],'settings':settings,'status_file':str(status),'reused':True}
+                        'process_start_time':expected['start_time'],'settings':settings,'status_file':str(status),'reused':True,'policy':policy}
             if pending:
                 # Matching worker-written status plus its absent handle proves
                 # this reserved attempt is terminal, unlike a polling timeout.
@@ -93,7 +101,8 @@ def ensure_recovery_worker(pid):
         token=uuid.uuid4().hex
         arguments=['-m','solidworks_mcp.recovery_monitor','--session-file',str(session),
                    '--directory',str(directory),'--status-file',str(status),'--interval',str(interval),
-                   '--stop-file',str(marker),'--startup-token',token]
+                   '--stop-file',str(marker),'--startup-token',token,
+                   '--settings-json',json.dumps(settings)]
         write_state(pending_path,{'kind':'recovery_worker_startup','pid':int(pid),
                     'process_start_time':expected['start_time'],'session_file':str(session.resolve()),
                     'startup_token':token})
@@ -114,7 +123,7 @@ def ensure_recovery_worker(pid):
                     if current.get('settings')!=settings:raise RuntimeError('Recovery worker startup settings mismatch')
                     pending_path.unlink()
                     return {'worker_pid':actual,'worker_start_time':current['worker_start_time'],
-                            'process_start_time':expected['start_time'],'settings':settings,'status_file':str(status),'reused':False}
+                            'process_start_time':expected['start_time'],'settings':settings,'status_file':str(status),'reused':False,'policy':policy}
             if worker_identity(worker) is None:raise RuntimeError('Recovery worker exited before startup confirmation')
             time.sleep(0.1)
         raise RuntimeError(f'Recovery worker {worker} startup observation timed out; do not launch a replacement')

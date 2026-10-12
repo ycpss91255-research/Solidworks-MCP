@@ -42,7 +42,7 @@ class SolidWorksAutomation:
         self._configured_target = self._target_pid
         self._auto_launch = os.environ.get('SOLIDWORKS_AUTO_LAUNCH') == '1'
         self._target_com_initialized = False
-        self._recovery_startup_enabled = os.environ.get('SOLIDWORKS_RECOVERY_MONITOR') == '1'
+        self._recovery_startup_enabled = os.environ.get('SOLIDWORKS_RECOVERY_MONITOR') != '0'
         self._recovery_monitor_error = None
         self._recovery_worker = None
         
@@ -180,7 +180,7 @@ class SolidWorksAutomation:
             self._recovery_worker = None
             try:
                 from ..recovery_service import ensure_recovery_worker
-                recovery = ensure_recovery_worker(result['data']['pid'])
+                recovery = ensure_recovery_worker(result['data']['pid'],app=self.app)
                 self._recovery_worker = recovery
                 if recovery is not None: result['data']['recovery_monitor'] = recovery
             except Exception as exc:

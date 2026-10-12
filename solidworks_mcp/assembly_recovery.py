@@ -47,8 +47,10 @@ def snapshot_package(app,pid,directory,document_adapter=lambda doc:doc,pack_fact
         if source_key not in {path_key(p) for p in paths}:
             raise ValueError('Package does not include its active source document')
         # Non-CAD dependencies need separate restoration validation.
-        if any(Path(p).suffix.casefold() not in ('.sldprt','.sldasm') for p in paths if path_key(p)!=source_key):
-            raise ValueError('Experimental package recovery supports saved part and assembly references only')
+        unsupported=[p for p in paths if path_key(p)!=source_key and Path(p).suffix.casefold() not in ('.sldprt','.sldasm')]
+        if unsupported:
+            raise ValueError('Experimental package recovery supports saved part and assembly references only; '
+                             f'unsupported references for {before["path"]}: {unsupported}')
         sources={p:fingerprint(p) for p in paths}
         if any(value is None for value in sources.values()):
             raise ValueError('Package contains missing or unsaved source files')

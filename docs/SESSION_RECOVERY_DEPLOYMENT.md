@@ -15,7 +15,7 @@ install the experimental journal-routing DLL or edit shared journal registry
 settings. Graphics-path warnings and journal-lock warnings are different;
 the earlier graphics warning's exact root cause has not been established.
 
-An opt-in independent worker periodically saves private native recovery copies
+An independent worker periodically saves private native recovery copies
 without saving the source. It persists across MCP exit and reconnect. Every
 generation retains a manifest and copies; there is no automatic deletion.
 Worker creation, identity changes, unresolved startup and post-start failure
@@ -59,10 +59,58 @@ remained empty despite enabled preferences.
 
 ## Per-session setup
 
+### Default: follow the connected SolidWorks preferences
+
+`SOLIDWORKS_RECOVERY_MONITOR` now defaults to `auto` when omitted. On successful
+PID-bound MCP attachment it reads that instance's `swAutoSaveEnable` and
+`swBackupEnable` preferences without changing them. If both are disabled, no
+worker starts. If either is enabled, an owned private worker starts; AutoRecover
+minute intervals are converted to seconds. A change-count interval is not
+misinterpreted as time: an explicit `SOLIDWORKS_RECOVERY_INTERVAL` is required
+for that case. Read failures and missing ownership state return a visible
+`recovery_monitor_error`, not a claim that recovery is disabled or protected.
+
+Without a directory override, copies go under
+`<session-file-parent>/recovery/<session-file-stem>`. Automatic mode enables
+parts, saved assemblies/drawings, all-document scanning and guarded temporary
+activation by default, honoring individual explicit scope overrides. It still
+has the documented unsupported-reference/root limits. The worker records its
+effective options, and the connection reports the native preferences and policy.
+Native backup-only mode is an on-save feature; the independent timer supplements
+it with unsaved recovery copies using the retained native minute interval or
+60 seconds when none is usable. It does not replace native on-save backup
+copies, mirror their retention settings, or delete old recovery generations.
+
+Explicit `SOLIDWORKS_RECOVERY_MONITOR=0` disables the independent worker startup
+and `1` retains the previous forced opt-in configuration. Worker self-connection
+cannot recursively start workers. Settings are read at connection, not watched
+continuously: live worker option changes still require the documented owned
+stop/restart procedure. In particular, disabling startup does not stop an
+already-running worker. The CLI launcher/verifier does not start backup workers;
+the owning MCP does after attachment.
+
+Real existing-session validation found AutoRecover enabled with a one-minute
+interval and native backup disabled in both MR12 PID 24056 and rack PID 26356.
+Connections with no monitor/directory options launched separate workers and
+matching reconnects reused them. No CAD application was restarted or launched.
+The rack worker completed private snapshots. The first MR12 worker failed on
+an assembly package containing references outside the supported part/assembly
+types; automatic startup does not establish complete protection for that model.
+Package errors now identify the root and unsupported reference paths. They
+remain errors, rather than silently omitting dependencies from a claimed
+complete recovery package. Reading the currently active MR12 subassembly's
+package found only supported paths; that narrower observation does not clear
+the failure affecting another root in the all-document batch.
+Ignored evidence: `test-results/auto-policy-live-result.json`; inspect each
+worker's current `monitor.json` for actual snapshot progress, not just startup.
+The 142-test suite covers enabled/disabled preferences, backup-only mode, PID
+mismatch, COM read failure, invalid interval modes and explicit overrides.
+
 Use an independent checkout/worktree with an absolute session file and private
 log and recovery directories. Keep the PID of another chat out of this config.
 The MCP command must point to this fork's `solidworks_mcp_server.py` and its
-Python environment. The following recovery values are opt-in:
+Python environment. The following values explicitly force recovery rather than
+following the native enable preference:
 
 ```text
 SOLIDWORKS_RECOVERY_MONITOR=1

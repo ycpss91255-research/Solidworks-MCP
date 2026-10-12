@@ -273,6 +273,9 @@ def main():
     # CLI verification must inspect exactly --pid/the PID it just launched,
     # even when the parent shell inherited a managed workspace environment.
     automation._auto_launch = False
+    # The CLI only launches/verifies CAD. The owning MCP starts recovery after
+    # attachment with its own session configuration; never start it here.
+    automation._recovery_startup_enabled = False
     from contextlib import nullcontext
     from solidworks_mcp.automation.journal_warning import JournalWarningHandler
     warning = (JournalWarningHandler(pid, 60) if args.launch and args.journal_warning_action == 'dismiss'

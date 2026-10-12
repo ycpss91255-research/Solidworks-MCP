@@ -189,8 +189,15 @@ def main():
     parser.add_argument('--interval',type=float,required=True)
     parser.add_argument('--max-ticks',type=int)
     parser.add_argument('--startup-token',help='Parent/worker startup correlation token')
+    parser.add_argument('--settings-json',help='Effective scope from the bound session recovery policy')
     parser.add_argument('--stop-file',type=Path,help='Private .stop marker; exits at the next scheduler check')
     args=parser.parse_args()
+    if args.settings_json:
+        settings=json.loads(args.settings_json)
+        if settings.get('interval_seconds')!=args.interval:parser.error('Recovery settings interval mismatch')
+        for name,variable in [('assemblies','ASSEMBLIES'),('drawings','DRAWINGS'),('all_documents','ALL_DOCUMENTS'),('background_activation','BACKGROUND_ACTIVATION')]:
+            if type(settings.get(name)) is not bool:parser.error('Invalid recovery scope setting')
+            os.environ['SOLIDWORKS_RECOVERY_'+variable]='1' if settings[name] else '0'
     paths=(args.session_file,args.directory,args.status_file)
     if not all(path.is_absolute() for path in paths):parser.error('All paths must be absolute')
     if args.session_file.resolve()==args.status_file.resolve():parser.error('Status must not overwrite the CAD session file')

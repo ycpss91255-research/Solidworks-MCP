@@ -7,13 +7,14 @@ class RecoveryConnectionTests(unittest.TestCase):
         instance=object.__new__(SolidWorksAutomation)
         instance._auto_launch=False;instance._target_pid='123'
         instance._recovery_startup_enabled=True;instance._recovery_monitor_error=None
+        instance._sw_app=Mock()
         instance._connect_target=Mock(return_value={'success':success,'data':{'pid':123}})
         return instance
     def test_successful_attach_starts_recovery_at_base_connection(self):
         instance=self.automation()
         with patch('solidworks_mcp.recovery_service.ensure_recovery_worker',return_value={'worker_pid':456}) as start:
             result=instance.connect()
-        start.assert_called_once_with(123)
+        start.assert_called_once_with(123,app=instance.app)
         self.assertEqual(result['data']['recovery_monitor']['worker_pid'],456)
     def test_failed_com_connection_never_starts_recovery(self):
         instance=self.automation(False)
@@ -30,7 +31,7 @@ class RecoveryConnectionTests(unittest.TestCase):
         with patch('solidworks_mcp.automation.managed_session.connect_managed',return_value={'success':True,'data':{'pid':999}}), \
              patch('solidworks_mcp.recovery_service.ensure_recovery_worker',return_value={'worker_pid':456}) as start:
             instance.connect()
-        start.assert_called_once_with(999);instance._connect_target.assert_not_called()
+        start.assert_called_once_with(999,app=instance.app);instance._connect_target.assert_not_called()
     def test_recovery_failure_is_visible_without_claiming_worker_started(self):
         instance=self.automation()
         with patch('solidworks_mcp.recovery_service.ensure_recovery_worker',side_effect=RuntimeError('worker failed')):
