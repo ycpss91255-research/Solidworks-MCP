@@ -1,5 +1,11 @@
 # Explicit recovery snapshots
 
+For the current supported scope and deployment state, start with
+[SESSION_RECOVERY_DEPLOYMENT.md](SESSION_RECOVERY_DEPLOYMENT.md). This document
+also retains chronological investigations: early failed probes and statements
+of pending validation describe their time of execution and are superseded by
+later evidence where explicitly recorded. They are not current setup steps.
+
 `create_recovery_snapshot` creates a native private part copy through an
 already-connected, PID-bound MCP. This is the first implemented recovery-copy
 operation; it does not restore SolidWorks native AutoRecover or provide a
