@@ -3,6 +3,7 @@ typedef struct { DWORD owner_pid; WCHAR key[1024]; WCHAR directory[1024]; } RECO
 static WCHAR recovery_key[1024], recovery_directory[1024];
 static NTSTATUS (NTAPI *query_key)(HANDLE,ULONG,PVOID,ULONG,PULONG);
 static NTSTATUS (NTAPI *real_query_value)(HANDLE,PUNICODE_STRING,ULONG,PVOID,ULONG,PULONG);
+static NTSTATUS (NTAPI *real_enum_value)(HANDLE,ULONG,ULONG,PVOID,ULONG,PULONG);
 static LSTATUS (WINAPI *real_query_w)(HKEY,LPCWSTR,LPDWORD,LPDWORD,LPBYTE,LPDWORD);
 static LSTATUS (WINAPI *real_query_a)(HKEY,LPCSTR,LPDWORD,LPDWORD,LPBYTE,LPDWORD);
 static LSTATUS (WINAPI *real_set_w)(HKEY,LPCWSTR,DWORD,DWORD,const BYTE*,DWORD);
@@ -31,11 +32,17 @@ static LSTATUS recovery_value(LPDWORD type,LPBYTE data,LPDWORD size,BOOL ansi) {
     *size=required; return ERROR_SUCCESS;
 }
 static LSTATUS WINAPI recovery_query_w(HKEY key,LPCWSTR value,LPDWORD reserved,LPDWORD type,LPBYTE data,LPDWORD size) {
-    if(recovery_match(key,value) && !reserved) return recovery_value(type,data,size,FALSE);
+    if(recovery_match(key,value) && !reserved) {
+        LSTATUS status=recovery_value(type,data,size,FALSE);DWORD error=GetLastError();
+        record(L"RecoveryPreference QUERY_W_PRIVATE",value,status);SetLastError(error);return status;
+    }
     return real_query_w(key,value,reserved,type,data,size);
 }
 static LSTATUS WINAPI recovery_query_a(HKEY key,LPCSTR value,LPDWORD reserved,LPDWORD type,LPBYTE data,LPDWORD size) {
-    if(value && !_stricmp(value,"AutoRecover Directory") && recovery_match(key,L"AutoRecover Directory") && !reserved) return recovery_value(type,data,size,TRUE);
+    if(value && !_stricmp(value,"AutoRecover Directory") && recovery_match(key,L"AutoRecover Directory") && !reserved) {
+        LSTATUS status=recovery_value(type,data,size,TRUE);DWORD error=GetLastError();
+        record(L"RecoveryPreference QUERY_A_PRIVATE",L"AutoRecover Directory",status);SetLastError(error);return status;
+    }
     return real_query_a(key,value,reserved,type,data,size);
 }
 static LSTATUS WINAPI recovery_set_w(HKEY key,LPCWSTR value,DWORD reserved,DWORD type,const BYTE *data,DWORD size) {
@@ -69,6 +76,23 @@ static NTSTATUS NTAPI trace_recovery_query(HANDLE key,PUNICODE_STRING value,ULON
     }
     return status; /* Diagnostic only: native data remains unchanged. */
 }
+static NTSTATUS NTAPI trace_recovery_enum(HANDLE key,ULONG index,ULONG information_class,PVOID buffer,ULONG length,PULONG required) {
+    NTSTATUS status=real_enum_value(key,index,information_class,buffer,length,required);
+    ULONG name_length; WCHAR name[128],operation[128]; DWORD last_error;
+    if((status>=0 || (ULONG)status==0x80000005) && buffer && length>=20 &&
+       (information_class==1 || information_class==3)) {
+        memcpy(&name_length,(BYTE*)buffer+16,4);
+        if(!(name_length%2) && name_length<sizeof(name) && name_length<=length-20) {
+            memcpy(name,(BYTE*)buffer+20,name_length);name[name_length/2]=0;
+            if(recovery_match(key,name)) {
+                last_error=GetLastError();
+                _snwprintf(operation,128,L"RecoveryPreference NATIVE_ENUM class=%lu index=%lu",information_class,index);
+                record(operation,name,(DWORD)status);SetLastError(last_error);
+            }
+        }
+    }
+    return status; /* Observe bulk reads without changing their native data. */
+}
 __declspec(dllexport) DWORD WINAPI InitializeRecoveryRedirect(LPVOID data) {
     RECOVERY_CONFIG *config=(RECOVERY_CONFIG*)data; MH_STATUS status;
     if(!config || owner!=GetCurrentProcessId() || config->owner_pid!=owner || recovery_directory[0]) return 1;
@@ -82,6 +106,7 @@ __declspec(dllexport) DWORD WINAPI InitializeRecoveryRedirect(LPVOID data) {
     REGHOOK("RegSetValueExW",recovery_set_w,real_set_w);
     REGHOOK("RegSetValueExA",recovery_set_a,real_set_a);
     status=MH_CreateHookApi(L"ntdll","NtQueryValueKey",trace_recovery_query,(LPVOID*)&real_query_value); if(status!=MH_OK) goto recovery_failed;
+    status=MH_CreateHookApi(L"ntdll","NtEnumerateValueKey",trace_recovery_enum,(LPVOID*)&real_enum_value); if(status!=MH_OK) goto recovery_failed;
     status=MH_EnableHook(MH_ALL_HOOKS); if(status!=MH_OK) goto recovery_failed;
     record(L"RecoveryPreference INITIALIZED",recovery_directory,0); return 0;
 recovery_failed:

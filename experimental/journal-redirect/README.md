@@ -235,6 +235,31 @@ Windows rename structures and information-class values are documented at:
 - https://learn.microsoft.com/en-us/windows-hardware/drivers/ddi/ntifs/ns-ntifs-_file_rename_information
 - https://learn.microsoft.com/en-us/windows-hardware/drivers/ddi/wdm/ne-wdm-_file_information_class
 
+## Bulk preference-read evidence
+
+RegQueryValueEx private reads and native NtEnumerateValueKey reads now have
+exact-target diagnostics. No native enumeration data is modified. A helper
+fixture verifies that enumeration still sees the persistent original directory,
+while the ordinary value query sees the private directory. The fixture also
+verifies that unrelated keys and the persistent source value remain unchanged.
+
+Actual test PID 34340 recorded QUERY_W_PRIVATE during startup for AutoRecover
+Directory. No exact-target native directory enumeration was observed. Its
+PID-bound API subsequently returned the private directory, enabled recovery,
+one-minute interval and minute interval mode. Thus the tested startup already
+consumed the private view; native/bulk-read bypass is not established as the
+cause of the missing recovery files.
+
+A small previously generated test part (80,848 bytes) initially hit a resource
+warning on open with an explicit cancel action. A later controlled open using
+the supported explicit continue action succeeded without a warning. The UI
+test then selected Boss-Extrude1 and attempted to edit its 5 mm dimension.
+That UI command raised a separate low-memory confirmation before any geometry
+change. Accepting that UI warning requires the computer-use confirmation flow;
+the UI edit/recovery experiment remains pending and does not establish that
+UI edits behave differently from API edits. No memory/security setting or
+working CAD process was altered to clear the warning.
+
 The native journal test uses disposable helper processes and a fake locked journal.
 It verifies normal and malformed NT opens, backup operations, owner rejection,
 and an unrelated file. It never starts or connects to SolidWorks.

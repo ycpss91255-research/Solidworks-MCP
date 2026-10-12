@@ -52,6 +52,16 @@ if len(sys.argv)>1:
         original=native.raw[12:12+data_length].decode('utf-16le').rstrip('\0')
         assert original=='parent-original',original
         assert 'NATIVE_QUERY class=2' in (private/'redirect-events.log').read_text(encoding='utf-16le')
+        index=0
+        while True:
+            item=winreg.EnumValue(handle,index)
+            if item[0]=='AutoRecover Directory':
+                assert item[1]=='parent-original',item
+                break
+            index+=1
+        trace=(private/'redirect-events.log').read_text(encoding='utf-16le')
+        assert 'NATIVE_ENUM' in trace
+        assert 'QUERY_W_PRIVATE' in trace
     with winreg.OpenKey(winreg.HKEY_CURRENT_USER,key+'_other',0,winreg.KEY_ALL_ACCESS) as handle:
         assert winreg.QueryValueEx(handle,'AutoRecover Directory')[0]=='other-original'
         winreg.SetValueEx(handle,'AutoRecover Directory',0,winreg.REG_SZ,'other-normal-write')
