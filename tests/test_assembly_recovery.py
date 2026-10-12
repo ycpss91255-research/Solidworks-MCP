@@ -2,7 +2,7 @@ import json,tempfile,unittest
 from pathlib import Path
 from contextlib import nullcontext
 from unittest.mock import patch
-from solidworks_mcp.assembly_recovery import snapshot_assembly
+from solidworks_mcp.assembly_recovery import snapshot_assembly,snapshot_package
 from solidworks_mcp.recovery_snapshot import SnapshotError
 
 class Doc:
@@ -64,6 +64,19 @@ class AssemblyRecoveryTests(unittest.TestCase):
         dependency=self.root/'linked.txt';dependency.write_bytes(b'external data')
         self.pack.paths.append(str(dependency))
         with self.assertRaisesRegex(ValueError,'part and assembly references'):self.snapshot()
+        self.assertEqual(self.pack.saved,0)
+    def test_drawing_package_preserves_drawing_and_model_sources(self):
+        drawing=self.root/'source.SLDDRW';drawing.write_bytes(b'saved drawing')
+        self.app.docs[0]=Doc(drawing,3);self.app.ActiveDoc=self.app.docs[0]
+        self.pack.paths=[str(drawing),str(self.part)]
+        result=snapshot_package(self.app,123,self.directory,pack_factory=lambda doc:self.pack)
+        self.assertEqual(result['document_type'],'drawing');self.assertEqual(result['status'],'complete')
+        self.assertEqual(drawing.read_bytes(),b'saved drawing')
+        self.assertEqual(self.part.read_bytes(),b'saved 5 mm part')
+        self.assertTrue(all(d.GetSaveFlag for d in self.app.docs))
+    def test_assembly_specific_wrapper_refuses_drawing(self):
+        self.app.docs[0].GetType=3
+        with self.assertRaisesRegex(ValueError,'supported assembly or drawing'):self.snapshot()
         self.assertEqual(self.pack.saved,0)
     def test_destination_escape_is_rejected_before_save(self):
         self.pack.destinations=lambda directory,prefix:[str(directory/'copy.SLDASM'),str(self.root/'escape.SLDPRT')]

@@ -1,4 +1,4 @@
-"""Experimental saved-assembly recovery packages with source preservation checks."""
+"""Experimental saved CAD packages with source preservation checks."""
 from datetime import datetime,timezone
 from pathlib import Path
 import hashlib,json,tempfile,uuid
@@ -9,19 +9,24 @@ def document_state(doc):
     return {'path':str(get0(doc,'GetPathName')),'title':str(get0(doc,'GetTitle')),
             'dirty':bool(get0(doc,'GetSaveFlag'))}
 
-def snapshot_assembly(app,pid,directory,document_adapter=lambda doc:doc,pack_factory=None):
+def snapshot_package(app,pid,directory,document_adapter=lambda doc:doc,pack_factory=None,allowed_types=(2,3)):
     root=Path(directory)
     if not root.is_absolute():raise ValueError('Snapshot directory must be absolute')
     if not isinstance(pid,int) or pid<=0 or int(get0(app,'GetProcessID'))!=pid:
         raise ValueError('Snapshot application does not match the configured PID')
     with held_process(pid) as identity:
         raw=get0(app,'ActiveDoc')
-        if raw is None:raise ValueError('No active assembly to snapshot')
+        if raw is None:raise ValueError('No active document to package')
         doc=document_adapter(raw)
-        if int(get0(doc,'GetType'))!=2:raise ValueError('Assembly recovery requires an active assembly')
+        kind=int(get0(doc,'GetType'))
+        if kind not in allowed_types:raise ValueError('Package recovery requires a supported assembly or drawing')
+        document_type='drawing' if kind==3 else 'assembly'
         before=document_state(doc)
         if not before['path'] or fingerprint(before['path']) is None:
-            raise ValueError('Assembly recovery requires an existing saved source assembly')
+            raise ValueError('Package recovery requires an existing saved source document')
+        expected_suffix='.slddrw' if kind==3 else '.sldasm'
+        if Path(before['path']).suffix.casefold()!=expected_suffix:
+            raise ValueError('Source filename does not match its CAD document type')
         if pack_factory is None:
             from .native_pack import NativePack
             major=int(str(get0(app,'RevisionNumber')).split('.')[0])
@@ -36,10 +41,10 @@ def snapshot_assembly(app,pid,directory,document_adapter=lambda doc:doc,pack_fac
             raise ValueError('Package source list is empty or ambiguous')
         source_key=path_key(before['path'])
         if source_key not in {path_key(p) for p in paths}:
-            raise ValueError('Package does not include its active source assembly')
+            raise ValueError('Package does not include its active source document')
         # Non-CAD dependencies need separate restoration validation.
-        if any(Path(p).suffix.casefold() not in ('.sldprt','.sldasm') for p in paths):
-            raise ValueError('Experimental assembly recovery supports saved part and assembly references only')
+        if any(Path(p).suffix.casefold() not in ('.sldprt','.sldasm') for p in paths if path_key(p)!=source_key):
+            raise ValueError('Experimental package recovery supports saved part and assembly references only')
         sources={p:fingerprint(p) for p in paths}
         if any(value is None for value in sources.values()):
             raise ValueError('Package contains missing or unsaved source files')
@@ -52,12 +57,12 @@ def snapshot_assembly(app,pid,directory,document_adapter=lambda doc:doc,pack_fac
         loaded_before=loaded_states()
         owner=root.resolve()/f'pid-{pid}-{hashlib.sha256(identity.encode()).hexdigest()[:12]}'
         owner.mkdir(parents=True,exist_ok=True)
-        generation=Path(tempfile.mkdtemp(prefix='assembly-',dir=owner))
+        generation=Path(tempfile.mkdtemp(prefix=document_type+'-',dir=owner))
         manifest=generation/'manifest.json'
         evidence={'status':'writing','pid':pid,'process_start_time':identity,
-                  'created_at':datetime.now(timezone.utc).isoformat(),'document_type':'assembly',
+                  'created_at':datetime.now(timezone.utc).isoformat(),'document_type':document_type,
                   'source':before,'source_files_sha256':sources,'loaded_sources':loaded_before,
-                  'manifest_path':str(manifest),'validated_scope':'saved assembly with saved part and assembly references'}
+                  'manifest_path':str(manifest),'validated_scope':'saved '+document_type+' with saved part and assembly references'}
         def record():
             temporary=generation/'manifest.tmp'
             temporary.write_text(json.dumps(evidence,indent=2,ensure_ascii=False),encoding='utf-8')
@@ -93,3 +98,6 @@ def snapshot_assembly(app,pid,directory,document_adapter=lambda doc:doc,pack_fac
         except Exception as exc:
             evidence.update(status='failed',error=str(exc));record()
             raise SnapshotError(str(exc),evidence) from exc
+
+def snapshot_assembly(app,pid,directory,document_adapter=lambda doc:doc,pack_factory=None):
+    return snapshot_package(app,pid,directory,document_adapter,pack_factory,allowed_types=(2,))

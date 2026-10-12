@@ -4,9 +4,8 @@
 already-connected, PID-bound MCP. This is the first implemented recovery-copy
 operation; it does not restore SolidWorks native AutoRecover or provide a
 timer by itself. An opt-in monitor is described below. The endpoint also offers
-an experimental saved-assembly package for assemblies whose package source list
-contains saved assembly and part files. Drawings,
-missing files and non-CAD dependencies are rejected. External reference files
+an experimental saved assembly/drawing package with saved CAD references.
+Missing/unsaved files and non-CAD dependencies are rejected. External reference files
 belonging to a part copied through the part backend are not packaged.
 The overall journal / recovery goal remains incomplete.
 
@@ -66,7 +65,7 @@ the warning. The endpoint's own geometry restoration test therefore remains
 incomplete. The test instance was empty and exited through its own MCP; the two
 working CAD instances retained their identities. Additional required work includes live
 MCP crash-lifetime integration, assembly/reference recovery,
-unsaved-new-document and drawing coverage, and actual native AutoRecover
+unsaved-new-document and advanced drawing coverage, and actual native AutoRecover
 validation. Do not present this manual part tool as complete automatic recovery.
 
 The prior live test encountered a real low-memory warning on a later reopen;
@@ -280,7 +279,7 @@ controlled. The assembly option has not been enabled in existing chat configs.
 
 Validation remains incomplete for mates, configurations,
 virtual/lightweight/suppressed components, external-reference
-semantics and drawings. The package API's successful save status does not by
+semantics and advanced drawing cases. The package API's successful save status does not by
 itself prove those cases are recoverable. Native AutoRecover remains unverified;
 this is an independent recovery-package mechanism.
 
@@ -307,3 +306,36 @@ Evidence: `nested-recovery-probe/package-result.json`, `restore-result.json`,
 `test-results/native-journal`. Timed nested restore has not yet been tested;
 the prior timer evidence covers the flat assembly. No existing chat config was
 changed to enable assembly recovery.
+
+## Experimental drawing packages
+
+The same package backend now accepts a saved drawing as its root, with saved
+part and assembly references. The root document type must match its file
+extension. Other drawing references and non-CAD dependencies remain rejected.
+The endpoint retains the same PID/creation, private-output and source-state
+checks. The native backend uses only the extension of the existing PID-bound
+COM object; it does not bind a generic application or launch CAD.
+
+Timed drawing copies require `SOLIDWORKS_RECOVERY_DRAWINGS=1` in the worker's
+environment. The monitor checks the drawing dirty flag and the loaded models
+referenced by its views; for assembly views it also checks loaded component
+models. The dirty-model/clean-drawing branch has a non-CAD test. Existing chat
+configs were not changed to enable it.
+
+A private SW2023 single-sheet drawing referenced the test part. Its baseline
+note was changed to `UNSAVED DRAWING RECOVERY` without saving; the referenced
+part also held its unsaved 8 mm edit. Both the native prototype and actual MCP
+endpoint package reopened with the new note, a reference to the private copied
+part and its 8 mm dimension. The drawing and model source file hashes stayed
+unchanged. The fixture's view creation used the actual localized model view
+name returned by the API (`*前視`); `*Front` had returned no view on this install.
+
+A bounded live monitor run created two drawing packages 60 seconds apart and
+stopped at its explicit two-tick limit. Its second package was reopened and
+checked for the same note and private model reference. Evidence is in
+`drawing-recovery-probe/package-result.json`, `restore-result.json`,
+`endpoint-report.json`, `endpoint-restore-result.json`, `timed-restore-result.json`
+and `drawing-timed-recovery/monitor.json` below the ignored native test root.
+These tests do not prove multisheet, BOM/table, detached/detailing-mode drawings,
+linked external assets, or drawing views of nested assemblies. Native
+AutoRecover remains separate from this independent recovery implementation.

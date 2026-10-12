@@ -51,6 +51,7 @@ class CadBackend:
         self.automation._auto_launch=False
         self.pid=pid;self.directory=directory
         self.assembly_enabled=os.environ.get('SOLIDWORKS_RECOVERY_ASSEMBLIES')=='1'
+        self.drawing_enabled=os.environ.get('SOLIDWORKS_RECOVERY_DRAWINGS')=='1'
     def connect(self):return self.automation.connect()
     def probe(self):
         if not self.automation.is_connected:raise RuntimeError('Configured MCP connection was lost')
@@ -66,13 +67,28 @@ class CadBackend:
         doc=module.IModelDoc2(doc._oleobj_)
         kind=int(get0(doc,'GetType'))
         dirty=bool(get0(doc,'GetSaveFlag'))
-        if kind==2 and self.assembly_enabled:
-            assembly=module.IAssemblyDoc(doc._oleobj_)
+        def assembly_children_dirty(model):
+            assembly=module.IAssemblyDoc(model._oleobj_)
             for raw_component in assembly.GetComponents(False) or ():
                 component=module.IComponent2(raw_component._oleobj_)
-                model=get0(component,'GetModelDoc2')
-                if model is not None and bool(get0(module.IModelDoc2(model._oleobj_),'GetSaveFlag')):
-                    dirty=True
+                child=get0(component,'GetModelDoc2')
+                if child is not None and bool(get0(module.IModelDoc2(child._oleobj_),'GetSaveFlag')):
+                    return True
+            return False
+        if kind==2 and self.assembly_enabled:
+            dirty=dirty or assembly_children_dirty(doc)
+            return {'state':'dirty' if dirty else 'clean'}
+        if kind==3 and self.drawing_enabled:
+            drawing=module.IDrawingDoc(doc._oleobj_)
+            raw_view=get0(drawing,'GetFirstView')
+            while raw_view is not None:
+                view=module.IView(raw_view._oleobj_)
+                model=get0(view,'ReferencedDocument')
+                if model is not None:
+                    model=module.IModelDoc2(model._oleobj_)
+                    dirty=dirty or bool(get0(model,'GetSaveFlag'))
+                    if int(get0(model,'GetType'))==2:dirty=dirty or assembly_children_dirty(model)
+                raw_view=get0(view,'GetNextView')
             return {'state':'dirty' if dirty else 'clean'}
         if kind!=1:return {'state':'unsupported_document'}
         return {'state':'dirty' if dirty else 'clean'}

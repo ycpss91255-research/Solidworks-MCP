@@ -130,3 +130,23 @@ class MonitorTests(unittest.TestCase):
             main()
         self.assertEqual(self.backend.connects,0)
         self.assertEqual(json.loads(self.status.read_text())['reason'],'stop_requested')
+    def test_dirty_drawing_model_triggers_only_explicit_drawing_monitor(self):
+        parent_object=object();model_object=object()
+        drawing_doc=SimpleNamespace(_oleobj_=parent_object,GetType=3,GetSaveFlag=False)
+        model=SimpleNamespace(_oleobj_=model_object,GetType=1,GetSaveFlag=True)
+        view=SimpleNamespace(_oleobj_=object(),ReferencedDocument=model,GetNextView=None)
+        drawing=SimpleNamespace(GetFirstView=view)
+        raw=SimpleNamespace(_oleobj_=object(),RevisionNumber='31.5')
+        app=SimpleNamespace(GetProcessID=123,CommandInProgress=False,ActiveDoc=drawing_doc)
+        module=SimpleNamespace(ISldWorks=lambda obj:app,IDrawingDoc=lambda obj:drawing,IView=lambda obj:view,
+                               IModelDoc2=lambda obj:drawing_doc if obj is parent_object else model)
+        automation=Mock();automation.is_connected=True;automation.app=raw
+        with patch('solidworks_mcp.automation.SolidWorksAutomation',return_value=automation), \
+             patch('win32com.client.gencache.EnsureModule',return_value=module), \
+             patch.dict('os.environ',{'SOLIDWORKS_RECOVERY_DRAWINGS':'0'}):
+            backend=CadBackend(123,self.root)
+            self.assertEqual(backend.probe()['state'],'unsupported_document')
+            backend.drawing_enabled=True
+            self.assertEqual(backend.probe()['state'],'dirty')
+            model.GetSaveFlag=False
+            self.assertEqual(backend.probe()['state'],'clean')
