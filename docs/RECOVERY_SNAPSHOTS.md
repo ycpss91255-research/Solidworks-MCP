@@ -3,7 +3,7 @@
 `create_recovery_snapshot` creates a native private part copy through an
 already-connected, PID-bound MCP. This is the first implemented recovery-copy
 operation; it does not restore SolidWorks native AutoRecover or provide a
-timer. Assemblies and drawings are deliberately unsupported until their
+timer by itself. An opt-in foreground monitor is described below. Assemblies and drawings are deliberately unsupported until their
 references can be recovered and verified without saving original components.
 External reference files belonging to a part are not packaged by this tool.
 The overall journal / recovery goal remains incomplete.
@@ -47,8 +47,8 @@ The two working SolidWorks instances were left running throughout.
 
 The new tool's guards and MCP schema/dispatch are tested without CAD. That
 earlier live test used execute_python; the new endpoint still needs its own
-live invocation and restoration test. Additional required work includes a
-session-owned scheduling / crash-lifetime policy, assembly/reference recovery,
+live invocation and restoration test. Additional required work includes live
+scheduler / MCP crash-lifetime integration, assembly/reference recovery,
 unsaved-new-document and drawing coverage, and actual native AutoRecover
 validation. Do not present this manual part tool as complete automatic recovery.
 
@@ -68,3 +68,52 @@ python -m unittest discover -s tests -p 'test_*.py' -q
 Official API references:
 - https://help.solidworks.com/2017/English/api/sldworksapi/SOLIDWORKS.Interop.sldworks~SOLIDWORKS.Interop.sldworks.IModelDoc2~SaveAs3.html
 - https://help.solidworks.com/2025/english/api/swconst/SolidWorks.Interop.swconst~SolidWorks.Interop.swconst.swSaveAsOptions_e.html
+
+## Experimental foreground part monitor
+
+The standalone CLI can periodically snapshot a dirty active part in a session's
+already-running PID. It requires explicit paths and an explicit interval:
+
+```powershell
+python -m solidworks_mcp.recovery_monitor --session-file C:/work/session-a/.codex/solidworks-session.json --directory C:/work/session-a/.codex/recovery --status-file C:/work/session-a/.codex/recovery/monitor.json --interval 60
+```
+
+The CLI captures the PID and creation time from that owned session file. It
+checks both the live identity and session file on every poll. It never launches
+SolidWorks, follows a changed target, or reconnects after a failed bind. A
+session-path mutex prevents two monitors for the same session, while allowing
+independent sessions. Errors stop the monitor. Its status JSON is restricted
+to the private recovery directory and cannot overwrite the CAD session file
+or an unrelated status file.
+
+Ticks run sequentially; the next interval starts after the previous save
+finishes. Clean parts, missing documents, busy commands, unsupported document
+types and visible target-PID dialogs are skipped. Existing dialogs are never
+dismissed. Copies remain separate generations, and the monitor never deletes
+old backups. `--max-ticks N` bounds an explicit diagnostic run.
+
+This is an explicit foreground program, not a deployed MCP background service.
+Its process/job lifetime integration with MCP is still pending. A new dialog
+or unresponsive CAD process during a COM call can block that call; this initial
+CLI does not impose a COM-operation timeout or forcibly close CAD. Keep the
+running monitor handle and inspect its worker PID plus creation timestamp
+before interpreting an observation timeout as termination. Do not start a
+replacement while the previous worker is still live or holds the session lock.
+
+The scheduler, stop/error behavior and status-file boundaries are tested without
+CAD. Native Python helper tests verify same-session refusal, independent-session
+permission and lock reuse. An expired-target CLI test with inherited automatic
+startup enabled verifies that no CAD process is launched. Actual timed CAD
+copies and restoration have not passed live validation yet. This CLI has not
+been started against either working SolidWorks or enabled in any chat config.
+
+```powershell
+python tests/verify_recovery_monitor_lock_native.py
+python tests/verify_recovery_monitor_no_launch.py
+```
+
+Pack and Go is not yet used as an assembly recovery backend: its official API
+documentation describes packaging designated files but does not establish
+preservation of unsaved component edits. That behavior requires a real assembly
+test with independent source-file and restored-geometry verification.
+https://help.solidworks.com/2023/English/api/sldworksapi/SOLIDWORKS.Interop.sldworks~SOLIDWORKS.Interop.sldworks.IModelDocExtension~SavePackAndGo.html
