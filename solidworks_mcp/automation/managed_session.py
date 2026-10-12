@@ -7,17 +7,20 @@ import time
 import win32api
 import win32con
 import win32process
+import win32event
 
 
 def process_identity(pid):
     try:
         handle = win32api.OpenProcess(
-            win32con.PROCESS_QUERY_INFORMATION | win32con.PROCESS_VM_READ, False, pid)
+            win32con.SYNCHRONIZE | win32con.PROCESS_QUERY_INFORMATION | win32con.PROCESS_VM_READ, False, pid)
     except win32api.error as exc:
         if exc.winerror in (87, 1168):
             return None
         raise  # Access denied is not evidence the process has exited.
     try:
+        if win32event.WaitForSingleObject(handle, 0) != win32con.WAIT_TIMEOUT:
+            return None
         executable = win32process.GetModuleFileNameEx(handle, 0)
         if Path(executable).name.casefold() != 'sldworks.exe':
             raise RuntimeError(f'PID {pid} now belongs to another application')
@@ -37,6 +40,9 @@ def connect_managed(automation):
     # Imported at runtime to share the same launch guard as the public CLI.
     from launch_solidworks import launcher_lock, _launch_locked
     from ..utils import find_solidworks
+    action = os.environ.get('SOLIDWORKS_JOURNAL_WARNING_ACTION', 'manual')
+    if action not in ('manual','dismiss'):
+        raise ValueError('SOLIDWORKS_JOURNAL_WARNING_ACTION must be manual or dismiss')
     session = os.environ.get('SOLIDWORKS_SESSION_FILE', '')
     if not session or not Path(session).is_absolute():
         raise ValueError('Managed startup requires an absolute SOLIDWORKS_SESSION_FILE')
@@ -71,13 +77,24 @@ def connect_managed(automation):
             write_state(path, state)
     automation._target_pid = str(pid)
     deadline = time.monotonic() + (45 if not state['ready'] else 0)
-    while True:
-        if process_identity(pid) != identity:
-            raise RuntimeError(f'SolidWorks PID {pid} exited or changed during connection')
-        result = automation._connect_target()
-        if result['success'] or time.monotonic() >= deadline:
-            break
-        time.sleep(0.5)
+    from contextlib import nullcontext
+    from .journal_warning import JournalWarningHandler
+    warning = JournalWarningHandler(pid, 50) if not state['ready'] and action == 'dismiss' else nullcontext()
+    with warning:
+        while True:
+            if process_identity(pid) != identity:
+                raise RuntimeError(f'SolidWorks PID {pid} exited or changed during connection')
+            result = automation._connect_target()
+            if result['success'] or time.monotonic() >= deadline:
+                break
+            time.sleep(0.5)
+        if result['success'] and not state['ready']:
+            automation.app.UserControl = True
+            automation.app.Visible = True
+            if action == 'dismiss':
+                warning.stop.wait(2)
+                result['data'].update(journal_warning_events=warning.events,
+                                      journal_warning_errors=warning.errors)
     if result['success']:
         if not state['ready']:
             automation.app.UserControl = True

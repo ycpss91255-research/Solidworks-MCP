@@ -24,6 +24,7 @@ def matches_warning(text):
 
 class MemoryWarningHandler:
     """Watch only during one open operation; never use global keyboard input."""
+    button_ids = (6, 7)
     def __init__(self, pid, action, timeout=30):
         if action not in ('continue', 'cancel'):
             raise ValueError('Unknown memory warning action')
@@ -82,7 +83,7 @@ class MemoryWarningHandler:
             names.append(child.CurrentName or '')
             if child.CurrentControlType == 50000:  # UIA_ButtonControlTypeId
                 identity = child.CurrentAutomationId
-                if identity in ('CommandButton_6', 'CommandButton_7'):
+                if identity in tuple(f'CommandButton_{button}' for button in self.button_ids):
                     if child.CurrentIsEnabled:
                         buttons.add(int(identity.rsplit('_', 1)[1]))
         return '\n'.join(names), buttons
@@ -110,11 +111,11 @@ class MemoryWarningHandler:
                         if self.stop.is_set() or self._candidate(hwnd) != button:
                             continue
                         # Documented task-dialog API: TDM_CLICK_BUTTON = WM_USER+102.
-                        win32gui.PostMessage(hwnd, win32con.WM_USER + 102, button, 0)
+                        self._click_button(hwnd, button)
                         event = {'pid': self.pid, 'action': self.action, 'button_id': button,
                                  'closed': False}
                         self.events.append(event)
-                        logger.warning('Handled SolidWorks low-memory warning: %s', event)
+                        logger.warning('Handled PID-scoped SolidWorks warning: %s', event)
                         while time.monotonic() < deadline:
                             if not win32gui.IsWindow(hwnd):
                                 event['closed'] = True
@@ -132,3 +133,6 @@ class MemoryWarningHandler:
         finally:
             self._uia = None
             pythoncom.CoUninitialize()
+
+    def _click_button(self, hwnd, button):
+        win32gui.PostMessage(hwnd, win32con.WM_USER + 102, button, 0)

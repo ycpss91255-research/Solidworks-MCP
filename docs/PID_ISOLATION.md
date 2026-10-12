@@ -54,7 +54,8 @@ python launch_solidworks.py --launch --output test-results/session.json
 The launcher uses the installed executable's directory as the working
 directory, inherits the user's environment, starts hidden, then displays the
 new instance after PID-bound COM attachment. It refuses to add an instance
-when two or more already exist. On initialization failure it reports the
+using a required chat-owned session file for duplicate prevention. There is no
+machine-wide instance cap. On initialization failure it reports the
 new PID and never retries by starting another instance. It does not close
 any instance or change journal/AutoRecover settings. Apply the verified PID
 and log settings from the manifest to that checkout's MCP configuration,
@@ -80,7 +81,7 @@ PID is supplied, managed mode creates its own instance. Other MCP connections
 for the same session file reuse that instance instead of starting duplicates.
 
 Creation uses the same installation-directory launcher, global launch mutex
-and two-instance limit. If the target still exists but COM binding fails, it
+and per-session duplicate prevention. If the target still exists but COM binding fails, it
 reports failure without starting another instance. Access denial, PID reuse,
 invalid PID and corrupt session metadata also fail without generic COM fallback.
 The session reserves a newly created PID before waiting up to 45 seconds for
@@ -100,7 +101,7 @@ independent instance stayed running after the first stdio client closed, and
 a second client reused its recorded PID with launched=false. The pre-existing
 MR12 instance remained running and was not accessed through COM.
 
-The two-instance limit does not prevent journal contention: the first instance
+Instance counts do not prevent journal contention: the first instance
 may already hold the per-user swxJRNL.swj file. The launcher now checks existing
 default and registry-configured journal files read-only. Windows sharing error
 32 is logged as a nonfatal notice and permits independent startup. Other errors,
@@ -112,6 +113,12 @@ shared registry settings or dismiss startup dialogs. An independent process
 does not guarantee independent AutoRecover, RAM or per-user preferences.
 
 ## Journal isolation experiment (not enabled)
+
+The previously added two-instance cap was removed at the user's request. CLI
+launch requires `--session-file` (or a chat-owned `--output`, from which a state
+path is derived). Repeated requests reuse that file's live PID, verifying its
+creation time, instead of creating another instance. Managed MCP retains its
+existing session-file guard. Use a different state file for each independent chat.
 
 `solidworks_mcp/journal_registry.py` provides a reversible registry-folder lease
 for the next experiment. It backs up the original value before assigning a
@@ -151,6 +158,28 @@ verification. If verification fails after launch, the new PID is kept for
 diagnosis; no alternate is launched. Error evidence must be inspected before a
 retry. The 45-second registry lease may overlap another program's manual launch
 or settings write; this is an experimental limitation, not full registry isolation.
+
+A real SW 2023 probe failed: the new PID did not open the assigned journal in
+45 seconds. The original registry value was restored and the existing instance
+retained its original journal handle. Thus this technique is not verified as a
+working isolation solution and remains experimental.
+
+## Explicit journal warning acknowledgement
+
+For a CLI launch, choose `--journal-warning-action dismiss`. For managed MCP,
+set `SOLIDWORKS_JOURNAL_WARNING_ACTION='dismiss'` and restart its connection.
+Default is `manual`. Only the session's startup PID is watched; text must match
+the specific journal/AutoRecover warning. SW 2023's classic dialog uses native
+button ID 2; a task dialog must expose only its known OK button. Process lifetime
+and dialog identity are rechecked before the button message, and the result
+records closure and errors. It handles one warning, not arbitrary dialogs.
+
+Real SW 2023 verification succeeded for automatic acknowledgement: the dialog
+closed, no handler error was recorded, a later MCP connection used the same PID,
+and a repeated CLI launch reused the session rather than adding another process.
+Both pre-existing working processes remained running. This is acknowledgement
+of a warning; the journal and AutoRecover limitation is still present. The popup
+can appear briefly before acknowledgement, and AutoRecover is not guaranteed.
 
 `CURRENT_USER` appears in the default path shown by GoEngineer's journal-warning
 documentation. Its literal appearance alone does not prove a configuration

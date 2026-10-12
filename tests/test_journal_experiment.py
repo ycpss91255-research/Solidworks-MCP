@@ -15,17 +15,6 @@ class JournalExperimentTests(unittest.TestCase):
     def tearDown(self):
         self.temp.cleanup()
 
-    def test_third_instance_does_not_change_registry(self):
-        with patch.object(Path, 'resolve', return_value=self.executable), \
-             patch('launch_solidworks.win32api.GetFileVersionInfo', return_value={'FileVersionMS':31 << 16}), \
-             patch('launch_solidworks.running_pids', return_value=[1,2]), \
-             patch('solidworks_mcp.journal_registry.JournalFolderLease') as lease, \
-             patch('launch_solidworks._launch_locked') as start:
-            with self.assertRaisesRegex(RuntimeError, 'No journal setting changed'):
-                launch_journal_experiment(self.executable, self.folder, self.evidence)
-            lease.assert_not_called()
-            start.assert_not_called()
-
     def test_journal_must_belong_to_new_pid_and_existing_handle_must_remain(self):
         prior = {'pid':1, 'path':'C:/original/swxJRNL.swj'}
         own = {'pid':2, 'path':str(self.folder / 'swxJRNL.swj')}

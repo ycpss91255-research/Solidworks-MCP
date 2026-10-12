@@ -64,7 +64,7 @@ def launch(executable):
         return _launch_locked(executable)
 
 
-def launch_journal_experiment(executable, folder, evidence):
+def launch_journal_experiment(executable, folder, evidence, on_launch=None):
     """Explicit experiment, not the default or managed-MCP launch policy."""
     from solidworks_mcp.journal_registry import JournalFolderLease
     from solidworks_mcp.process_files import journal_handles
@@ -83,12 +83,12 @@ def launch_journal_experiment(executable, folder, evidence):
     key_path = rf'Software\SolidWorks\SOLIDWORKS {version + 1992}\ExtReferences'
     with launcher_lock():
         before = running_pids()
-        if len(before) >= 2:
-            raise RuntimeError('Two or more SolidWorks instances already exist. No journal setting changed.')
         baseline = journal_handles(before)
         with JournalFolderLease(key_path, folder, evidence) as lease:
             lease.state['preserved_journal_handles'] = baseline
             pid = _launch_locked(executable)
+            if on_launch:
+                on_launch(pid)
             lease.state['launched_pid'] = pid
             lease._record('waiting_for_journal')
             deadline = time.monotonic() + 45
@@ -112,10 +112,37 @@ def launch_journal_experiment(executable, folder, evidence):
         return pid
 
 
+def launch_session(executable, session_file, journal_dir=None, journal_evidence=None):
+    """Reuse only this session's recorded live process; never cap other sessions."""
+    from solidworks_mcp.automation.managed_session import process_identity, write_state
+    path = Path(session_file)
+    if not path.is_absolute():
+        raise ValueError('An absolute per-session file is required')
+    with launcher_lock():
+        if path.exists():
+            state = json.loads(path.read_text(encoding='utf-8'))
+            identity = process_identity(int(state['pid']))
+            if identity:
+                if identity != state['start_time']:
+                    raise RuntimeError('Session PID was reused; refusing to attach or launch')
+                return int(state['pid']), False
+
+        def reserve(pid):
+            identity = process_identity(pid)
+            if not identity:
+                raise RuntimeError(f'New PID {pid} exited during startup')
+            write_state(path, {'pid':pid, 'start_time':identity,
+                              'configured_pid':None, 'ready':False})
+
+        if journal_dir:
+            pid = launch_journal_experiment(executable, journal_dir, journal_evidence, reserve)
+        else:
+            pid = _launch_locked(executable)
+            reserve(pid)
+        return pid, True
+
+
 def _launch_locked(executable):
-    if len(running_pids()) >= 2:
-        raise RuntimeError('Two or more SolidWorks instances already exist. '
-                           'Use --pid for the intended instance; no process was launched.')
     executable = Path(executable).resolve(strict=True)
     if executable.name.casefold() != 'sldworks.exe':
         raise ValueError('Expected the installed SLDWORKS.exe')
@@ -173,19 +200,23 @@ def main():
     mode.add_argument('--launch', action='store_true', help='Explicitly request one new instance')
     parser.add_argument('--exe', help='Installed SLDWORKS.exe path (optional)')
     parser.add_argument('--output', type=Path, help='Write the verified connection manifest')
+    parser.add_argument('--session-file', type=Path, help='Absolute state file owned by this chat; prevents duplicate startup')
+    parser.add_argument('--journal-warning-action', choices=('manual','dismiss'), default='manual', help='Explicitly dismiss only the new PID journal/AutoRecover warning')
     parser.add_argument('--journal-dir', type=Path, help='Experimental unique journal folder; changes and restores the per-user registry value')
     parser.add_argument('--journal-evidence', type=Path, help='Required absolute backup/evidence path for --journal-dir')
     args = parser.parse_args()
     if bool(args.journal_dir) != bool(args.journal_evidence) or (args.journal_dir and not args.launch):
         parser.error('Journal experiment requires --launch, --journal-dir and --journal-evidence together')
+    session_file = args.session_file or (args.output.with_suffix('.session.json') if args.output else None)
+    if args.launch and not session_file:
+        parser.error('--launch requires --session-file or --output belonging to this chat')
     pid = args.pid
     if args.launch:
         executable = args.exe or find_solidworks()
         if not executable:
             raise RuntimeError('SolidWorks installation not found; no process was launched')
-        pid = (launch_journal_experiment(executable, args.journal_dir, args.journal_evidence)
-               if args.journal_dir else launch(executable))
-        print(f'Launched one instance: PID {pid}', flush=True)
+        pid, launched = launch_session(executable, session_file, args.journal_dir, args.journal_evidence)
+        print(f'{"Launched" if launched else "Reused"} this session instance: PID {pid}', flush=True)
     if not pid or pid <= 0:
         raise ValueError('A positive PID is required')
     os.environ['SOLIDWORKS_TARGET_PID'] = str(pid)
@@ -193,24 +224,43 @@ def main():
     # CLI verification must inspect exactly --pid/the PID it just launched,
     # even when the parent shell inherited a managed workspace environment.
     automation._auto_launch = False
+    from contextlib import nullcontext
+    from solidworks_mcp.automation.journal_warning import JournalWarningHandler
+    warning = (JournalWarningHandler(pid, 60) if args.launch and args.journal_warning_action == 'dismiss'
+               else nullcontext())
     try:
         deadline = time.monotonic() + (60 if args.launch else 0)
-        while True:
-            result = automation.connect()
-            if result['success'] or time.monotonic() >= deadline:
-                break
-            time.sleep(0.5)
+        with warning:
+            while True:
+                result = automation.connect()
+                if result['success'] or time.monotonic() >= deadline:
+                    break
+                time.sleep(0.5)
+            if args.launch and args.journal_warning_action == 'dismiss':
+                if result['success']:
+                    automation.app.UserControl = True
+                    automation.app.Visible = True
+                # Startup warnings can follow COM registration; keep the scoped
+                # watcher alive briefly instead of treating connect as UI proof.
+                warning.stop.wait(2)
         if not result['success']:
             raise RuntimeError(f'PID {pid}: {result["message"]}. '
                                'No alternate instance was launched; inspect this instance.')
         if args.launch:
             automation.app.UserControl = True
             automation.app.Visible = True
+            from solidworks_mcp.automation.managed_session import write_state
+            state = json.loads(session_file.read_text(encoding='utf-8'))
+            state['ready'] = True
+            write_state(session_file, state)
         root = Path(__file__).resolve().parent
         manifest = {'pid': pid, 'command': str(root/'.venv/Scripts/python.exe'),
                     'args': [str(root/'solidworks_mcp_server.py')],
                     'env': {'SOLIDWORKS_TARGET_PID': str(pid),
                             'SOLIDWORKS_MCP_LOG': str(root/f'test-results/session-{pid}-{{server_pid}}.log')}}
+        if args.launch and args.journal_warning_action == 'dismiss':
+            manifest['journal_warning_events'] = warning.events
+            manifest['journal_warning_errors'] = warning.errors
         if args.output:
             args.output.parent.mkdir(parents=True, exist_ok=True)
             args.output.write_text(json.dumps(manifest, indent=2), encoding='utf-8')

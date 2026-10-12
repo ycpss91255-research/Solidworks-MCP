@@ -7,12 +7,13 @@ import win32api
 
 
 class LauncherTests(unittest.TestCase):
-    def test_refuses_third_instance(self):
+    def test_no_machine_wide_instance_cap(self):
         with patch('launch_solidworks.running_pids', return_value=[1,2]), \
-             patch('launch_solidworks.start_desktop_process') as start:
-            with self.assertRaisesRegex(RuntimeError, 'Two or more'):
-                launch('SLDWORKS.exe')
-            start.assert_not_called()
+             patch.object(Path, 'resolve', return_value=Path('C:/fake/SLDWORKS.exe')), \
+             patch('launch_solidworks.check_journal_available', return_value=[]), \
+             patch('launch_solidworks.start_desktop_process', return_value=3) as start:
+            self.assertEqual(launch('SLDWORKS.exe'), 3)
+            start.assert_called_once()
 
     def test_full_path_installation_cwd_and_hidden_start(self):
         executable = Path('C:/fake/SOLIDWORKS/SLDWORKS.exe')

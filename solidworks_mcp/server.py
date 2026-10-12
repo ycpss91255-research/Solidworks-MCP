@@ -65,7 +65,9 @@ server = Server("solidworks-mcp-server", instructions=(
     "A journal-file sharing notice is nonfatal and does not require closing "
     "another chat's SolidWorks. Independent PID connections can still succeed. "
     "Do not claim journal or AutoRecover isolation, change shared journal settings, "
-    "or dismiss unrelated startup dialogs. "
+    "or dismiss unrelated startup dialogs. With explicit "
+    "SOLIDWORKS_JOURNAL_WARNING_ACTION=dismiss, managed startup may acknowledge "
+    "only its own PID's exact journal/AutoRecover warning; this does not repair AutoRecover. "
     "For low-memory warnings during open_document, explicitly choose "
     "memory_warning_action=continue or cancel; default manual leaves it for the user."
 ))
