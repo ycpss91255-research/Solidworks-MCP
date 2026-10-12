@@ -99,6 +99,39 @@ def validate_repair_result(evidence,result):
         raise ValueError('Repaired package content changed')
     return hashes
 
+def rebind_staged_native_references(app,evidence,verify=lambda:None):
+    """Rewrite closed private files before any copied assembly is opened."""
+    root,mapping,state=validate_private_package(evidence)
+    key=lambda p:str(Path(p).resolve()).casefold()
+    destinations={key(source):output for source,output in mapping.items()}
+    missing=set(state.get('missing_references',{}))
+    rewrites=[]
+    for output in mapping.values():
+        if Path(output).suffix.casefold() not in ('.sldprt','.sldasm'):continue
+        verify()
+        if app.GetOpenDocumentByName(output) is not None:raise RuntimeError('Reference rewrite requires a closed private file')
+        refs=list(app.GetDocumentDependencies2(output,False,False,False) or ())
+        if len(refs)%2:raise RuntimeError('Cannot enumerate staged native references')
+        for reference in dict.fromkeys(refs[1::2]):
+            if Path(reference).suffix.casefold() in STEP_EXTENSIONS:continue
+            replacement=destinations.get(key(reference))
+            if replacement is None:
+                if key(reference) in missing and not Path(reference).is_file():continue
+                if Path(reference).resolve().is_relative_to(root):continue
+                raise RuntimeError('Staged native reference has no private replacement: '+reference)
+            verify()
+            if not app.ReplaceReferencedDocument(output,reference,replacement):
+                raise RuntimeError('Closed private reference replacement failed: '+reference)
+            rewrites.append({'document':output,'old':reference,'new':replacement})
+        after=list(app.GetDocumentDependencies2(output,False,False,False) or ())
+        if len(after)%2:raise RuntimeError('Cannot verify staged native references')
+        for reference in after[1::2]:
+            if Path(reference).suffix.casefold() in STEP_EXTENSIONS:continue
+            if key(reference) in missing and not Path(reference).is_file():continue
+            if not Path(reference).resolve().is_relative_to(root):
+                raise RuntimeError('Native reference still points outside private package: '+reference)
+    return rewrites
+
 def repair_private_assembly(app,helper_pid,helper_session_file,evidence,module,
                             memory_warning_action='cancel',verify_source=lambda:None):
     """Return repair evidence only; the source owner finalizes its own manifest."""
@@ -123,6 +156,9 @@ def repair_private_assembly(app,helper_pid,helper_session_file,evidence,module,
         if get0(app,'GetDocuments') or ():
             raise RuntimeError('Repair helper is not empty; no documents were closed')
         app.DocumentVisible(False,1);app.DocumentVisible(False,2)
+        native_rewrites=[]
+        if evidence.get('staging_method')=='copy_only':
+            native_rewrites=rebind_staged_native_references(app,evidence,verify)
         aliases=materialize_step_aliases(app,evidence)
         allowed=dict(mapping)
         allowed.update({path:path for path in aliases})
@@ -190,6 +226,7 @@ def repair_private_assembly(app,helper_pid,helper_session_file,evidence,module,
         hashes={path:fingerprint(path) for path in list(mapping.values())+list(aliases)}
         if any(sha is None for sha in hashes.values()):raise RuntimeError('Repaired package file is missing')
         return {'status':'repaired','helper_pid':helper_pid,'helper_start_time':identity,
+                'native_reference_rewrites':native_rewrites,
                 'step_aliases':aliases,'step_reference_repairs':repairs,
                 'assembly_state_restoration':state_result,'saved_private_documents':saved,
                 'reopen_errors':reopened[1] if isinstance(reopened,tuple) else None,

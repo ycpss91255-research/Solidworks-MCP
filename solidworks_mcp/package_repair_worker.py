@@ -8,6 +8,7 @@ from .recovery_snapshot import get0
 def main():
     parser=argparse.ArgumentParser(description=__doc__)
     for flag in ('session-file','request','response'):parser.add_argument('--'+flag,type=Path,required=True)
+    parser.add_argument('--configure-helper-environment',action='store_true')
     args=parser.parse_args()
     if not all(p.is_absolute() for p in (args.session_file,args.request,args.response)):
         parser.error('Repair worker paths must be absolute')
@@ -19,6 +20,9 @@ def main():
     if owner.get('source_session_file')!=request['source_session_file']:
         parser.error('Repair helper belongs to another source session')
     pid=int(owner['pid']);source_pid=int(evidence['pid']);identity=evidence['process_start_time']
+    if args.configure_helper_environment:
+        os.environ.update(SOLIDWORKS_TARGET_PID=str(pid),SOLIDWORKS_SESSION_FILE=str(args.session_file),
+                          SOLIDWORKS_AUTO_LAUNCH='0',SOLIDWORKS_RECOVERY_MONITOR='0')
     source_session=Path(request['source_session_file'])
     source_owner=json.loads(source_session.read_text(encoding='utf-8'))
     if int(source_owner['pid'])!=source_pid or source_owner['start_time']!=identity:

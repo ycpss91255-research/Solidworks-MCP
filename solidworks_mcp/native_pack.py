@@ -29,13 +29,17 @@ def native_extension(extension,major):
     return ctypes.cast(pointer,ctypes.POINTER(module.IModelDocExtension))
 
 class NativePack:
-    def __init__(self,doc,major):
+    def __init__(self,doc,major,app=None,document_adapter=lambda doc:doc):
+        self.doc=doc
+        self.app=app
+        self.document_adapter=document_adapter
         self.extension=native_extension(doc.Extension,major)
         self.pack=self.extension.GetPackAndGo()
     def documents(self):
         paths,success=self.pack.GetDocumentNames()
         if not success:raise RuntimeError('Cannot enumerate Pack and Go source files')
         self._source_count=len(paths)
+        self._sources=list(paths)
         return list(paths)
     def destinations(self,directory,prefix):
         import win32api
@@ -67,5 +71,32 @@ class NativePack:
         if (len(paths)!=source_count or len({str(p).casefold() for p in canonical})!=len(paths)
                 or any(not p.is_relative_to(root) for p in canonical)):
             raise RuntimeError('Package destinations are incomplete, collide or escape the private directory')
+        self._outputs=list(paths)
         return list(paths)
-    def save(self):return list(self.extension.SavePackAndGo(self.pack))
+    def save(self):
+        # Source SavePackAndGo rewrote the root assembly on disk in SW2023.
+        # Use its metadata only. Never save referenced source documents.
+        import shutil
+        from .assembly_recovery import document_state
+        from .recovery_snapshot import fingerprint,get0
+        if self.app is None:raise RuntimeError('Safe package staging requires the bound application')
+        statuses=[]
+        root=Path(get0(self.doc,'GetPathName')).resolve()
+        for source,output in zip(self._sources,self._outputs):
+            destination=Path(output);destination.parent.mkdir(parents=True,exist_ok=True)
+            if destination.exists():raise RuntimeError('Staging destination already exists')
+            raw=self.app.GetOpenDocumentByName(source)
+            model=self.document_adapter(raw) if raw is not None else None
+            if (Path(source).suffix.casefold() not in ('.step','.stp') and model is not None
+                    and (Path(source).resolve()==root or bool(get0(model,'GetSaveFlag')))):
+                before=document_state(model);sha=fingerprint(source)
+                status=model.SaveAs3(str(destination),0,3) # Silent | Copy; no SaveReferenced
+                if document_state(model)!=before or fingerprint(source)!=sha:
+                    raise RuntimeError('Source changed during copy-only staging')
+                if status:raise RuntimeError('Copy-only staging failed')
+            else:
+                with open(source,'rb') as src,destination.open('xb') as dst:shutil.copyfileobj(src,dst)
+                shutil.copystat(source,destination)
+                status=0
+            statuses.append(status)
+        return statuses

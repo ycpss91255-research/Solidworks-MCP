@@ -1,8 +1,9 @@
 """Run package repair against an explicitly configured owned helper session."""
-import json,os,subprocess,sys,uuid
+import json,os,sys,uuid,time
 from pathlib import Path
 from .automation.managed_session import process_identity,write_state
 from .package_repair import validate_private_package,validate_repair_result
+from .desktop_process import start_desktop_process
 
 def configured_processor(environment=None):
     environment=dict(os.environ if environment is None else environment)
@@ -22,17 +23,18 @@ def configured_processor(environment=None):
         token=uuid.uuid4().hex
         request=root/('repair-request-'+token+'.json');response=root/('repair-result-'+token+'.json')
         write_state(request,{'token':token,'source_session_file':str(source.resolve()),'evidence':evidence})
-        env={k:v for k,v in environment.items() if not k.startswith('SOLIDWORKS_')}
-        env.update(SOLIDWORKS_TARGET_PID=str(owner['pid']),SOLIDWORKS_SESSION_FILE=str(helper),
-                   SOLIDWORKS_AUTO_LAUNCH='0',SOLIDWORKS_RECOVERY_MONITOR='0')
-        completed=subprocess.run([sys.executable,'-m','solidworks_mcp.package_repair_worker',
-            '--session-file',str(helper),'--request',str(request),'--response',str(response)],
-            cwd=Path(__file__).resolve().parents[1],env=env,capture_output=True,text=True,
-            timeout=900,creationflags=getattr(subprocess,'CREATE_NO_WINDOW',0))
-        if not response.exists():raise RuntimeError('Repair worker produced no correlated response')
+        # A child of the MCP stdio job stalled before Python initialization in
+        # the real dual-PID test. Use the same desktop-parent creation path as
+        # persistent recovery workers; inherit no MCP pipes or job membership.
+        start_desktop_process(sys.executable,Path(__file__).resolve().parents[1],
+            ['-m','solidworks_mcp.package_repair_worker','--session-file',str(helper),
+             '--request',str(request),'--response',str(response),'--configure-helper-environment'])
+        deadline=time.monotonic()+900
+        while not response.exists() and time.monotonic()<deadline:time.sleep(0.5)
+        if not response.exists():raise RuntimeError('Repair worker response timed out; no replacement worker was launched')
         result=json.loads(response.read_text(encoding='utf-8'))
         if result.get('token')!=token:raise RuntimeError('Repair worker response token mismatch')
-        if completed.returncode or result.get('status')!='repaired':
+        if result.get('status')!='repaired':
             raise RuntimeError(result.get('error','Independent package repair failed'))
         validate_repair_result(evidence,result)
         return result

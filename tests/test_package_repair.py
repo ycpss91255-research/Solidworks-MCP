@@ -2,7 +2,7 @@ import tempfile,unittest
 from pathlib import Path
 from types import SimpleNamespace
 from solidworks_mcp.recovery_snapshot import fingerprint
-from solidworks_mcp.package_repair import validate_private_package,materialize_step_aliases,validate_repair_result
+from solidworks_mcp.package_repair import validate_private_package,materialize_step_aliases,validate_repair_result,rebind_staged_native_references
 
 class PackageRepairTests(unittest.TestCase):
     def setUp(self):
@@ -25,6 +25,23 @@ class PackageRepairTests(unittest.TestCase):
         root,mapping,state=validate_private_package(self.evidence)
         self.assertEqual(root,self.root.resolve());self.assertEqual(mapping,self.files)
         self.assertEqual(state['configuration'],'MR12')
+    def test_closed_reference_rewrite_targets_only_private_files(self):
+        parent=self.files[str(self.source/'assembly.SLDASM')]
+        old=str(self.source/'part.SLDPRT');new=self.files[old]
+        refs={parent:['part',old]}
+        self.app.GetOpenDocumentByName=lambda p:None
+        self.app.GetDocumentDependencies2=lambda p,*args:refs.get(p,[])
+        def replace(p,before,after):
+            self.assertTrue(Path(p).is_relative_to(self.root));self.assertEqual((before,after),(old,new))
+            refs[p]=['part',after];return True
+        self.app.ReplaceReferencedDocument=replace
+        result=rebind_staged_native_references(self.app,self.evidence)
+        self.assertEqual(len(result),1);self.assertEqual(refs[parent][1],new)
+    def test_external_unmapped_native_reference_is_rejected_before_open(self):
+        self.app.GetOpenDocumentByName=lambda p:None
+        self.app.GetDocumentDependencies2=lambda *args:['part',str(self.source/'unknown.sldprt')]
+        with self.assertRaisesRegex(RuntimeError,'no private replacement'):
+            rebind_staged_native_references(self.app,self.evidence)
     def test_original_step_basename_copy_is_hashed_and_recorded(self):
         result=materialize_step_aliases(self.app,self.evidence)
         alias=str(self.root/'sensor.stp')

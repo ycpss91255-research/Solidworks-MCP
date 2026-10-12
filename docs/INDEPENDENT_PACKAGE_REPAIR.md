@@ -78,3 +78,39 @@ The non-CAD suite passes 201 tests. Working PIDs 2836 and 19780 were not targete
 only the fork's `codex/pid-isolation` branch is updated. Automatic worker
 configuration, end-to-end source/helper validation and final completion audit
 remain required before the full backup objective is complete.
+
+## Copy-only staging investigation on 2026-10-13
+
+The full source/helper test caught a disk change to the private fixture's root
+assembly during source-side `SavePackAndGo`. RAM document state and all 2,853
+occurrences were unchanged, but that is insufficient source preservation.
+The generation remains failed. Neither working PID 2836 nor 19780 was targeted.
+
+A separate `SaveAs3(path, 0, 3)` (Silent | Copy, without SaveReferenced) root-copy
+test preserved both the source hash and RAM document state. Native Pack and Go
+now supplies metadata only; it never saves source packages. Staging captures
+the root and dirty loaded documents with copy-only saves and copies clean saved
+dependencies as bytes. Native packaging requires an explicitly owned helper;
+it fails safely without one. The helper rewrites references in closed private
+native files before opening an assembly. STEP import repair and occurrence
+restoration then operate on those copies.
+
+The complete live source/helper run passed on 2026-10-13. Source PID 34296
+retained its dirty root, all loaded-document states, all source hashes and its
+2,853 occurrence states. Helper PID 39984 rewrote the closed private references,
+repaired STEP links, saved/reopened the private root and verified all 2,853
+occurrences. The complete generation has 1,408 hashed files including three
+STEP aliases. Its source's existing suppressed missing-reference limitation
+remains recorded; reopening uses that exact validated exception. This is an
+end-to-end manual package test, not a completed automatic-worker deployment or
+a new-process restore test. The non-CAD suite passes 205 tests.
+
+Evidence: `test-results/mr12-isolated-proof/source-helper-complete.json` and
+`C:/SWP/ab1d/pfa7dbe386a/amxtzl7he/manifest.json` (private ignored artifacts).
+Drawing packages currently fail safely with this assembly-only helper; their
+earlier Pack and Go tests are historical and do not validate copy-only staging.
+
+The earlier stdio-child repair process stalled before Python initialization.
+The desktop-parent worker path completed the isolated repair instead; request
+tokens and the helper ownership/identity checks still apply. A response timeout
+does not cause this service to launch a replacement worker.

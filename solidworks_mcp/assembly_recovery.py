@@ -35,9 +35,11 @@ def snapshot_package(app,pid,directory,document_adapter=lambda doc:doc,pack_fact
         if Path(before['path']).suffix.casefold()!=expected_suffix:
             raise ValueError('Source filename does not match its CAD document type')
         if pack_factory is None:
+            if package_processor is None:
+                raise ValueError('Safe native package recovery requires an independently configured repair helper')
             from .native_pack import NativePack
             major=int(str(get0(app,'RevisionNumber')).split('.')[0])
-            pack_factory=lambda doc:NativePack(doc,major)
+            pack_factory=lambda doc:NativePack(doc,major,app,document_adapter)
             if kind==2 and state_reader is None:
                 from .component_states import capture_assembly_state
                 state_reader=lambda model:capture_assembly_state(model,major)
@@ -105,6 +107,7 @@ def snapshot_package(app,pid,directory,document_adapter=lambda doc:doc,pack_fact
                     raise RuntimeError('Package destination is not a new private file')
             mapping=dict(zip(paths,map(str,outputs)))
             evidence['package_files']=mapping
+            if hasattr(pack,'app'):evidence['staging_method']='copy_only'
             evidence['snapshot_path']=next(mapping[p] for p in paths if path_key(p)==source_key)
             if int(get0(app,'GetProcessID'))!=pid or process_identity(pid)!=identity:
                 raise RuntimeError('Snapshot target identity changed before save')
