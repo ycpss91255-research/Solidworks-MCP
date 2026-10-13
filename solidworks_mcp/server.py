@@ -618,7 +618,13 @@ def _execute_python_fixed(code: str) -> Dict:
             sys.stderr = captured_stderr
             
             # Execute the code
-            exec(code, exec_globals)
+            trace_dir = os.environ.get('SOLIDWORKS_SCRIPT_TRACE_DIR')
+            if trace_dir:
+                from .script_trace import ScriptTrace
+                with ScriptTrace(code, sw_automation._target_pid, trace_dir) as trace:
+                    exec(trace.compiled, exec_globals)
+            else:
+                exec(code, exec_globals)
             
         finally:
             # Always restore stdout/stderr
