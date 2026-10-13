@@ -38,3 +38,13 @@ historical failures include solver, heap/runtime and shutdown errors. Memory
 pressure is measured but not proven causal for every crash. Exact native root
 cause is not yet confirmed. Detailed local evidence is under
 `test-results/crash-probe-20261013/` (ignored by Git).
+
+The live probe exposed one confirmed MCP defect: OpenDoc6 returned a document
+after a low-memory No response, and the MCP reported success. The MCP now
+returns failure with `operation_cancelled=true` whenever the requested cancel
+handler recorded a warning, even if the dialog closed and a document was
+returned. `document_returned` records that possibility; the MCP does not close
+or save those documents. Handler errors likewise block a success response.
+This stops callers that check success from silently proceeding into rebuild
+and save work. It is not proof that every historic native crash had this cause.
+Explicit `continue` remains supported only when chosen by the caller.

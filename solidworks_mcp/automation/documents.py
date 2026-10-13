@@ -244,6 +244,21 @@ class DocumentOperations:
 
             handling = {'memory_warning_events': handler.events,
                         'memory_warning_handler_errors': handler.errors} if handler else {}
+
+            # SolidWorks can return a document even after No dismisses its
+            # resource warning. Do not authorize downstream rebuild/save work
+            # merely because OpenDoc6 returned a COM object in that case.
+            if handler and memory_warning_action == 'cancel' and handler.events:
+                handling['document_returned'] = doc is not None
+                handling['operation_cancelled'] = True
+                return self._result(False,
+                    'Opening cancelled after a low-memory warning. SolidWorks may have '
+                    'loaded documents; inspect this PID before further CAD operations.',
+                    SwErrors.swFileLoadError, handling)
+            if handler and handler.errors:
+                return self._result(False,
+                    'Memory warning handler failed; opening could not be verified safely.',
+                    SwErrors.swFileLoadError, handling)
             
             if doc is None or errors.value != 0:
                 return self._result(False, f"Failed to open (error {errors.value})",
