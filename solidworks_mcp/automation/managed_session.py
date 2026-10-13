@@ -77,24 +77,14 @@ def connect_managed(automation):
             write_state(path, state)
     automation._target_pid = str(pid)
     deadline = time.monotonic() + (45 if not state['ready'] else 0)
-    from contextlib import nullcontext
-    from .journal_warning import JournalWarningHandler
-    warning = JournalWarningHandler(pid, 50) if not state['ready'] and action == 'dismiss' else nullcontext()
-    with warning:
-        while True:
-            if process_identity(pid) != identity:
-                raise RuntimeError(f'SolidWorks PID {pid} exited or changed during connection')
-            result = automation._connect_target()
-            if result['success'] or time.monotonic() >= deadline:
-                break
-            time.sleep(0.5)
-        if result['success'] and not state['ready']:
-            automation.app.UserControl = True
-            automation.app.Visible = True
-            if action == 'dismiss':
-                warning.stop.wait(2)
-                result['data'].update(journal_warning_events=warning.events,
-                                      journal_warning_errors=warning.errors)
+    warning = automation._ensure_journal_warning_hook()
+    while True:
+        if process_identity(pid) != identity:
+            raise RuntimeError(f'SolidWorks PID {pid} exited or changed during connection')
+        result = automation._connect_target()
+        if result['success'] or time.monotonic() >= deadline:
+            break
+        time.sleep(0.5)
     if result['success']:
         if not state['ready']:
             automation.app.UserControl = True

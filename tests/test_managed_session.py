@@ -67,5 +67,15 @@ class ManagedSessionTests(unittest.TestCase):
                 connect_managed(self.automation)
             launch.assert_not_called()
 
+    def test_ready_session_also_starts_hook_before_com_attach(self):
+        self.path.write_text(json.dumps({'pid':456,'start_time':'created',
+                                       'configured_pid':'123','ready':True}))
+        calls = []
+        self.automation._ensure_journal_warning_hook.side_effect = lambda: calls.append('hook')
+        self.automation._connect_target.side_effect = lambda: (calls.append('connect') or {'success':True,'data':{'pid':456}})
+        with patch('solidworks_mcp.automation.managed_session.process_identity', return_value='created'):
+            connect_managed(self.automation)
+        self.assertEqual(calls, ['hook', 'connect'])
+
 if __name__ == '__main__':
     unittest.main()

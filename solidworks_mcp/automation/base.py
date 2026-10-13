@@ -45,6 +45,7 @@ class SolidWorksAutomation:
         self._recovery_startup_enabled = os.environ.get('SOLIDWORKS_RECOVERY_MONITOR') != '0'
         self._recovery_monitor_error = None
         self._recovery_worker = None
+        self._journal_warning_handler = None
         
         logger.info("SolidWorksAutomation initialized")
     
@@ -159,6 +160,36 @@ class SolidWorksAutomation:
             return self._result(False, f"Target connection failed: {exc}",
                                 SwErrors.swConnectionError)
     
+    def _ensure_journal_warning_hook(self):
+        from .journal_warning import JournalWarningHandler
+        from .managed_session import process_identity
+        action = os.environ.get('SOLIDWORKS_JOURNAL_WARNING_ACTION', 'manual')
+        if action not in ('manual', 'dismiss'):
+            raise ValueError('SOLIDWORKS_JOURNAL_WARNING_ACTION must be manual or dismiss')
+        current = getattr(self, '_journal_warning_handler', None)
+        pid = int(self._target_pid)
+        if current and action == 'dismiss' and current.pid == pid and current.thread.is_alive():
+            return current
+        self._stop_journal_warning_hook()
+        if action == 'manual':
+            return None
+        identity = process_identity(pid)
+        if identity is None:
+            raise RuntimeError(f'Journal warning target PID {pid} has exited')
+        handler = JournalWarningHandler(pid, timeout=None)
+        handler.__enter__()
+        if process_identity(pid) != identity:
+            handler.__exit__(None, None, None)
+            raise RuntimeError(f'Journal warning target PID {pid} changed')
+        self._journal_warning_handler = handler
+        return handler
+
+    def _stop_journal_warning_hook(self):
+        handler = getattr(self, '_journal_warning_handler', None)
+        if handler:
+            handler.__exit__(None, None, None)
+            self._journal_warning_handler = None
+
     def connect(self) -> Dict:
         """Connect only to an explicitly configured, already running PID."""
         if self._auto_launch:
@@ -166,6 +197,7 @@ class SolidWorksAutomation:
                 from .managed_session import connect_managed
                 result = connect_managed(self)
             except Exception as exc:
+                self._stop_journal_warning_hook()
                 return self._result(False, f'Managed connection failed: {exc}',
                                     SwErrors.swConnectionError)
         elif self._target_pid is None:
@@ -174,7 +206,18 @@ class SolidWorksAutomation:
                 'Configure the intended running PID and restart the MCP connection.',
                 SwErrors.swConnectionError)
         else:
-            result = self._connect_target()
+            try:
+                self._ensure_journal_warning_hook()
+                result = self._connect_target()
+            except Exception as exc:
+                result = self._result(False, f'Target connection failed: {exc}', SwErrors.swConnectionError)
+        if not result['success']:
+            self._stop_journal_warning_hook()
+        handler = getattr(self, '_journal_warning_handler', None)
+        if handler:
+            result.setdefault('data', {})['journal_warning_hook'] = {
+                'pid': handler.pid, 'running': handler.thread.is_alive(),
+                'events': handler.events, 'errors': handler.errors}
         if result['success'] and getattr(self,'_recovery_startup_enabled',False):
             self._recovery_monitor_error = None
             self._recovery_worker = None
@@ -204,6 +247,7 @@ class SolidWorksAutomation:
         Returns:
             Result dictionary
         """
+        self._stop_journal_warning_hook()
         self._sw_app = None
         self._connected = False
         if self._target_com_initialized:
