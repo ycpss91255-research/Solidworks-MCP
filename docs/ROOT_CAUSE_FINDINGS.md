@@ -78,3 +78,11 @@ post-refresh beam counts diverge (original6, replay7). Full input provenance,
 fidelity limits and retained follow-up are in
 [CURRENT_CLOSE_40588_CASE.md](CURRENT_CLOSE_40588_CASE.md). This case remains
 unattributed rather than being declared another instance of an existing fix.
+
+Paired stored/reconstructed pattern inspection finds matching seeds, zero skipped
+instances and zero feature errors, but different generated-child inventories.
+Fresh BF and retained-helper BG independently change enumeration6→7 through
+balanced selection rollback/restoration without changing a feature property;
+the reconstructed control remains7. Neither reproduces the native close crash.
+The pattern cache/state difference is now measured, not inferred from an equation
+count, and must still not be declared the heap-corruption cause.

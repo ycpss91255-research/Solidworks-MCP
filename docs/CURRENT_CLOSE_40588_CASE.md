@@ -82,6 +82,61 @@ difference between the saved prototype and rebuilt BC fixture. A failing native
 replay and actual exception context are required before calling that difference
 the crash root cause. The broader root-cause goal remains open.
 
+## Paired seed/member inspection (BD/BE/BF)
+
+BD initially stopped on a diagnostic assumption: SeedComponentArray returned
+CDispatch, not a generated-class Python name. Explicit QueryInterface showed
+these seeds support IFeature and identify Reference/ReferencePattern features.
+The same owned PID47420 was resumed after balanced selection release; it is not
+a pristine inspection of the initial state. No native fault occurred in that
+diagnostic error. BE PID35876 is a fresh reconstructed-fixture control.
+
+The seed and skip comparison shows no missing seed, no skipped instances and
+no feature error in either fixture. Both standard patterns use the first-tier
+pattern instance as their seed. The stored front standard pattern advertises
+three total instances, but initially has only one generated ReferencePattern
+child. The reconstructed version has two generated children. This concerns
+observed model/feature state, not a proven heap-corruption mechanism.
+
+BF PID40408 restores the immutable saved-prototype clone and records enumeration
+before any pattern selection access. It starts with6 beams. Sequential balanced
+AccessSelections/ReleaseSelectionAccess on front-first, front-standard and
+rear-first keeps6; after rear-standard it becomes7. The inspection changes no
+feature property and performs no explicit rebuild or save, but selection rollback
+and restoration can regenerate the model. Thus it must not be described as a
+passive read-only measurement of unchanged component state. BE's reconstructed
+fixture stays7 before/after all four probes. Both close and exit normally.
+
+Evidence is `prototype-before-after-inventory.json`,
+`rebuilt-pattern-inventory.json`, `report-bf.json`, `report-be.json` and their
+script/debugger traces. The exact safe next isolation is rear-standard access
+alone versus the preceding selection sequence; this model-state change still
+does not reproduce40588's CloseDoc exception.
+
+Retained helpers in `solidworks_mcp/diagnostics/pattern_inventory.py` bind the
+returned seed by explicit interface IID, not its Python proxy class name. Only
+E_NOINTERFACE permits trying the alternate seed interface; native/server faults
+stop. The selection scope releases access after a plain diagnostic exception,
+and performs no further COM cleanup after a fatal server/RPC fault. Callers must
+verify their owned PID and private paths. The helpers never start, save, close
+or modify a feature property. They are opt-in diagnostics, not an automatic
+pattern-repair or crash-prevention hook.
+
+Four retained regressions cover CDispatch/IID binding, no interface retry after
+server fault, release after a plain read failure, and no COM cleanup after a fatal
+server fault. The initial three were RED before implementation, then GREEN;
+full suite254 passes. These unit results verify diagnostic safety/contract
+handling, not proof that the original crash has been fixed.
+
+BG PID47768 restores the same immutable prototype and uses the retained helper
+implementation in a fresh owned MCP. It independently repeats the exact
+component-count stages6,6,6,7, with6 before and7 after, then closes/exits normally.
+`retained-helper-inventory.json` and `report-bg.json` retain that live validation.
+The exact-PID event audit finds no native crash for BD/BE/BF/BG. All four owned
+CAD/debuggers exited and protected42248/46576 creation identities are unchanged.
+This repetition confirms a rollback/restoration-sensitive model-state change;
+it still does not reproduce the original CloseDoc exception.
+
 Local repeatable runners: `run_az_resume.py`, `run_ba.py`, `run_bb.py`, `run_bc.py`;
 reports and debugger/script traces are under ignored
 `test-results/remaining-fault-correlation/`. `frozen-private-fixture` and its
