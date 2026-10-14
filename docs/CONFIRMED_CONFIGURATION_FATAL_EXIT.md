@@ -128,7 +128,14 @@ and verify a fresh-session close/reopen. This is a model-specific repair, not a
 global ban on configuration APIs. The rack task's recorded repair rebuilt the
 diagonal configuration from its working horizontal configuration and restored
 equation scopes; that production task was not changed by this investigation.
-Independent validation of an equivalent private repair remains pending.
+Independent validation progressed with the preserved-equation creation order:
+AQ uses frozen original bytes and passes physical geometry, Save3/close/reopen
+and normal exit. AR verifies those saved bytes in a separate process. AS/AT
+restore parent-driven diagonal length; changing maximum segment height800→700
+updates physical length/hole spacing and restoring800 restores baseline.
+AT saves/reopens and exits normally. This resolves the earlier AO error51 for
+the tested private repair sequence. The remaining combined fresh-input recipe
+and component-placement gates are listed in CONFIGURATION_TDD_PLAN.md.
 
 Local evidence: report-ag-diagnostic, ag-cleanup, report-ah/ai/aj/ak2/al,
 debug-ah/ai/aj/ak2/al directories, owned-ah/al paused dumps and stack analyses,

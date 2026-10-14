@@ -11,21 +11,22 @@ historical crash has been solved. No production model is modified by these tests
 | Original failing flow reproducible | Red established | AG/AH/AL, error61704 then native purecall/abort at close |
 | Exception context available | Complete | AM close exception.dmp: `.exr -1` and `.ecxr` work, c0000409 subcode7 and native equation/model-update → document-close frames |
 | Configuration recreation alone is enough | Disproved | AM recreates inactive configuration, restores inputs, keeps equations; still61704 and native close failure |
-| Rebuild equations and references | Candidate only | AN resumed repair:29→18 equations, expected dimensions, save/close/exit pass; not a pristine single-pass control |
-| Fresh-input complete repair | Failing | AO fresh control: switch succeeds, full rebuild fails; feature error51; in-context parent binding restoration still returns false |
-| Acceptance rejects false green | Six unit tests pass | Correct dimensions with error51/failed rebuild, no solid body, wrong physical hole span, wrong configuration, equation failure, missing/nonfinite measurements all rejected |
-| Actual private-fixture regression | Deferred | Latest live run cancelled by low-memory warning before geometry verification; not counted as repair success |
-| Save/close/reopen and physical geometry | Pending | Both configurations must pass before and after `--roundtrip` |
-| Dynamic assembly behavior retained | Pending | Restore parent-driven diagonal length; vary original inputs and verify physical holes/placements, then restore baseline |
-| Cold separate-instance verification | Pending | Close owned empty instance normally, guarded launch with own session file, reopen saved private fixture, rerun geometry acceptance |
-| Native crash-event audit | Pending for completed repair | Query Windows event1000 for exact test PID/time interval; successful tool return alone is insufficient |
+| Rebuild equations and references | Preserved-equation candidate passes static geometry | AQ fresh frozen input;29→18 equations; inactive configuration created with valid working equations intact |
+| Fresh-input static repair | Passed AQ | AO's earlier error51 candidate failed; AQ changes the creation order and passes actual geometry |
+| Acceptance rejects false green | Seven unit tests pass | Includes correct dimensions with error51, missing solid body, stale physical hole span, and correct IPartDoc feature lookup |
+| Actual private-fixture regression | Passed AQ/AR | Both configurations rebuild with no feature/equation errors and correct physical hole spans |
+| Save/close/reopen and physical geometry | Passed AQ and AT | All three Save3 calls True/0/0; geometry reverified after reopening |
+| Dynamic assembly behavior retained | Passed AT for tested input | Parent binding restored; maximum segment height800→700→800; physical diagonal span1312.097557→1221.147002→1312.097557; horizontal unchanged |
+| Cold separate-instance verification | Passed static AR; dynamic recipe check follows | Separate process opens saved fixture, verifies both configurations, closes and exits |
+| Native crash-event audit | AQ/AR passed; later runs require audit | Exact interval Windows events1000/1001 empty; owned processes exited and protected identities unchanged |
 
 ## Retained test code
 
 `tests/test_configuration_acceptance.py` was written before its implementation
 and initially failed to import the missing diagnostic module. After implementing
 the gates it has six passing tests. These are tests of acceptance logic, **not
-proof that the CAD model is fixed**. Full unit suite:239 passing tests.
+proof that the CAD model is fixed**. Latest full unit-suite count is recorded
+with the current iteration below.
 
 `solidworks_mcp/diagnostics/configuration_acceptance.py` collects through an
 already bound PID only. It never launches, opens, rebuilds, saves or closes CAD.
@@ -123,6 +124,49 @@ AR launched a separate owned process, opened AQ's saved private assembly without
 applying another repair, verified both physical geometries, closed and exited
 normally. This cold-instance gate passed (`report-ar.json`). The remaining
 gates are dynamic parent binding and changed-input/restored-baseline behavior.
+
+### Dynamic parent binding iteration
+
+AS restores the parent equations and binds the diagonal dimension in assembly
+EditPart2 context. The frame rebuild and both physical geometry checks pass.
+AT repeats this on AQ's saved private fixture, changes the original parent
+`驅動最大段高` property from800 to700 and restores800. Independent expectations
+use `3200 / ceil(3200 / maximum)` and `hypot(1040, segment_height)`; actual hole
+geometry must match. All four observations pass. The700 case has diagonal
+length1241.147001798mm and hole span1221.147002mm, with horizontal geometry
+unchanged. Save/close/reopen verifies the restored baseline and exits normally.
+
+Retained code: `tests/configuration_dynamic_recipe.py` exposes `restore_binding`
+and `verify_changed_input`. Both require an already bound app, typed interfaces,
+absolute private fixture and explicit matching PID. No launch/save/close is
+implicit. EditPart2 is left in a finally block. Input restoration uses a finally
+block; a failed run still needs an explicit baseline rebuild and verification
+before any save. The recipes assume this archived rack fixture and its inputs;
+they are not a general geometry repair tool. Wrong-PID and non-private-document
+regressions were RED before the module existed and now pass. Full suite245 pass.
+
+Invoke through this chat's owned PID-bound `execute_python` context:
+
+```python
+from tests.configuration_dynamic_recipe import restore_binding, verify_changed_input
+# sw and types must come from the already connected owned MCP and its installed typelib.
+restore_binding(sw, types, absolute_private_fixture, explicit_owned_pid)
+verify_changed_input(sw, types, absolute_private_fixture, explicit_owned_pid)
+```
+
+The comprehensive final gate must also verify assembly component placements and
+pattern counts after the input change, then run the retained candidate and binding
+recipe together from frozen original bytes. Static AQ and dynamic AT are separate
+controls and must not be mislabeled as that single fresh-input combined run.
+
+AU verifies the retained dynamic recipe in another owned cold process, including
+700/800 physical geometry, baseline Save3/close/reopen and normal exit request.
+AS/AT/AU had no new Windows application crash events in the audited interval.
+Their source snapshots remain unchanged. Reports are `report-as.json`,
+`report-at.json`, `report-au.json` and `as-at-au-event-audit.json` under the
+ignored evidence directory. The launcher printed an IUnknown release warning
+for AS, but exited successfully; fresh MCP connection and model tests succeeded.
+This Python COM-release warning is not counted as a SolidWorks process crash.
 
 
 1. Restore the frozen three-file input into the private fixture after owned CAD
