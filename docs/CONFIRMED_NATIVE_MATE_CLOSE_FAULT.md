@@ -86,3 +86,25 @@ Captured owned W post-fault MiniDumpNormal and cleaned only its held process
 after exact native-fault and creation-identity checks. Source differences are
 recorded rather than used to assert a false preservation result. No CAD save
 or call was issued after the native exception; other live processes untouched.
+
+X PID36520: strict launcher-completion ordering; same frozen inputs and complete
+typed sequence as W. Explicitly delete nd/nf/data/fresh/d/root wrappers after
+repair and collect garbage, then collect prior execution namespace cycles in a
+separate MCP call before obtaining fresh wrappers and CloseDoc. Repair and both
+collection calls succeed; CloseDoc still returns RPC_E_SERVERFAULT. Event1000
+at12:25:11 is dcu3d59.dll c0000005 offset0x11073. Thus the tested Python wrapper
+retention and launcher overlap are not necessary for this solver failure.
+This does not exclude every internal/native lifetime issue. No cold reopen was
+attempted after fault. Local normal dump retained and only owned process cleaned.
+
+Source preservation flags in later trials compare against the original frozen
+collection's formal-source hashes, not an atomic baseline at each trial start.
+Formal CAD is actively changing independently in the MR12 session. A false flag
+does not itself attribute a write to this test. Keep frozen private-input hashes
+as test-state proof; record live formal drift separately and never claim those
+formal files remained unchanged. Future audit should take fresh per-trial
+readable source baselines with timestamps without altering the private inputs.
+
+Next meaningful comparisons are different native mate creation/update methods
+and exception-time stack capture, rather than treating another successful
+single trial as proof of global safety. No demonstrated full fix yet.
