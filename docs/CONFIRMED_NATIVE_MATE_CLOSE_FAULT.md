@@ -108,3 +108,17 @@ readable source baselines with timestamps without altering the private inputs.
 Next meaningful comparisons are different native mate creation/update methods
 and exception-time stack capture, rather than treating another successful
 single trial as proof of global safety. No demonstrated full fix yet.
+
+Debugger availability corrected by inspection: classic Windows SDK Debuggers
+paths are absent, but installed Microsoft.WinDbg Appx contains amd64/cdb.exe.
+Offline CDB analysis of X's live post-fault normal dump explicitly reports
+"Minidump doesn't have an exception context" / HRESULT0x80004002. Its selected
+thread stack is NtUserWaitMessage/CAmApp::Run, NOT the original solver fault.
+Do not interpret the nearest exported UI-loop symbol as the fault caller.
+
+Prepared local watch_owned_exception.py for an identity-checked owned test PID,
+with held process handle, exact executable/start-time checks, local-only symbol
+path, AV event dump/exception context/stack capture and debugger detach. It
+launches no CAD, changes no global debug/registry settings, and writes no formal
+model. Syntax/CLI checked; live capture and detach behavior not yet validated.
+This preparation is not evidence that an exception-time stack has been captured.
