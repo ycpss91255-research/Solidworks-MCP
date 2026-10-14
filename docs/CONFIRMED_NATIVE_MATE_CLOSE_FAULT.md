@@ -140,3 +140,34 @@ not proof of the earlier corrupting write or a particular heap block. Capture
 handler now also covers subsequent break-instruction events (bpe), to save the
 diagnostic breakpoint context/stack automatically and detach without a manual
 waiting interval. Live validation of this additional handler remains pending.
+
+Z PID47908: live AV handler executes at CloseDoc, reports c0000005 at
+mfc140u+0x23dc91, read address0xFFFFFFFFFFFFFFFF. First-chance thread stack is
+saved in debug-z/console.txt and engine.txt. Frames include (nearest available
+export symbols; absent private PDBs limit exact function attribution):
+
+```
+mfc140u+0x23dc91
+sldapiu!sldMatDef_c::addVizProps+0x105e
+SLDMODU!moFeature_c::~moFeature_c+0x1ca
+SLDMODU!moNodeList_c::destroy+0x24
+SLDMODU!moMateWalker_c::~moMateWalker_c+0x224
+SLDMODU!moAssembly_c::destroyUnconditional+0x1a7
+slduiu!uiModelDoc_c::iDestroyModels+0x27e
+slduiu!uiModelDoc_c::DeleteContents+0xa7f
+sldasmu!uiAssemblyDoc_c::DeleteContents+0x104
+```
+
+This is native destruction of assembly/model feature state while servicing the
+logged CloseDoc call; no backup worker or ExitApp at that time. Stack does not
+prove which prior write produced the invalid pointer. Y's heap detection and
+the varying DLL locations remain consistent with a corrupted destruction path,
+not proof all historic faults have one root cause.
+
+First-chance dump filename was misparsed inside nested CDB command strings:
+backslash escapes corrupted the absolute path, Win32error123. Thus Z captured
+text exception/stack but no exception-time dump. `.ecxr` also reports8000FFFF;
+do not claim a saved exception context from it. Corrected handlers use forward
+slashes for filenames. Debugger detached automatically with exit0. Captured
+separate owned post-fault normal dump and identity-checked cleanup, with source
+drift recorded. Live validation of corrected exception-dump writing pending.
