@@ -82,6 +82,49 @@ the targeted configuration regression and never a successful open.
 
 ## Next iteration
 
+### 2026-10-14 equation-preserving candidate
+
+`tests/configuration_repair_candidate.py` provides an explicitly experimental
+`apply_candidate(sw, interfaces, fixture_dir, expected_pid, diagonal_properties)`
+for invocation through an already connected owned PID-bound MCP. It never
+connects or launches, saves, rebuilds, closes, or verifies geometry itself.
+It checks PID and private loaded-document paths before mutation. The archived
+parameter JSON's `斜撐` object supplies `diagonal_properties`.
+
+The candidate removes only obsolete helper equations and rewrites instance
+aliases before creating the inactive configuration. Working dimension equations
+remain present at configuration creation. Full equation replacement happens
+only after both configurations exist. Three ordering/isolation regressions
+were written first (missing-module RED), implemented, and passed GREEN.
+
+Live AP exposed two test-harness faults: checking the Boolean return of an
+already-active configuration switch, and calling FeatureByName on IModelDoc2
+instead of IPartDoc. The latter now has a dedicated RED/GREEN regression.
+AP's subsequent geometry acceptance passed and the owned process exited normally.
+
+AQ restored all three original frozen files, applied the candidate, verified
+both configurations using physical hole geometry, saved all three files with
+Save3 `(True, 0, 0)`, closed, reopened, verified both again, closed and exited.
+The expected spans were 1040.0 and 1312.097557 mm. No feature/equation errors
+were observed. Original source hashes were preserved. Local reports are
+`test-results/remaining-fault-correlation/report-aq.json` and private
+`ap-observation-*.json`; CAD bytes and debugger dumps remain uncommitted.
+
+This is evidence for the preserved-equation order on this fixture, not complete
+production acceptance. The diagonal driver remains a temporary constant in
+the experimental candidate. Parent-assembly binding, changed-input geometry
+and restored baseline are still required before deploying a repair to real
+models. Never replace the production workflow with this candidate merely
+because the static geometry test passes.
+
+Unit regressions including the new interface test: **243 passed**.
+
+AR launched a separate owned process, opened AQ's saved private assembly without
+applying another repair, verified both physical geometries, closed and exited
+normally. This cold-instance gate passed (`report-ar.json`). The remaining
+gates are dynamic parent binding and changed-input/restored-baseline behavior.
+
+
 1. Restore the frozen three-file input into the private fixture after owned CAD
    is closed. Keep a complete equation snapshot and archived parameter inputs.
 2. Preserve working horizontal equations while creating the inactive diagonal

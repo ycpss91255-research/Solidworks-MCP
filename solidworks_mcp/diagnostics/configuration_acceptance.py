@@ -4,6 +4,12 @@ import os
 from pathlib import Path
 
 
+def _feature_faces(types, part, name):
+    raw = part.FeatureByName(name)
+    assert raw, f'missing hole feature: {name}'
+    return types.IFeature(raw._oleobj_).GetFaces() or []
+
+
 def assert_geometry(observation, expected, tolerance_mm=.001):
     """Reject cached dimensions as a substitute for rebuilt, physical geometry."""
     assert observation.get('configuration') == expected['configuration'], 'configuration mismatch'
@@ -67,8 +73,7 @@ def observe_configuration(sw, doc_path, fixture_dir, expected_pid, rebuild_resul
     if rebuild_result is True and not errors:
         radius = types.IDimension(doc.Parameter('D1@孔草圖')._oleobj_).SystemValue / 2
         for name in ('端孔', '端孔鏡射'):
-            feature = types.IFeature(doc.FeatureByName(name)._oleobj_)
-            for raw in feature.GetFaces() or []:
+            for raw in _feature_faces(types, part, name):
                 face = types.IFace2(raw._oleobj_)
                 surface = types.ISurface(face.GetSurface()._oleobj_)
                 if surface.IsCylinder():

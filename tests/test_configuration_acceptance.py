@@ -6,6 +6,16 @@ from solidworks_mcp.diagnostics.configuration_acceptance import assert_geometry
 
 
 class ConfigurationAcceptanceTests(unittest.TestCase):
+    def test_hole_faces_use_part_interface_and_reject_missing_feature(self):
+        from types import SimpleNamespace
+        from solidworks_mcp.diagnostics.configuration_acceptance import _feature_faces
+        feature = SimpleNamespace(_oleobj_='hole')
+        part = SimpleNamespace(FeatureByName=lambda name: feature if name == '端孔' else None)
+        types = SimpleNamespace(IFeature=lambda raw: SimpleNamespace(GetFaces=lambda: ['face']))
+        self.assertEqual(_feature_faces(types, part, '端孔'), ['face'])
+        with self.assertRaisesRegex(AssertionError, 'missing'):
+            _feature_faces(types, part, 'missing')
+
     def setUp(self):
         self.expected = dict(configuration='斜撐', length_mm=1332.097557,
                              hole_span_mm=1312.097557, equation_count=18)
