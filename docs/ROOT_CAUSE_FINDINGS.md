@@ -70,3 +70,11 @@ Failures after deletion report `partial_change=true`; callers must stop rather
 than retrying blindly or saving the incomplete result. This optional tool does
 not rewrite arbitrary `execute_python` scripts or migrate another session's
 caller. Restart that session's MCP connection to load the updated tool.
+
+The new40588 CloseDoc case has four completed private controls, including a
+pre-layer reconstruction with recorded inputs and exactly matching pre-refresh
+equations/pattern/component observations. None reproduces its native crash;
+post-refresh beam counts diverge (original6, replay7). Full input provenance,
+fidelity limits and retained follow-up are in
+[CURRENT_CLOSE_40588_CASE.md](CURRENT_CLOSE_40588_CASE.md). This case remains
+unattributed rather than being declared another instance of an existing fix.
