@@ -95,3 +95,19 @@ unavailable across three consecutive continuations. The detailed completion
 and blocker audit is retained in CURRENT_CLOSE_40588_CASE.md. The broader goal
 is not achieved; the verified three paths and their fixes must not be generalized
 to the still-unattributed events.
+
+The separately received46576 batch-close case is retained in
+[CURRENT_CLOSE_46576_CASE.md](CURRENT_CLOSE_46576_CASE.md). Its Windows events
+establish access violation followed by heap corruption after a subsequent caller
+continued Save3. Fresh private BJ/BK saved-state and eight-case dynamic controls,
+plus BL's pre-mirror cold baseline, all close normally; they do not reproduce
+the original native fault. Mirror, mate-reference replacement/deletion and
+multi-document renaming history are retained for still-unexecuted BM/BN controls.
+
+One confirmed diagnostic defect was corrected: execute_python failures previously
+returned a traceback but persisted only success=False in the main log, losing
+partial stdout/stderr. The updated handler records PID, HRESULT, script location,
+traceback and partial output without another CAD call. Five failure-evidence
+tests and full259-test discovery pass; a separate mocked process verifies actual
+FileHandler persistence. This improves evidence collection, not native crash
+prevention or attribution, and does not persistently quarantine a faulted PID.

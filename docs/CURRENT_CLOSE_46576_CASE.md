@@ -116,7 +116,7 @@ retained. The three original Python binding failures are explicitly expected
 by type, without swallowing COM/native failures. Rebinding closed references,
 checking loaded paths and owned exception capture remain runtime gates.
 
-BL/BM have **not been launched or passed**. At21:13, the lab preflight measured
+At preparation time BL/BM had **not been launched or passed**. At21:13, the lab preflight measured
 90.32% committed memory with9460MB available; a later launch gate measured
 90.46% and9430MB and did not launch. The existing experimental thresholds are
 at most90% committed and at least4096MB available. These are conservative lab
@@ -125,6 +125,33 @@ cap. No other instance was closed or otherwise operated to free memory.
 The recorded preflight is `bl-bm-headroom.json`; runners are `run_bl.py` and
 `run_bm.py` in the ignored evidence directory. Native multi-document renaming
 and subsequent equation repair remain later stages, not covered by BL/BM.
+
+## Later BL native baseline and full-history candidate
+
+After headroom briefly returned below the launch threshold, BL launched owned
+PID22896 through the guarded launcher. Its own journal warning was acknowledged
+and confirmed closed. The closed-reference rebinding and loaded-private-path
+gates passed, followed by Save3 of all eight loaded documents and successful
+CloseAllDocuments(True). The empty instance exited normally. Frozen hashes
+remained unchanged. `report-bl.json` records the passed native run;
+`bl-event-audit.json` finds no event1000 for22896, no remaining owned CAD/debugger,
+and unchanged creation identities for protected1772/42248. This confirms only
+the pre-mirror saved-state close baseline, not the safety of later mutations.
+
+BM launch gates subsequently measured90.52% and91.11% committed memory and did
+not launch. Its full mirror/mate-reference modification test remains unexecuted.
+This turn therefore establishes native BL evidence, not a BL/BM causal contrast.
+
+BN's complete-history candidate is also prepared separately from immutable
+inputs: original26 requests through mirror, native multi-document rename,
+equation/template repairs, then the original eight dynamic cases and property/
+Save3/batch-close sequence. All filesystem writes are adapted to its own private
+fixture; locks are excluded and scripts compile. `prepare_bn.py`, `run_bn.py`
+and `replay-rename-15.py` through `replay-rename-25.py` retain it. Runtime fidelity
+and native behavior are unverified. The old log lacks the exact error types for
+three failed rename/check requests; candidate binding-failure expectations stop
+on a changed type or unexpected success rather than masking COM/native errors.
+New failure logging will preserve the actual discrepancy when replay is possible.
 
 ## Corrected failure-evidence gap (not a crash fix)
 
