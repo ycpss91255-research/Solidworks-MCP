@@ -71,6 +71,38 @@ exited natively; no TerminateProcess was used. The watcher now includes `-c2`
 for fast-fail and heap failure, following the [documented debugger command](https://learn.microsoft.com/en-us/windows-hardware/drivers/debuggercmds/sx--sxd--sxe--sxi--sxn--sxr--sx---set-exceptions-).
 Live validation of that corrected exception-stream handler remains pending.
 
+Follow-up AM PID22752 verifies the corrected second-chance handler. Recreate
+inactive diagonal configuration and restore its parameter inputs while keeping
+the original equations: switch still raises61704. Close fails RPC_S_CALL_FAILED;
+corrected CDB handler captures exception.dmp (1,970,805bytes), detaches exit0,
+and CAD exits natively. Offline `.exr -1` / `.ecxr` both succeed: c0000409,
+parameter0=7, ucrtbase abort, VCRUNTIME140 purecall, native equation/model-update
+and OnCloseDocument/iApiCloseDoc frames. The caller's indirect virtual call at
+4b7313b7 is `call qword ptr [rdx+120h]`; exact object lifetime remains unresolved.
+This is a real exception stream, distinct from AH/AL's paused-thread dumps.
+
+AN PID47680 resumed repair rebuilds29 equations into18 configuration-aware
+equations, removes the old instance alias/helper chain, and recreates the
+inactive diagonal configuration. Expected length1332.097557mm and hole offset
+656.0487785mm verify; original horizontal-rebuild/diagonal-switch, all three
+Save3 calls, close and empty ExitApp pass. Source snapshots unchanged. The
+first attempt had a verifier mismatch: installed Delete returned deleted index28
+despite the current API page documenting zero. A subsequent Add3 attempt with
+only one configuration failed. Corrected count verification and creating both
+configurations before Add3 allowed continuation on the same owned PID. This
+resumed sequence is not a pristine fresh-input proof of a completed repair.
+
+AO PID48992 fresh inputs contradict a blanket repair claim: switch succeeds,
+but ForceRebuild3 returns false and native feature errors51 are observed while
+equations/dimensions appear correct. Parent in-context binding restoration also
+returns false. Therefore AN's passing partial-state control cannot establish
+full acceptance. The production model was not replaced. A later opt-in live
+regression run was cancelled by the exact PID's memory warning (No/button7,
+closed=true, document_returned=false); no geometry verification followed that
+cancellation. Owned AO closed normally; other PIDs40588/42248 remain untouched.
+The pending red/green, BRep, roundtrip and cold-instance gates are retained in
+[CONFIGURATION_TDD_PLAN.md](CONFIGURATION_TDD_PLAN.md).
+
 AK initially stopped because the memory-warning UIAutomation handler returned
 error -2147220991. It did not report a successful open. Fresh MCP attachment to
 the SAME PID, with a fresh debugger capture and the same explicit cancellation
