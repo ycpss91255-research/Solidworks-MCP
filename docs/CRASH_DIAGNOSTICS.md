@@ -34,7 +34,7 @@ and backup disabled/enabled on separate private trials when resources allow.
 Do not change shared registry/pagefile settings or another chat's worker.
 
 Current findings are summarized in [ROOT_CAUSE_FINDINGS.md](ROOT_CAUSE_FINDINGS.md):
-two native API/model-state fault paths were reproduced, and guarded alternatives
+three native API/model-state fault paths were reproduced, and guarded alternatives
 were tested. Several historical signatures and the earliest corrupting native
 write remain unresolved. Detailed local evidence is under
 `test-results/crash-probe-20261013/` (ignored by Git).

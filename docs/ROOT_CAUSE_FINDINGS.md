@@ -1,6 +1,6 @@
 # SolidWorks crash findings — 2026-10-14
 
-The investigation reproduced two native failures on SOLIDWORKS 2023 SP5
+The investigation reproduced three native failure paths on SOLIDWORKS 2023 SP5
 (31.5.0.52), using separate owned instances and private model copies. MCP/API
 operations trigger them; the faults occur inside the native CAD process.
 This is evidence for specific failing API/model-state paths, not a finding that
@@ -10,6 +10,7 @@ every historic crash has one cause or that all MCP operations are safe.
 | --- | --- | --- |
 | Imported-reference dependency query | `IModelDocExtension.GetDependencies` with `AppendImportedPaths=true` reproduces `sldapiu.dll` access violation at offset `0x8a24c0`; false returns an invalid scalar in the control. Failure also reproduced at approximately 64% committed memory. | Typed pywin32 guard blocks this exact query before invocation. Raw native calls can bypass it. |
 | Existing distance-mate conversion followed by document close | Combined `IsAdvancedMate=true` / `ModifyDefinition` edits reproduce native solver/MFC failures. Exception-time dump shows an invalid read through `rbp=0xffffffff` during mate/feature/assembly destruction servicing `CloseDoc`. | Create fresh limit mates from the existing endpoints, rather than converting the old feature kind in place. Explicit identity-change acknowledgment is required. |
+| Invalid configuration after prior rebuild | Frozen pre-repair rack files reproduce error61704 and, after horizontal rebuild plus failed diagonal switch, native purecall/abort during close. Two stopped-thread dumps show equation/model-update frames. Individual-operation controls close normally. | Repair the invalid configuration and equation references on a backed-up copy; do not blindly continue the failed edit flow. Equivalent private repair validation remains pending. |
 | Memory pressure | Windows resource-exhaustion event independently establishes historical commit exhaustion. Native fault controls above also reproduce without exhaustion; successful fresh-mate control ran at higher commit usage than one failing control. | Respect explicit open-document memory-warning cancellation. Memory pressure does not explain every native failure. |
 | Timeout | One traced replay timed out during comtypes type-library loading. Filtering generated-code tracing allowed completion. | A timeout alone does not prove a CAD crash. Correlate the PID, last API, native event and process exit. |
 
@@ -37,8 +38,9 @@ Important limits:
   formal source files; source-hash drift was recorded, not represented as proof
   that the tests wrote those files. All loaded paths were checked before saves.
 
-See [mate fault evidence](CONFIRMED_NATIVE_MATE_CLOSE_FAULT.md) and
-[dependency fault evidence](CONFIRMED_DEPENDENCY_API_FAULT.md) for the trial
+See [mate fault evidence](CONFIRMED_NATIVE_MATE_CLOSE_FAULT.md),
+[dependency fault evidence](CONFIRMED_DEPENDENCY_API_FAULT.md), and
+[configuration fatal-exit evidence](CONFIRMED_CONFIGURATION_FATAL_EXIT.md) for the trial
 matrix, dump details, official API contract references and remaining limits.
 CAD files, diagnostic logs and dumps stay local under ignored `test-results/`.
 
