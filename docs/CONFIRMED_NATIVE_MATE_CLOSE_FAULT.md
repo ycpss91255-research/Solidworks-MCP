@@ -64,3 +64,25 @@ for COM, the backup marshal bridge, or all CAD operations. Repeat the full
 four-mate sequence through typed pywin32 and cold reopen before recommending
 the alternative as verified. This does not prove the precise unsafe lifetime
 or vendor implementation mechanism in the failing native/comtypes route.
+
+Full typed validation W PID6728 contradicts a blanket typed-route fix: all four
+mate steps report successful ranges/saves, but CloseDoc still returns
+RPC_E_SERVERFAULT; event1000 at12:20:32 again records mfc140u.dll c0000005
+offset0x23dc91. Reopen verification never runs. Source hash audit reports four
+formal assembly files changed since the frozen input collection (AP45, stages
+1/2/3); the MR12 task is actively editing its own PID42248. All trial loaded
+document/path checks and save targets were private; do not claim formal hashes
+unchanged or attribute changes without fuller chronology. Frozen private inputs
+remain controlled independently of current formal source drift.
+
+W launcher also printed IUnknown-release warning. Verification should be fully
+complete before test calls next time; initial connection was started while the
+launcher handle still reported running, though mate edits began after its final
+manifest. Retain this timing confound. A typed single/three-mate pass is not
+proof of robust prevention. Next isolation: nested mate read versus save, COM
+object release before close, and a repeat with strict launch-completion ordering.
+
+Captured owned W post-fault MiniDumpNormal and cleaned only its held process
+after exact native-fault and creation-identity checks. Source differences are
+recorded rather than used to assert a false preservation result. No CAD save
+or call was issued after the native exception; other live processes untouched.
