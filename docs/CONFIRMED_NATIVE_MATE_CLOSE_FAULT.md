@@ -171,3 +171,29 @@ do not claim a saved exception context from it. Corrected handlers use forward
 slashes for filenames. Debugger detached automatically with exit0. Captured
 separate owned post-fault normal dump and identity-checked cleanup, with source
 drift recorded. Live validation of corrected exception-dump writing pending.
+
+AA PID47876 verifies corrected first-chance dump writing: debugger attaches to
+owned PID only, captures exception.dmp (2,086,147bytes), detaches exit0. Offline
+CDB `.exr -1`, `.ecxr`, registers and stack SUCCEED on this dump. Exception is
+c0000005 at dcu3d59 offset11073, DCM3_node::do_move_to_list+0x83:
+
+```
+rbp = 00000000ffffffff
+mov rax, qword ptr [rbp+8]
+attempted read = 0000000100000007
+```
+
+Stack continues through mfc140u+0x23dc9a (same location family as Z), sldapiu,
+moFeature destruction, moNodeList destruction, moMateWalker destruction,
+moAssembly::destroyUnconditional, model DeleteContents, closeDocument and
+auAm::iApiCloseDoc. This links the reproduced solver and MFC failures to one
+native destruction path in these trials. Earliest corrupting write/sentinel
+assignment still not identified; nearest export names do not replace private
+vendor symbols. No evidence from this dump that Python GC is the sole cause.
+
+CAD calls stopped after native CloseDoc error; exact PID/creation/executable
+verified before cleaning owned faulted process. Other live PIDs40588/42248
+untouched. Formal source drift recorded; frozen private test inputs controlled.
+Exception dump and analysis remain local in debug-aa; not pushed with docs.
+Next alternative is creation of fresh limit mates instead of changing existing
+distance-mate type/advanced flag, with saved-range and close/reopen validation.
