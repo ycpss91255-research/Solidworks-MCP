@@ -44,10 +44,12 @@ The production recovery path already uses PackAndGo metadata and native closed
 reference inventories. GetDependencies2/GetDocumentDependencies2 are narrower
 and are not substitutes for a complete suppressed/STEP dependency package.
 
-Remaining goal: identify the separate dcu3d59.dll and heap/runtime failures.
-Private fork-edit, reopen, shutdown and backup/rebuild trials have not reproduced
-those events; historical dumps/session state are unavailable. Do not mark the
-overall root-cause investigation complete from this result alone.
+Further investigation reproduced a separate native mate-edit/CloseDoc failure,
+including the historical dcu3d59.dll c0000005 offset0x11073 signature. See
+CONFIRMED_NATIVE_MATE_CLOSE_FAULT.md. Individual edit controls pass; the full
+edit sequence fails. The precise native operation/lifetime defect and an
+appropriate prevention still require isolation. Do not mark the overall
+root-cause investigation complete from the dependency-query guard alone.
 
 Official API parameter/result contract:
 https://help.solidworks.com/2019/English/api/sldworksapi/SolidWorks.Interop.sldworks~SolidWorks.Interop.sldworks.IModelDocExtension~GetDependencies.html
