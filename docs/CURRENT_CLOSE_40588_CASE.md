@@ -137,6 +137,51 @@ CAD/debuggers exited and protected42248/46576 creation identities are unchanged.
 This repetition confirms a rollback/restoration-sensitive model-state change;
 it still does not reproduce the original CloseDoc exception.
 
+## Bounded final controls and blocker audit
+
+BH PID11784 restores the immutable prototype and accesses/releases ONLY the
+rear-standard pattern, without reading seeds, changing a property or explicitly
+rebuilding. Enumeration changes6→7 and adds beam9. CloseAllDocuments and normal
+ExitApp succeed. This isolates a sufficient trigger for the observed component
+regeneration, not a trigger for the original native crash.
+
+BI PID48172 removes both the debugger and SOLIDWORKS_SCRIPT_TRACE_DIR. One fresh
+MCP process opens the private prototype and runs the original pattern-refresh
+script; that MCP process exits. A second fresh MCP process connects to the same
+owned CAD PID, saves/copies/closes the assembly and exits the empty application.
+Save3 is True/0/0 and CloseDoc succeeds. Per-phase server logs and the submitted
+scripts/results are in `report-bi-uninstrumented.json`. Current server code
+confirms line tracing is enabled only when its environment directory is set.
+Thus debugger attachment, line-trace timing and retaining the first MCP process
+do not suffice to explain why the previous controls did not crash in this state.
+This does not reproduce all prior session history or exclude every timing race.
+
+Exact-PID Windows event audit finds no event1000 for BH/BI. Both owned CAD
+processes exited and no owned debugger remains. Protected42248/46576 retain
+their original creation identities. No production model or other session was
+operated. No production hook was introduced to regenerate patterns on close.
+
+The completion audit still fails for40588 and other unassigned historical
+signatures: a native failure is observed, but its first corrupting operation is
+not established and no verified prevention for that particular failure exists.
+The missing crash-time exception dump and contemporaneous dependency/process
+state were established in the initial current-close investigation, persisted
+through the paired-pattern continuation, and remain missing in this continuation
+(at least three consecutive goal turns). Each earlier turn made progress through
+bounded private controls; the new sufficient regeneration trigger and reduced
+instrumentation controls now complete that planned matrix without a native
+failure. Continuing to rearrange the same incomplete snapshot cannot prove the
+original corruption mechanism. The agent is now at an evidentiary impasse for
+this remaining requirement, rather than claiming the goal complete from the
+three separately validated native paths.
+
+Meaningful resumption requires an actual failing owned replay with exception
+context, a usable original dump, or the missing crash-time input/process state
+that makes a new faithful control possible. Without one of these, the root-cause
+goal should be blocked, not endlessly extended with passing variants or a
+speculative production fix. Retained input hashes, probes, failed/passing
+results and known validated workarounds remain available for resumption.
+
 Local repeatable runners: `run_az_resume.py`, `run_ba.py`, `run_bb.py`, `run_bc.py`;
 reports and debugger/script traces are under ignored
 `test-results/remaining-fault-correlation/`. `frozen-private-fixture` and its

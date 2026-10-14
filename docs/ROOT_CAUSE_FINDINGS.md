@@ -86,3 +86,12 @@ balanced selection rollback/restoration without changing a feature property;
 the reconstructed control remains7. Neither reproduces the native close crash.
 The pattern cache/state difference is now measured, not inferred from an equation
 count, and must still not be declared the heap-corruption cause.
+
+The bounded40588 investigation subsequently confirms rear-standard selection
+access/restoration alone regenerates6→7 components. An uninstrumented,
+two-separate-MCP-process close control also passes. A native failing replay,
+original exception dump and complete crash-time input/process state remain
+unavailable across three consecutive continuations. The detailed completion
+and blocker audit is retained in CURRENT_CLOSE_40588_CASE.md. The broader goal
+is not achieved; the verified three paths and their fixes must not be generalized
+to the still-unattributed events.
