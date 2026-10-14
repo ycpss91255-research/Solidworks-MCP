@@ -197,3 +197,21 @@ untouched. Formal source drift recorded; frozen private test inputs controlled.
 Exception dump and analysis remain local in debug-aa; not pushed with docs.
 Next alternative is creation of fresh limit mates instead of changing existing
 distance-mate type/advanced flag, with saved-range and close/reopen validation.
+
+AB read-only reference inventory passes and closes normally: original first
+mate uses face endpoints, remaining two use datum endpoints, all support Select4.
+AC PID3292 creates fresh limit mates with AddMate5 using those original selected
+endpoints after deleting each PRIVATE original distance feature. Never flips
+IsAdvancedMate on the original feature. Fresh ranges and feature-error checks
+pass, Save3 succeeds, CloseDoc succeeds, close-all succeeds, reopen succeeds,
+all four AP45/stage3 saved ranges verify, second close-all/ExitApp succeed and
+process is absent. No corresponding event1000. Private frozen inputs match the
+bad-route controls; formal-source hashes drift independently, recorded false.
+
+This is a promising prevention candidate, not a completed full comparison: AC
+does not yet include the original fourth nested mate read/save/activate sequence
+between edits and close. Add that sequence to the fresh-creation trial before
+claiming full equivalence or a final workaround. Creation may also alter feature
+IDs/ordering; downstream name/pose/reference contracts need explicit validation.
+Precise API contract for editing IsAdvancedMate still requires authoritative
+verification; native fault does not alone prove API misuse versus vendor bug.
