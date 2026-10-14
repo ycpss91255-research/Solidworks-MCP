@@ -235,6 +235,24 @@ not a universal transparent replacement or permission to modify other tasks.
 No production caller migrated yet. Need reusable guarded helper and live
 integration validation before claiming the MCP offers the workaround directly.
 
+AE PID23196 and AF PID42768 validate the new callable MCP tool
+`recreate_distance_mate_as_limit`: three separate tool calls, then the complete
+original four-mate follow-up, save/CloseDoc/close-all/reopen/persisted ranges,
+close-all/ExitApp. Both pass; 68 component transforms, maximum difference0.0.
+Both owned processes are absent, with no corresponding event1000 in the checked
+test interval. Other PIDs40588/42248 retain their original creation times.
+AE initially failed before mutation because dynamic COM exposes GetProcessID
+as an integer property; fixed property/method adaptation, restarted only its
+test MCP and resumed the unchanged loaded private inputs. AF is an independent
+fresh-process/frozen-input full run of the corrected implementation. The test
+runner log retains the initial failure; no native fault occurred in that preflight.
+
+Tool is optional and unsaved, requires explicit feature-identity acknowledgment,
+checks PID/path/type/range/endpoints before deleting, and reports partial_change
+on a later failure. Six added unit tests cover preflight failures, partial changes,
+no in-place conversion/save, and dynamic property adaptation. Suite233 passes.
+This makes the workaround callable, not an automatic migration of other scripts.
+
 Authoritative contract evidence: installed31.0 type library exposes IsAdvancedMate
 getter/setter. Official2023 IDistanceMateFeatureData interface documents
 GetDefinition/cast/modify/ModifyDefinition for editing, and DeleteSelection2 for

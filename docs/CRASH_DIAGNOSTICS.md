@@ -33,10 +33,10 @@ with loaded documents and after normal document closure, hook enabled/manual,
 and backup disabled/enabled on separate private trials when resources allow.
 Do not change shared registry/pagefile settings or another chat's worker.
 
-Current investigation status: private single-fork two-cycle test passed; real
-historical failures include solver, heap/runtime and shutdown errors. Memory
-pressure is measured but not proven causal for every crash. Exact native root
-cause is not yet confirmed. Detailed local evidence is under
+Current findings are summarized in [ROOT_CAUSE_FINDINGS.md](ROOT_CAUSE_FINDINGS.md):
+two native API/model-state fault paths were reproduced, and guarded alternatives
+were tested. Several historical signatures and the earliest corrupting native
+write remain unresolved. Detailed local evidence is under
 `test-results/crash-probe-20261013/` (ignored by Git).
 
 The live probe exposed one confirmed MCP defect: OpenDoc6 returned a document

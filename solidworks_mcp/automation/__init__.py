@@ -8,10 +8,11 @@ from .base import SolidWorksAutomation as _BaseAutomation
 from .documents import DocumentOperations
 from .sketches import SketchOperations
 from .features import FeatureOperations
+from .mates import MateOperations
 
 
 class SolidWorksAutomation(_BaseAutomation, DocumentOperations, 
-                           SketchOperations, FeatureOperations):
+                           SketchOperations, FeatureOperations, MateOperations):
     """
     Complete SolidWorks automation class
     

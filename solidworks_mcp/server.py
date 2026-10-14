@@ -338,6 +338,16 @@ async def list_tools() -> list[Tool]:
         
         # Utility Tools
         Tool(
+            name="recreate_distance_mate_as_limit",
+            description="Replace one ordinary distance mate with a fresh limit mate in an already open PID-bound assembly. Feature identity and downstream references may change; explicit allow_identity_change=true required. Distances in meters. Leaves changes unsaved; failures after deletion report partial_change. Avoids the reproduced SolidWorks 2023 in-place mate-kind conversion fault.",
+            inputSchema={"type": "object", "properties": {
+                "filepath": {"type": "string"}, "mate_name": {"type": "string"},
+                "minimum_m": {"type": "number"}, "maximum_m": {"type": "number"},
+                "distance_m": {"type": "number"},
+                "allow_identity_change": {"type": "boolean"}},
+                "required": ["filepath", "mate_name", "minimum_m", "maximum_m", "distance_m", "allow_identity_change"]}
+        ),
+        Tool(
             name="set_units",
             description="Set default unit for dimensions.",
             inputSchema={
@@ -409,6 +419,12 @@ async def call_tool(name: str, arguments: dict) -> list[TextContent]:
             }
         
         # Document Tools
+        elif name == "recreate_distance_mate_as_limit":
+            result = sw_automation.recreate_distance_mate_as_limit(
+                arguments.get("filepath", ""), arguments.get("mate_name", ""),
+                arguments.get("minimum_m"), arguments.get("maximum_m"),
+                arguments.get("distance_m"), arguments.get("allow_identity_change", False))
+
         elif name == "create_new_part":
             result = sw_automation.create_new_part()
         
