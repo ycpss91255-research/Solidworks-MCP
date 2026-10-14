@@ -32,6 +32,8 @@ class SolidWorksAutomation:
     
     def __init__(self):
         """Initialize automation instance"""
+        from ..com_safety import install_dependency_query_guard
+        install_dependency_query_guard()
         self._sw_app = None
         self._connected = False
         self._config = get_config()
