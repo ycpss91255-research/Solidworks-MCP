@@ -45,3 +45,22 @@ report-p/q/r/s/t, trace directories, owned-o/t-capture metadata and dumps,
 frozen230-file hashes, and exact adapted scripts. Dumps and CAD data are not
 published. Next comparisons: first-three conversions together without fourth
 mate inspection, and object-release/typed-vs-native access controls if needed.
+
+Further equal-input comparisons:
+- U PID44264: first-three native/comtypes conversions together, omitting the
+  fourth nested-document operation, still fail CloseDoc. Event1000 at12:15:03
+  is unknown module c0000005 offset0x108. Thus fourth operation is unnecessary;
+  native fault location varies across equivalent trigger sequences. Launcher
+  also printed an IUnknown release exception before trial; this is recorded as
+  an additional possible lifetime confound, not discarded or explained away.
+- V PID24416: same frozen230 inputs and first-three conversions, replace only
+  native/comtypes definition queries and ModifyDefinition arguments with typed
+  pywin32 IFeature/IDistanceMateFeatureData/IModelDoc2 objects. Original range
+  assertions, rebuilds, saves and CloseDoc succeed; owned process exits; no
+  corresponding event1000. No native_interface/QueryInterface bridge calls.
+
+V is an initial prevention candidate for this mate workflow, not a blanket cure
+for COM, the backup marshal bridge, or all CAD operations. Repeat the full
+four-mate sequence through typed pywin32 and cold reopen before recommending
+the alternative as verified. This does not prove the precise unsafe lifetime
+or vendor implementation mechanism in the failing native/comtypes route.
