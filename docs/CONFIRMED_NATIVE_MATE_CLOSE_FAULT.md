@@ -215,3 +215,35 @@ claiming full equivalence or a final workaround. Creation may also alter feature
 IDs/ordering; downstream name/pose/reference contracts need explicit validation.
 Precise API contract for editing IsAdvancedMate still requires authoritative
 verification; native fault does not alone prove API misuse versus vendor bug.
+
+AD PID25708 completes the missing comparison: same frozen230-file input bytes;
+create fresh limit mates via original endpoints, then run ALL original typed
+four-mate inspection/save/activation steps, including the nested stage3 mate.
+All four are now already correct, so no existing distance-to-limit type flip.
+Checks68 component transforms before/after: exact maximum difference0.0;
+component names/inventory unchanged. Original full follow-up has four rows.
+Save, CloseDoc, close-all, reopen, all four saved ranges, second close-all and
+ExitApp succeed; owned process absent and no corresponding fault event.
+Committed memory at exit about43.46GB/47.72GB (~91.1%), higher than failing
+O's82.7%; successful result is not explained by low commit usage alone.
+
+This provides an experimentally supported workaround for THIS fixture/workflow:
+do not convert existing MateDistanceDim by flipping IsAdvancedMate; use fresh
+limit-mate creation preserving endpoints, names, orientation and range, validate
+positions and persisted ranges. Feature identities/order may change; this is
+not a universal transparent replacement or permission to modify other tasks.
+No production caller migrated yet. Need reusable guarded helper and live
+integration validation before claiming the MCP offers the workaround directly.
+
+Authoritative contract evidence: installed31.0 type library exposes IsAdvancedMate
+getter/setter. Official2023 IDistanceMateFeatureData interface documents
+GetDefinition/cast/modify/ModifyDefinition for editing, and DeleteSelection2 for
+deleting. Official2025 members page describes IsAdvancedMate as get/set.
+These support that the general edit route is documented; they do not expressly
+guarantee existing feature-kind conversion on2023SP5 or prove all inputs valid.
+No official bug acknowledgement/other-version comparison obtained, so describe
+this as a reproduced installed-version API/model-state native defect candidate,
+not a confirmed defect across all SOLIDWORKS versions.
+
+https://help.solidworks.com/2023/english/api/sldworksapi/SolidWorks.Interop.sldworks~SolidWorks.Interop.sldworks.IDistanceMateFeatureData.html?id=3541293cb06e44d1adbee2e83c09ec70
+https://help.solidworks.com/2025/English/api/sldworksapi/SolidWorks.Interop.sldworks~SolidWorks.Interop.sldworks.IDistanceMateFeatureData_members.html?id=2d52ad68c2af405c9edfaef8381c59f8
