@@ -126,6 +126,32 @@ The recorded preflight is `bl-bm-headroom.json`; runners are `run_bl.py` and
 `run_bm.py` in the ignored evidence directory. Native multi-document renaming
 and subsequent equation repair remain later stages, not covered by BL/BM.
 
+## Corrected failure-evidence gap (not a crash fix)
+
+Inspection of `_execute_python_fixed` confirmed why several historical failed
+requests cannot be distinguished from the main MCP log alone. Their traceback
+was returned to the caller but the log only recorded `Result: success=False`.
+Captured stdout/stderr accumulated before the exception were also omitted from
+the failure response. Without optional ScriptTrace or a retained caller report,
+the failing binding operation and preceding successful mutations were lost.
+
+Failure responses and the main log now retain the configured PID, exception type,
+HRESULT when present, Python traceback, originating script line/source and
+partial stdout/stderr. Collection uses local exception/capture data only; it
+does not query the possibly damaged COM server. Context-construction failures
+before execution are covered too. This does not create a native C++ dump,
+identify the earlier corrupting write, or implement a persistent faulted-PID
+guard; subsequent calls to a damaged instance remain a separate protection gap.
+
+TDD: the three initial tests failed before the change; all five retained cases
+now pass, covering native COM faults, Python binding failures, pre-execution COM
+faults, optional trace filenames and syntax errors. Full discovery passed259
+tests. A fresh Python process with the normal server FileHandler and a mocked
+COM exception also verified the evidence is actually written to a private log;
+that simulation made zero actual CAD calls. Its retained evidence is
+`failure-log-verification.log/.json`. Existing MCP processes have not been
+restarted; a newly started MCP process loads the updated code.
+
 ## Remaining evidence limits
 
 The archive's stack is the Python/COM invocation stack, not the native C++

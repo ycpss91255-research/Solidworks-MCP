@@ -587,11 +587,41 @@ async def call_tool(name: str, arguments: dict) -> list[TextContent]:
 # FIXED: Execute Python with stdout capture
 # ============================================================================
 
+def _execution_failure_evidence(error, captured_stdout, captured_stderr, code, filename) -> Dict:
+    """Persist Python/COM failure evidence without making another CAD call."""
+    hresult = getattr(error, 'hresult', None)
+    if not isinstance(hresult, int):
+        hresult = None
+    script_line = None
+    for frame, lineno in traceback.walk_tb(error.__traceback__):
+        if frame.f_code.co_filename == filename:
+            script_line = lineno
+    source_lines = code.splitlines()
+    source_line = (source_lines[script_line - 1]
+                   if script_line and script_line <= len(source_lines) else None)
+    data = {
+        'error_type': type(error).__name__,
+        'error_message': str(error),
+        'traceback': traceback.format_exc(),
+        'solidworks_pid': sw_automation._target_pid,
+        'hresult': hresult,
+        'stdout': captured_stdout.getvalue(),
+        'stderr': captured_stderr.getvalue(),
+        'script_line': script_line,
+        'script_source_line': source_line,
+    }
+    logger.error('execute_python failed: %s', json.dumps(data, ensure_ascii=False, default=str))
+    return data
+
+
 def _execute_python_fixed(code: str) -> Dict:
     """
     Execute custom Python code with access to SolidWorks.
     FIXED: Now captures stdout, stderr, and 'result' variable.
     """
+    captured_stdout = io.StringIO()
+    captured_stderr = io.StringIO()
+    script_filename = '<string>'
     try:
         if not sw_automation.is_connected:
             r = sw_automation.connect()
@@ -626,8 +656,6 @@ def _execute_python_fixed(code: str) -> Dict:
         # Capture stdout and stderr
         old_stdout = sys.stdout
         old_stderr = sys.stderr
-        captured_stdout = io.StringIO()
-        captured_stderr = io.StringIO()
         
         try:
             sys.stdout = captured_stdout
@@ -638,6 +666,7 @@ def _execute_python_fixed(code: str) -> Dict:
             if trace_dir:
                 from .script_trace import ScriptTrace
                 with ScriptTrace(code, sw_automation._target_pid, trace_dir) as trace:
+                    script_filename = trace.compiled.co_filename
                     exec(trace.compiled, exec_globals)
             else:
                 exec(code, exec_globals)
@@ -680,26 +709,25 @@ def _execute_python_fixed(code: str) -> Dict:
         }
         
     except SyntaxError as e:
+        data = _execution_failure_evidence(e, captured_stdout, captured_stderr, code, script_filename)
+        data['details'] = str(e)
         return {
             "success": False,
             "message": f"Syntax error: {e}",
             "error_code": 999,
             "error_name": "swUnknownError",
-            "data": {"error_type": "SyntaxError", "details": str(e)}
+            "data": data
         }
         
     except Exception as e:
-        tb = traceback.format_exc()
+        data = _execution_failure_evidence(e, captured_stdout, captured_stderr, code, script_filename)
+        tb = data['traceback']
         return {
             "success": False,
             "message": f"Execution error: {e}\n\nTraceback:\n{tb}",
             "error_code": 999,
             "error_name": "swUnknownError",
-            "data": {
-                "error_type": type(e).__name__,
-                "error_message": str(e),
-                "traceback": tb
-            }
+            "data": data
         }
 
 
