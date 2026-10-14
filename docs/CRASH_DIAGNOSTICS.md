@@ -48,3 +48,14 @@ or save those documents. Handler errors likewise block a success response.
 This stops callers that check success from silently proceeding into rebuild
 and save work. It is not proof that every historic native crash had this cause.
 Explicit `continue` remains supported only when chosen by the caller.
+
+Diagnostic tracing excludes COM-generated `<string>` functions unless their
+code belongs to a nested exec/eval submitted by user code. Filename selection
+is cached and code identity uses integer IDs, avoiding repeated filesystem and
+code-object hashing costs during large comtypes typelib imports. This matters:
+the first historical replay wrote40,020 generated-code records and hit its
+90-second client timeout without a native CAD crash. A subsequent filtered
+replay completed the private weld-edit script in74.22seconds. Its read-only
+Python stack sample located the wait in comtypes GetModule, not a CAD API call.
+Do not interpret diagnostic overhead or client observation deadlines as proof
+of native CAD deadlock/crash.

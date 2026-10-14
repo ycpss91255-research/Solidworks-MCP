@@ -10,6 +10,15 @@ from solidworks_mcp.script_trace import ScriptTrace, memory_snapshot
 
 
 class ScriptTraceTests(unittest.TestCase):
+    def test_generated_external_code_is_excluded_but_user_exec_is_traced(self):
+        generated = {}
+        exec(compile('def generated():\n x=1\n return x', '<string>', 'exec'), generated)
+        with tempfile.TemporaryDirectory() as directory:
+            with ScriptTrace("generated()\nexec('y=2')", 123, directory) as trace:
+                exec(trace.compiled, generated)
+            rows = [json.loads(x) for x in next(Path(directory).glob('*.jsonl')).read_text().splitlines()]
+            dynamic = [x for x in rows if x.get('filename') == '<string>' and x['event']=='line']
+            self.assertEqual([x['line'] for x in dynamic], [1])
     def test_exception_preserves_last_line_and_restores_trace(self):
         with tempfile.TemporaryDirectory() as directory:
             previous = sys.gettrace()

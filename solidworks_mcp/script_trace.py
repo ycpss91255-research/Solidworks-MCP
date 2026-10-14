@@ -7,6 +7,7 @@ from pathlib import Path
 import sys
 import time
 import uuid
+import types
 
 
 def memory_snapshot():
@@ -41,6 +42,25 @@ class ScriptTrace:
         self.previous = None
         self.stream = None
         self.script_root = Path.cwd().resolve()
+        self.dynamic_code = {}
+        self.file_selection = {}
+
+    def _script_file(self, filename):
+        if filename.startswith('<'):
+            return False
+        if filename in self.file_selection:
+            return self.file_selection[filename]
+        path = Path(filename).resolve()
+        selected = path.is_relative_to(self.script_root) and not any(
+            part in ('.venv', 'site-packages', 'solidworks_mcp') for part in path.parts)
+        self.file_selection[filename] = selected
+        return selected
+
+    def _accept_dynamic(self, code):
+        self.dynamic_code[id(code)] = code
+        for child in code.co_consts:
+            if isinstance(child, types.CodeType):
+                self._accept_dynamic(child)
 
     def record(self, event, frame=None):
         value = {'time_ns': time.time_ns(), 'server_pid': os.getpid(),
@@ -53,11 +73,16 @@ class ScriptTrace:
 
     def trace(self, frame, event, _):
         filename = frame.f_code.co_filename
-        selected = filename == self.filename or filename == '<string>'
-        if not selected and not filename.startswith('<'):
-            path = Path(filename).resolve()
-            selected = path.is_relative_to(self.script_root) and not any(
-                part in ('.venv', 'site-packages', 'solidworks_mcp') for part in path.parts)
+        selected = filename == self.filename or id(frame.f_code) in self.dynamic_code
+        if filename == '<string>' and event == 'call' and frame.f_code.co_name == '<module>':
+            parent = frame.f_back
+            if parent and (parent.f_code.co_filename == self.filename or
+                           id(parent.f_code) in self.dynamic_code or
+                           self._script_file(parent.f_code.co_filename)):
+                self._accept_dynamic(frame.f_code)
+                selected = True
+        if not selected:
+            selected = self._script_file(filename)
         if not selected:
             return None
         if event in ('line', 'return', 'exception'):
