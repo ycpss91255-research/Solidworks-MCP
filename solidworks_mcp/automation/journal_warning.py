@@ -37,7 +37,10 @@ class JournalWarningHandler(MemoryWarningHandler):
 
     def _click_button(self, hwnd, button):
         child = win32gui.GetDlgItem(hwnd, button)
-        win32gui.PostMessage(child, win32con.BM_CLICK, 0, 0)
+        # BM_CLICK can fail on an inactive dialog. Send its verified OK control
+        # notification to this exact parent, without activating another window.
+        win32gui.SendMessageTimeout(hwnd, win32con.WM_COMMAND, button, child,
+                                    win32con.SMTO_ABORTIFHUNG | win32con.SMTO_BLOCK, 1000)
 
     def _watch(self):
         """Native dialog watcher; timeout=None means the connection lifetime."""

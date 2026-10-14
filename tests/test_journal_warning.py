@@ -27,3 +27,14 @@ class JournalWarningTests(unittest.TestCase):
         self.assertIsNone(self.candidate(pid=456))
         self.assertIsNone(self.candidate(buttons={6,7}))
         self.assertIsNone(self.candidate(buttons={1,2}))
+
+    def test_native_ok_notification_does_not_require_activation(self):
+        import win32con
+        handler = JournalWarningHandler(123)
+        with patch('win32gui.GetDlgItem', return_value=99), \
+             patch('win32gui.SendMessageTimeout') as send, \
+             patch('win32gui.PostMessage') as post:
+            handler._click_button(10, 2)
+        send.assert_called_once_with(10, win32con.WM_COMMAND, 2, 99,
+                                    win32con.SMTO_ABORTIFHUNG | win32con.SMTO_BLOCK, 1000)
+        post.assert_not_called()

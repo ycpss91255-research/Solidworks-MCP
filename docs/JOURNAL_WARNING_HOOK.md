@@ -32,3 +32,16 @@ this validation. All 216 unit tests passed. A separate Windows test process
 (PID 28596) displayed two real native MessageBoxes with the exact journal text;
 the continuous watcher closed both, recorded `closed=true` twice and no errors.
 Live CAD validation of the new continuous hook remains pending.
+
+2026-10-14 live correction: startup warning in owned PID31556 was still visible
+after launcher and a second BM_CLICK watcher attempt, both recording closed=false.
+Sending the verified button's BN_CLICKED notification (WM_COMMAND) directly to
+the exact dialog via SendMessageTimeout closed that same warning (closed=true,
+no errors). BM_CLICK can fail for inactive dialogs; no activation, foreground
+switch or global keyboard event is required by the replacement. PID38068 was
+another session and was not operated. This validates the actual native warning,
+but does not remove the underlying shared journal lock.
+
+Microsoft references:
+https://learn.microsoft.com/en-us/windows/win32/controls/bm-click
+https://learn.microsoft.com/en-us/windows/win32/controls/bn-clicked
