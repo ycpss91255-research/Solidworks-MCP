@@ -122,3 +122,21 @@ path, AV event dump/exception context/stack capture and debugger detach. It
 launches no CAD, changes no global debug/registry settings, and writes no formal
 model. Syntax/CLI checked; live capture and detach behavior not yet validated.
 This preparation is not evidence that an exception-time stack has been captured.
+
+Y live debugger trial: initial30-second readiness timeout occurred before mate
+edits. Same owned PID44328 reused after verified debugger detach, without CAD
+relaunch or file recopy. Second debugger attaches successfully; full typed mate
+flow/GC run. During CloseDoc, CDB reports "Critical error detected c0000374"
+then an80000003 diagnostic breakpoint in ntdll. AV-only capture filter missed
+this earlier heap-corruption stop. MCP wait times out while debugger pauses CAD;
+watcher detaches, then CAD exits with event1000 ntdll.dll c0000374 offset117eb5
+at13:58:08, matching historical heap-fault signature. This is actual native
+process exit, not investigation-forced termination. Other two CAD PIDs remain.
+
+No exception dump captured in Y. Attempted context capture rejected missing
+process (OpenProcess87) after authoritative exit; no stale-context claim. CDB
+console is direct evidence of heap-corruption detection before a later AV,
+not proof of the earlier corrupting write or a particular heap block. Capture
+handler now also covers subsequent break-instruction events (bpe), to save the
+diagnostic breakpoint context/stack automatically and detach without a manual
+waiting interval. Live validation of this additional handler remains pending.
