@@ -10,7 +10,7 @@ every historic crash has one cause or that all MCP operations are safe.
 | --- | --- | --- |
 | Imported-reference dependency query | `IModelDocExtension.GetDependencies` with `AppendImportedPaths=true` reproduces `sldapiu.dll` access violation at offset `0x8a24c0`; false returns an invalid scalar in the control. Failure also reproduced at approximately 64% committed memory. | Typed pywin32 guard blocks this exact query before invocation. Raw native calls can bypass it. |
 | Existing distance-mate conversion followed by document close | Combined `IsAdvancedMate=true` / `ModifyDefinition` edits reproduce native solver/MFC failures. Exception-time dump shows an invalid read through `rbp=0xffffffff` during mate/feature/assembly destruction servicing `CloseDoc`. | Create fresh limit mates from the existing endpoints, rather than converting the old feature kind in place. Explicit identity-change acknowledgment is required. |
-| Invalid configuration after prior rebuild | Frozen pre-repair rack files reproduce error61704 and, after horizontal rebuild plus failed diagonal switch, native purecall/abort during close. Two stopped-thread dumps show equation/model-update frames. Individual-operation controls close normally. | Repair the invalid configuration and equation references on a backed-up copy; do not blindly continue the failed edit flow. Equivalent private repair validation remains pending. |
+| Invalid configuration after prior rebuild | Frozen pre-repair rack files reproduce error61704 and, after horizontal rebuild plus failed diagonal switch, native purecall/abort during close. AM has an actual exception-stream dump showing c0000409 subcode7 and equation/model-update/close frames. Individual-operation controls close normally. | Preserve valid working equations while recreating the inactive configuration, validate/save a private checkpoint, then restore parent binding and resolve pattern members. AX passes the full frozen-input geometry, dynamic input, actual pattern count/placement, save/close/reopen workflow. |
 | Memory pressure | Windows resource-exhaustion event independently establishes historical commit exhaustion. Native fault controls above also reproduce without exhaustion; successful fresh-mate control ran at higher commit usage than one failing control. | Respect explicit open-document memory-warning cancellation. Memory pressure does not explain every native failure. |
 | Timeout | One traced replay timed out during comtypes type-library loading. Filtering generated-code tracing allowed completion. | A timeout alone does not prove a CAD crash. Correlate the PID, last API, native event and process exit. |
 
@@ -45,6 +45,17 @@ matrix, dump details, official API contract references and remaining limits.
 CAD files, diagnostic logs and dumps stay local under ignored `test-results/`.
 
 ## Callable workaround
+
+2026-10-14 18:39 produced a new, separately attributed rack-session crash:
+Windows event1000 records PID40588 (0x9e8c) with unknown-module c0000005,
+followed by KERNELBASE c000041d. That session's `generic-base-frame-report.json`
+records RPC_E_SERVERFAULT from CloseDoc after Save3 and prototype copying,
+before its subsequent restoration/editing statements. This is an exact current
+call correlation, not proof of the earliest corrupting operation. This diagnostic
+chat did not operate that PID. AX/AY's new owned repair processes have different
+identities and no matching crash event. The new CloseDoc case remains an open
+root-cause item; do not conflate it with the repaired configuration flow merely
+because both involve document closure.
 
 `recreate_distance_mate_as_limit` requires an already connected configured PID
 and an already open assembly. It never starts CAD, saves or closes documents.

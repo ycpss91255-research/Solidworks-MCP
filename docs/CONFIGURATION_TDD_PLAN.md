@@ -168,6 +168,78 @@ ignored evidence directory. The launcher printed an IUnknown release warning
 for AS, but exited successfully; fresh MCP connection and model tests succeeded.
 This Python COM-release warning is not counted as a SolidWorks process crash.
 
+### Full original-input assembly gate (AV/AW)
+
+AV restored frozen original bytes and ran configuration repair plus parent
+binding without the intermediate saved checkpoint used by AQ→AT. Its physical
+part dimensions pass, but assembly enumeration reveals only one active diagonal
+at800 and two at700: the three old pattern members remain suppressed. This
+disproves treating the earlier geometry-only checks as full assembly acceptance.
+The test stops before saving. It is a model-state failure, not a native crash.
+
+The retained binding recipe now re-resolves each existing private diagonal
+occurrence, not only its seed. AW repeats the full frozen-input flow. Actual
+diagonal counts5→4 and horizontal count2 pass; all original occurrence matrices
+are restored within1e-8. Physical world-hole endpoints also satisfy640/800mm
+vertical segment spacing and1040mm horizontal spans. This check uses physical
+hole centers and the observed native transforms, not equation counts alone.
+
+AW then fails saving the brace: Save3 `(False, 1, 0)`. Activating the part before
+Save3 in a same-PID diagnostic retry does not fix it. No close/reopen gate is
+claimed from AW. The unused owned instance is closed normally without saving.
+AX is the next control: validate/save the recreated configuration checkpoint
+first, then bind/update/restore assembly geometry and verify final save/reopen.
+It must not be reported successful until its recorded result passes.
+
+`configuration_assembly_acceptance.py` provides read-only occurrence collection,
+explicit expected configuration counts, numeric restoration/roundtrip placement
+comparison and physical brace-grid validation. Five acceptance regressions were
+RED before the missing implementation and are now GREEN. A correct count with
+wrong physical spacing remains a failure. This fixture's grid uses global Y for
+height and Z for horizontal span; these axes are not a general CAD assumption.
+The observed matrix convention follows the official
+[IMathTransform API](https://help.solidworks.com/2023/english/api/sldworksapi/SOLIDWORKS.Interop.sldworks~SOLIDWORKS.Interop.sldworks.IMathTransform.html).
+
+AX's complete frozen-input staged flow passes. Both configurations first rebuild
+and pass physical geometry; all three private files save with True/0/0 at that
+checkpoint. Binding restoration resolves the diagonal pattern members. Maximum
+segment height700 then800 gives actual diagonal counts5 then4 and horizontal2;
+the physical endpoint grid verifies640/800mm height increments and1040mm spans.
+All eight baseline component transforms and suppression/configuration states
+return to their original verified values. Final Save3 of all three documents is
+True/0/0. Close/reopen verifies both physical geometries and all eight component
+placements, then closes and requests normal ExitApp. Source hashes remain intact.
+
+AW versus AX supports checkpoint-before-parent-binding as a workaround for this
+fixture's Save3 error1. It does not prove the internal native reason for that
+generic save error. Do not label error1 an access violation or a memory crash.
+The retained final repair order is:
+
+1. Restore immutable inputs into private files and rebind closed references.
+2. Apply `apply_candidate`, preserving working equations at configuration creation.
+3. Verify both configurations physically; explicitly Save3 each private document
+   and require True/0/0. Stop on failure.
+4. Run `restore_binding`, then `verify_changed_input` with the assembly-observer
+   callback; require counts, physical endpoint layout and restored matrices.
+5. Save all private files; close/reopen and verify dimensions plus occurrence
+   state; close the empty owned instance normally.
+6. Open the saved files in a separate owned process and verify geometry and all
+   placements again; audit exact process exits and Windows crash events.
+
+Latest full unit suite: **250 passed**. The five assembly acceptance regressions
+and native collector are retained in `test_configuration_assembly_acceptance.py`
+and `configuration_assembly_acceptance.py`. AX's reproducible local runner,
+submitted code, trace and result are `run_ax.py`, `trace-ax/`, `report-ax.json`,
+`ax-physical-grid-report.json` under the ignored evidence directory.
+
+AY's separate-process geometry and all-eight-occurrence placement verification
+also pass, followed by CloseAllDocuments/ExitApp. Final audit records no event1000
+for owned test PIDs40096,316,44948,42900; all owned CAD/debuggers exited. A new
+event for protected PID40588 is distinct and investigated read-only. Do not
+claim the entire machine had no crash or that both other sessions stayed running:
+40588 exited independently, while42248 remains. The exact new call correlation
+is retained in ROOT_CAUSE_FINDINGS.md; it keeps the broader root-cause goal open.
+
 
 1. Restore the frozen three-file input into the private fixture after owned CAD
    is closed. Keep a complete equation snapshot and archived parameter inputs.

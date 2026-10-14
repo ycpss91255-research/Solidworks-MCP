@@ -134,8 +134,13 @@ and normal exit. AR verifies those saved bytes in a separate process. AS/AT
 restore parent-driven diagonal length; changing maximum segment height800→700
 updates physical length/hole spacing and restoring800 restores baseline.
 AT saves/reopens and exits normally. This resolves the earlier AO error51 for
-the tested private repair sequence. The remaining combined fresh-input recipe
-and component-placement gates are listed in CONFIGURATION_TDD_PLAN.md.
+the tested private repair sequence. AX then passes the complete frozen-input
+staged repair, parent binding, physical pattern counts/placements, Save3 and
+close/reopen. A validated configuration-save checkpoint precedes parent binding;
+AW's unstaged equivalent returns generic save error1 despite correct geometry.
+AY opens AX's saved fixture in another owned process and verifies both physical
+geometries plus all eight component matrices/states before normal exit.
+Detailed retained recipes and acceptance tests are in CONFIGURATION_TDD_PLAN.md.
 
 Local evidence: report-ag-diagnostic, ag-cleanup, report-ah/ai/aj/ak2/al,
 debug-ah/ai/aj/ak2/al directories, owned-ah/al paused dumps and stack analyses,

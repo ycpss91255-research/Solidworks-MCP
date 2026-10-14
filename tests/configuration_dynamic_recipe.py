@@ -30,6 +30,14 @@ def restore_binding(sw, m, fixture_dir, expected_pid):
     seed.ReferencedConfiguration='斜撐'
     seed.SetSuppression2(2)
     assert seed.GetModelDoc2()
+    # The frozen fixture retains suppressed pattern members after repair.
+    # Its valid-input design requires every diagonal occurrence resolved.
+    diagonal=[m.IComponent2(raw._oleobj_) for raw in assembly.GetComponents(True)
+              if m.IComponent2(raw._oleobj_).ReferencedConfiguration=='斜撐']
+    for component in diagonal:
+     component.ReferencedConfiguration='斜撐'
+     component.SetSuppression2(2)
+     assert not component.IsSuppressed(), ('unresolved diagonal occurrence',component.Name2)
     texts=['"斜撐端距" = "驅動端距@支撐條-1.Part"','"斜撐長度" = sqr("撐孔水平跨距"^2 + "斜撐段高"^2) + 2*"斜撐端距"','"支撐條<1>" = iif("輸入有效"=0,"suppressed","unsuppressed")']
     for text in texts:
      lhs=text.split('=',1)[0].strip()
@@ -58,7 +66,7 @@ def restore_binding(sw, m, fixture_dir, expected_pid):
 
     return result
 
-def verify_changed_input(sw, m, fixture_dir, expected_pid):
+def verify_changed_input(sw, m, fixture_dir, expected_pid, assembly_observer=None):
     private=_preflight(sw,m,fixture_dir,expected_pid)
     import json, math
     from solidworks_mcp.diagnostics.configuration_acceptance import observe_configuration, assert_geometry
@@ -79,6 +87,8 @@ def verify_changed_input(sw, m, fixture_dir, expected_pid):
       assert rebuilt,('parent rebuild failed',maximum)
       expected_height=3200./math.ceil(3200./maximum)
       expected_span=math.hypot(1040.,expected_height)
+      if assembly_observer is not None:
+       assembly_observer(maximum,expected_height)
       assert sw.ActivateDoc3(part.GetTitle(),False,0,0)[0]
       for cfg,length,span in [('橫撐',1070.,1040.),('斜撐',expected_span+20.,expected_span)]:
        part.ShowConfiguration2(cfg)
