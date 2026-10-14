@@ -88,6 +88,44 @@ This enables the next bounded investigation of original mirror creation and
 multi-document native renaming before close. The directory is a saved backup,
 not a full snapshot of the original process memory.
 
+## Prepared next controls: BL and BM (not yet executed)
+
+The original history has now been extracted into26 timestamped requests in
+`history-replay-input.json`. In addition to mirror creation/orientation changes,
+20:10:05 replaces the face references of three root mates using
+ICoincidentMateFeatureData, IDistanceMateFeatureData and IWidthMateFeatureData
+with IFeature.ModifyDefinition. It then deletes the old child mates/component
+and rebinds an equation. A native circular beam pattern replaces the rear beam
+and its mates before the multi-document rename at20:14:38.
+
+This is materially different from an IsAdvancedMate conversion, which is absent
+in this case. The coincident-mate API documentation itself describes editing
+EntitiesToMate followed by ModifyDefinition; presence of that call is not proof
+of misuse or causation. Reference replacement/deletion history remains an
+unverified candidate requiring an owned native replay and exception capture.
+Reference: https://help.solidworks.com/2024/english/api/sldworksapi/SolidWorks.Interop.sldworks~SolidWorks.Interop.sldworks.ICoincidentMateFeatureData.html
+
+`prepare_bl_bm.py` creates separate private BL/BM fixtures from the nine frozen
+models and property templates, excluding all lock artifacts. BL is the pre-mirror
+cold-open/save/batch-close baseline. BM replays the first15 original requests
+through mirror, mate-reference replacement and beam-pattern changes before
+save/batch-close. All replay code was syntax checked and its filesystem paths
+adapted to the private fixture. The original backup filesystem copy is omitted
+because the immutable input is already preserved; its CAD saves/activation are
+retained. The three original Python binding failures are explicitly expected
+by type, without swallowing COM/native failures. Rebinding closed references,
+checking loaded paths and owned exception capture remain runtime gates.
+
+BL/BM have **not been launched or passed**. At21:13, the lab preflight measured
+90.32% committed memory with9460MB available; a later launch gate measured
+90.46% and9430MB and did not launch. The existing experimental thresholds are
+at most90% committed and at least4096MB available. These are conservative lab
+thresholds, not a claim of a SOLIDWORKS requirement or a machine-wide instance
+cap. No other instance was closed or otherwise operated to free memory.
+The recorded preflight is `bl-bm-headroom.json`; runners are `run_bl.py` and
+`run_bm.py` in the ignored evidence directory. Native multi-document renaming
+and subsequent equation repair remain later stages, not covered by BL/BM.
+
 ## Remaining evidence limits
 
 The archive's stack is the Python/COM invocation stack, not the native C++
