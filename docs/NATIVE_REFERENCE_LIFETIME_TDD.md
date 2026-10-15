@@ -320,7 +320,72 @@ The preparation's24 unchanged request AST checks passed. CV has now passed
 the same three-sample6GiB physical/commit-reserve gate and launched owned
 PID33112/start07:11:16.854000Z; worker18232/start07:11:05.539000Z and exec
 handle30752 identify this single run. The three native boundaries and full
-acceptance remain pending. This launch is not a verified fix.
+acceptance were pending at launch. Completed observations and the functional
+failure follow below. This launch is not a verified fix.
+
+## CV: changed link after Save3, later functional failure
+
+CV's before-observation and after-observation snapshots identify the same busy
+moMateDistanceDim_c0x532d7bf0 with null+0x170. After the separate Save3 call,
+an additional busy named mate0x61d17dd0 contains+0x170=0x136708a90. That
+target is LFH/busy,size0x140, with moCompFace_c RTTI and CObject among its
+bases. This differs from CU/CT's incompatible DCM object and CN/CQ/CR's free
+heap allocations. A non-null value alone is not evidence of a stale API proxy.
+
+Independent bounded reads from the verified ZIP locate target vtable0x4cd0f978
+and first virtual function0x4ba9ac10. Its actual bytes
+488d056909e801c3 return MFC runtime class0x4d91b580, named moCompFace_c.
+This is compatible with the CObject runtime-type query convention that the CN
+DCM target violated. Ownership/lifetime of this link is not established from
+its live type alone, so CV's predicate retains it as unclassified rather than
+certifying the complete native graph.
+
+The CN cleanup virtual target at0x526ed8c0 queries auCmdTarget type and returns
+without an API virtual call on a false result. Thus the consumed member must
+not be described as necessarily an auCmdTarget API proxy. The verified minimum
+description is a native object reference consumed by API cleanup/type checking.
+CN's free block plus wrong DCM dispatch remains a confirmed use-after-free;
+CQ/CR free targets and CT's observed free-to-DCM reuse remain valid RED evidence.
+The field's vendor name/ownership contract has not been inferred from offset170.
+
+The first cleanup-inspection command used .frame3 scope but expression/r still
+used fault registers, producing an unrelated DCM disassembly. That console is
+retained. The corrected v2 uses independently saved .frame/r3 RBX0x5317c2e8
+and verifies its actual virtual slot. See offline-cleanup-contract-v2-console.txt
+and cv-reference-dispatch-contract.json; both are saved-file-only inspections.
+
+Snapshot SHA256:
+
+- before_observe:f41af4a1c2d00544b6dd4f96440bb31afaab5bfe0fe9d7a82b441346d6b86acb
+- after_observe:a7b20755d760aa848c6d9fc692d382545749f1ca45096f1364105a639a4c33fd
+- after_save:77790b0aada6780fc159b2d7579facaf3ed8fe4410c644828a64db1b368dd836
+
+CV later fails the second five-case first-floor scenario: front requested4,
+actual3; rear requested3, actual3; native feature-error list empty. The actual
+MCP details show AssertionError with null HRESULT, and no native fault marker
+or matching Application Error1000. The native watcher exits0 without an
+exception dump. The original failed report, partial physical observations and
+source/runtime hashes are preserved; this is neither a crash nor a full PASS.
+Do not weaken the component-count assertion.
+
+An additional quiescent full snapshot preserves the retained failed model:
+3950535384 bytes,7520 Memory64 ranges, SHA256
+835576d3ae1053164ed72d53cfc56afe193b533faca27464477a3626444c0ee1.
+The first capture preflight lacked disk space and made no CAD call. Three
+completed CV boundary dumps were streamed to bounded lossless ZIPs, reserving
+1GiB while compressing and verifying decompressed full-byte hashes before
+removing loose duplicates. The empty failed-preflight directory is retained,
+and the second capture verifies the same live PID/start after detach.
+
+A PID-bound read-only inspection of the retained failed model is queued through
+resource-gate-cv-readonly.json, worker36632/start07:34:02.547000Z, exec69891.
+It requires4GiB commit reserve/physical headroom, launches no CAD, and will read
+equations, driver properties, pattern definitions and actual components without
+rebuild/save/close. At15:34 commit reserve was about1.2GiB despite about5GiB
+physical available; the live monitor waits for headroom without replaying CV.
+That later resource sample does not establish the cause of the earlier count
+assertion. The same retained PID33112 is kept for this pending inspection;
+other chats' SolidWorks processes and settings are not operated.
 
 CU's four completed checkpoint files have been losslessly archived after its
 verified normal exit, using the same original/decompressed-byte SHA checks and

@@ -15,6 +15,7 @@ import pythoncom
 
 from ..constants import SwErrors, SwDocumentTypes, SwFileTypes
 from ..utils import find_template
+from ..native_fault import native_hresult
 
 logger = logging.getLogger(__name__)
 
@@ -310,6 +311,8 @@ class DocumentOperations:
                         saved = True
                         method_used = "SaveAs"
                 except Exception as e:
+                    if native_hresult(e) is not None:
+                        raise
                     logger.debug(f"doc.SaveAs failed: {e}")
                 
                 # Method 2: Extension.SaveAs with proper VARIANT null dispatch
@@ -326,6 +329,8 @@ class DocumentOperations:
                             saved = True
                             method_used = "Extension.SaveAs"
                     except Exception as e:
+                        if native_hresult(e) is not None:
+                            raise
                         logger.debug(f"Extension.SaveAs failed: {e}")
                 
                 # Method 3: Extension.SaveAs2
@@ -341,6 +346,8 @@ class DocumentOperations:
                             saved = True
                             method_used = "Extension.SaveAs2"
                     except Exception as e:
+                        if native_hresult(e) is not None:
+                            raise
                         logger.debug(f"Extension.SaveAs2 failed: {e}")
                 
                 if not saved:

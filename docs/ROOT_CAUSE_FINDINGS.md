@@ -60,6 +60,22 @@ remaining interval is observation/save/context cleanup or related deferred
 native work, not those two explicit rebuild calls alone. Observation and Save3
 still require separate verification. No universal
 ModifyDefinition guard or preventive fix has been claimed from close success.
+CV separates observation and Save3: the link remains null after observation;
+Save3 produces an additional busy named feature linked to a busy moCompFace_c,
+whose MFC GetRuntimeClass convention is independently verified. That live
+CObject link is not automatically a stale API proxy; its ownership is still
+unclassified. CV then fails a physical first-floor count assertion with null
+HRESULT and no native fault marker/event. Its retained failed model is being
+inspected separately. Do not label that failed functional run as a native crash
+or a successful lifetime fix. The member's vendor field name/type was never
+published; use native reference consumed by API cleanup/type checking as the
+minimum verified description.
+
+A further built-in SaveAs containment gap has3 failing fake-CAD regressions:
+native faults can fall through to another save API or lose the final marker.
+The bounded rethrow fix now passes315 actual-source tests after CV's baseline
+hashes were preserved. It changes no CAD save option or native memory. See
+[DOCUMENT_SAVE_NATIVE_FAULT_TDD.md](DOCUMENT_SAVE_NATIVE_FAULT_TDD.md).
 The actual
 fault marker blocks a fresh no-COM guard while the failed CAD remains live.
 See [CN_FULL_DUMP_NATIVE_DISPATCH.md](CN_FULL_DUMP_NATIVE_DISPATCH.md).
