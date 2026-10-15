@@ -1,0 +1,83 @@
+test_token_only_old_parent_claims_pending_identity_and_upgrades (tests.test_recovery_startup_fence.StartupFenceTests.test_token_only_old_parent_claims_pending_identity_and_upgrades) ... ERROR
+test_token_only_old_parent_cli_uses_fence_before_backend (tests.test_recovery_startup_fence.StartupFenceTests.test_token_only_old_parent_cli_uses_fence_before_backend) ... usage: recovery_monitor [-h] --session-file SESSION_FILE --directory DIRECTORY
+                        --status-file STATUS_FILE --interval INTERVAL
+                        [--max-ticks MAX_TICKS]
+                        [--startup-token STARTUP_TOKEN]
+                        [--expected-pid EXPECTED_PID]
+                        [--expected-start-time EXPECTED_START_TIME]
+                        [--settings-json SETTINGS_JSON]
+                        [--follow-native-preferences] [--stop-file STOP_FILE]
+recovery_monitor: error: Reserved startup requires --startup-token, --expected-pid and --expected-start-time together
+ERROR
+test_token_only_delayed_old_target_or_token_never_retargets (tests.test_recovery_startup_fence.StartupFenceTests.test_token_only_delayed_old_target_or_token_never_retargets) ... 
+  test_token_only_delayed_old_target_or_token_never_retargets (tests.test_recovery_startup_fence.StartupFenceTests.test_token_only_delayed_old_target_or_token_never_retargets) (changed='target') ... ERROR
+  test_token_only_delayed_old_target_or_token_never_retargets (tests.test_recovery_startup_fence.StartupFenceTests.test_token_only_delayed_old_target_or_token_never_retargets) (changed='token') ... ERROR
+
+======================================================================
+ERROR: test_token_only_old_parent_claims_pending_identity_and_upgrades (tests.test_recovery_startup_fence.StartupFenceTests.test_token_only_old_parent_claims_pending_identity_and_upgrades)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "C:\Users\yunchien.chen\mcp\solidworks-mcp-recovery-reservation-test\tests\test_recovery_startup_fence.py", line 309, in test_token_only_old_parent_claims_pending_identity_and_upgrades
+    with monitor.worker_startup(self.session, self.root, None, None, 'a' * 32) as target:
+         ~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\yunchien.chen\AppData\Local\Python\pythoncore-3.14-64\Lib\contextlib.py", line 141, in __enter__
+    return next(self.gen)
+  File "C:\Users\yunchien.chen\mcp\solidworks-mcp-recovery-reservation-test\solidworks_mcp\recovery_monitor.py", line 47, in worker_startup
+    if int(expected_pid)<=0 or not expected_start_time or not startup_token:
+       ~~~^^^^^^^^^^^^^^
+TypeError: int() argument must be a string, a bytes-like object or a real number, not 'NoneType'
+
+======================================================================
+ERROR: test_token_only_old_parent_cli_uses_fence_before_backend (tests.test_recovery_startup_fence.StartupFenceTests.test_token_only_old_parent_cli_uses_fence_before_backend)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "C:\Users\yunchien.chen\mcp\solidworks-mcp-recovery-reservation-test\tests\test_recovery_startup_fence.py", line 326, in test_token_only_old_parent_cli_uses_fence_before_backend
+    monitor.main()
+    ~~~~~~~~~~~~^^
+  File "C:\Users\yunchien.chen\mcp\solidworks-mcp-recovery-reservation-test\solidworks_mcp\recovery_monitor.py", line 280, in main
+    parser.error('Reserved startup requires --startup-token, --expected-pid and --expected-start-time together')
+    ~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\yunchien.chen\AppData\Local\Python\pythoncore-3.14-64\Lib\argparse.py", line 2785, in error
+    self.exit(2, _('%(prog)s: error: %(message)s\n') % args)
+    ~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\yunchien.chen\AppData\Local\Python\pythoncore-3.14-64\Lib\argparse.py", line 2772, in exit
+    _sys.exit(status)
+    ~~~~~~~~~^^^^^^^^
+SystemExit: 2
+
+======================================================================
+ERROR: test_token_only_delayed_old_target_or_token_never_retargets (tests.test_recovery_startup_fence.StartupFenceTests.test_token_only_delayed_old_target_or_token_never_retargets) (changed='target')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "C:\Users\yunchien.chen\mcp\solidworks-mcp-recovery-reservation-test\tests\test_recovery_startup_fence.py", line 344, in test_token_only_delayed_old_target_or_token_never_retargets
+    with monitor.worker_startup(self.session, self.root, None, None,
+         ~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+                                'b' * 32 if changed == 'token' else 'a' * 32):
+                                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\yunchien.chen\AppData\Local\Python\pythoncore-3.14-64\Lib\contextlib.py", line 141, in __enter__
+    return next(self.gen)
+  File "C:\Users\yunchien.chen\mcp\solidworks-mcp-recovery-reservation-test\solidworks_mcp\recovery_monitor.py", line 47, in worker_startup
+    if int(expected_pid)<=0 or not expected_start_time or not startup_token:
+       ~~~^^^^^^^^^^^^^^
+TypeError: int() argument must be a string, a bytes-like object or a real number, not 'NoneType'
+
+======================================================================
+ERROR: test_token_only_delayed_old_target_or_token_never_retargets (tests.test_recovery_startup_fence.StartupFenceTests.test_token_only_delayed_old_target_or_token_never_retargets) (changed='token')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "C:\Users\yunchien.chen\mcp\solidworks-mcp-recovery-reservation-test\tests\test_recovery_startup_fence.py", line 344, in test_token_only_delayed_old_target_or_token_never_retargets
+    with monitor.worker_startup(self.session, self.root, None, None,
+         ~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+                                'b' * 32 if changed == 'token' else 'a' * 32):
+                                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\yunchien.chen\AppData\Local\Python\pythoncore-3.14-64\Lib\contextlib.py", line 141, in __enter__
+    return next(self.gen)
+  File "C:\Users\yunchien.chen\mcp\solidworks-mcp-recovery-reservation-test\solidworks_mcp\recovery_monitor.py", line 47, in worker_startup
+    if int(expected_pid)<=0 or not expected_start_time or not startup_token:
+       ~~~^^^^^^^^^^^^^^
+TypeError: int() argument must be a string, a bytes-like object or a real number, not 'NoneType'
+
+----------------------------------------------------------------------
+Ran 3 tests in 0.097s
+
+FAILED (errors=4)

@@ -1,0 +1,22 @@
+{
+  "base_commit": "5793bcf17f0d8697a469b66c6e66cb4e854af04f",
+  "tests_run": 3,
+  "expected_red_cases": [
+    "test_known_dead_stale_claim_is_archived_then_retried",
+    "test_immediate_launch_failure_can_retry_without_creator_exit",
+    "test_startup_arguments_pin_expected_identity"
+  ],
+  "observed_failing_cases": [
+    "test_known_dead_stale_claim_is_archived_then_retried",
+    "test_immediate_launch_failure_can_retry_without_creator_exit",
+    "test_startup_arguments_pin_expected_identity"
+  ],
+  "expected_red_reproduced": true,
+  "source_sha256": {
+    "C:\\Users\\yunchien.chen\\mcp\\solidworks-mcp-recovery-reservation-test\\test-results\\recovery-reservation-fence\\red-baseline-recovery_monitor.py": "cb3b63741155ebb0a655b1f74801e46ee5dc32ce0a376099f40ea7f77a8e9be1",
+    "C:\\Users\\yunchien.chen\\mcp\\solidworks-mcp-recovery-reservation-test\\test-results\\recovery-reservation-fence\\red-baseline-recovery_service.py": "a421399402aaadeb05c3da9bcc0cd84135450c20aa6328c36becc9604f1ef3b3",
+    "C:\\Users\\yunchien.chen\\mcp\\solidworks-mcp-recovery-reservation-test\\test-results\\recovery-reservation-fence\\red-regression-tests.py": "05a5099aa466b94e4d7bfaf2b5252c68874f7f5aa7e70ab14d0f2d2b64f548c3"
+  },
+  "live_runtime_modified": false,
+  "cad_called": false
+}

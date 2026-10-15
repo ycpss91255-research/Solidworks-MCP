@@ -1,0 +1,14 @@
+[
+  {
+    "source": "C:\\Users\\yunchien.chen\\mcp\\solidworks-mcp-pid-isolation\\test-results\\remaining-fault-correlation\\other-sessions-audit-20261015\\recovery-process-scan-native-v2.json",
+    "copy": "C:\\Users\\yunchien.chen\\mcp\\solidworks-mcp-recovery-reservation-test\\test-results\\recovery-reservation-fence\\recovery-process-scan-native-v2.json",
+    "sha256": "ee12c91b339b2bebec15871f41f231032874e26c8351416f96c04bd72b1239ed",
+    "copy_verified": true
+  },
+  {
+    "source": "C:\\Users\\yunchien.chen\\mcp\\solidworks-mcp-pid-isolation\\test-results\\remaining-fault-correlation\\other-sessions-audit-20261015\\recovery-desktop-callback-native-v1.json",
+    "copy": "C:\\Users\\yunchien.chen\\mcp\\solidworks-mcp-recovery-reservation-test\\test-results\\recovery-reservation-fence\\recovery-desktop-callback-native-v1.json",
+    "sha256": "104e311af5534cfa527f970f11006edac3222a7e94c7fbec8fd048b6f7628d37",
+    "copy_verified": true
+  }
+]

@@ -1,0 +1,192 @@
+{
+  "passed": true,
+  "verified_at": "2026-10-15T12:15:17.768026+00:00",
+  "scope": "Owned private part native lifecycle, automatic policy, snapshot bytes/reopened geometry and synthetic legacy retirement",
+  "pid": 24588,
+  "start_time": "2026-10-15T11:45:58.673000+00:00",
+  "evidence": {
+    "fixture-resume-response.json": {
+      "path": "C:\\Users\\yunchien.chen\\mcp\\solidworks-mcp-pid-isolation\\test-results\\remaining-fault-correlation\\sensor-private-valid-part-v1\\fixture-resume-response.json",
+      "sha256": "0d2c878cde834de1c24e5f011c3fe2c2a21af8d9ef338a882f14b64d9df3778a"
+    },
+    "recovery-lifecycle-response.json": {
+      "path": "C:\\Users\\yunchien.chen\\mcp\\solidworks-mcp-pid-isolation\\test-results\\remaining-fault-correlation\\sensor-private-valid-part-v1\\recovery-lifecycle-response.json",
+      "sha256": "40fb4f707504e3fcdd509fa48ef29a940c0dd45b6af7c02578b3f788bee3a574"
+    },
+    "recovery-synthetic-legacy-response.json": {
+      "path": "C:\\Users\\yunchien.chen\\mcp\\solidworks-mcp-pid-isolation\\test-results\\remaining-fault-correlation\\sensor-private-valid-part-v1\\recovery-synthetic-legacy-response.json",
+      "sha256": "caeedb60f6100515b870b486d35b2cbd1774a215c3fcb0f53ecbcb0d3a3aaf2b"
+    },
+    "backup-dirty-v2-response.json": {
+      "path": "C:\\Users\\yunchien.chen\\mcp\\solidworks-mcp-pid-isolation\\test-results\\remaining-fault-correlation\\sensor-private-valid-part-v1\\backup-dirty-v2-response.json",
+      "sha256": "7980058f61131c104c62c53da19b853e249cb8fe1a73eff74c4b0ecfa8c11df8"
+    },
+    "recovery-backup-response.json": {
+      "path": "C:\\Users\\yunchien.chen\\mcp\\solidworks-mcp-pid-isolation\\test-results\\remaining-fault-correlation\\sensor-private-valid-part-v1\\recovery-backup-response.json",
+      "sha256": "e38edaf8e1d57debd5fa585bbf6672b07686e063233a4256d31babd4ccf1a478"
+    },
+    "backup-reopen-exit-response.json": {
+      "path": "C:\\Users\\yunchien.chen\\mcp\\solidworks-mcp-pid-isolation\\test-results\\remaining-fault-correlation\\sensor-private-valid-part-v1\\backup-reopen-exit-response.json",
+      "sha256": "80e036b450d87ce88b5ea2af632be51e4613ac664fe188201b2521c9c69de37a"
+    }
+  },
+  "watcher_evidence": {
+    "path": "C:\\Users\\yunchien.chen\\mcp\\solidworks-mcp-pid-isolation\\test-results\\remaining-fault-correlation\\debug-sensor-part-baseline-v1\\result.json",
+    "sha256": "a17eeffd14518c5e1e8c42db284fb55a896ecac5458818c0f540e96ee3922953",
+    "capture_classification": "no_captured_exception",
+    "debugger_exit_code": 0
+  },
+  "lifecycle_workers": [
+    {
+      "pid": 35496,
+      "start_time": "2026-10-15T12:00:05.178000+00:00",
+      "observed": "waiting_clean",
+      "natural_exit_code": 0
+    },
+    {
+      "pid": 2216,
+      "start_time": "2026-10-15T12:00:07.312000+00:00",
+      "observed": "waiting_clean",
+      "natural_exit_code": 0
+    }
+  ],
+  "synthetic_legacy": {
+    "original_bytes_preserved": true,
+    "worker_launched": false,
+    "actual_mr12_reservation_modified": false,
+    "archive": "E:\\CodexData\\solidworks-mcp-crash-analysis\\2026-10-15\\recovery-reservation-native-part-v1\\synthetic-legacy\\retired-startups\\eef8b89d3da744ca923109b5b326ffca-worker-startup.json",
+    "archive_sha256": "38273423c380bb670422f2574bec96da553085eab125ab8b7c6bf5038f0d296a"
+  },
+  "native_policy": {
+    "policy": {
+      "enabled": true,
+      "source": "solidworks",
+      "preferences": {
+        "auto_recover_enabled": true,
+        "backup_enabled": false,
+        "interval_value": 1,
+        "interval_mode": 2
+      },
+      "directory": "E:\\CodexData\\solidworks-mcp-crash-analysis\\2026-10-15\\recovery-reservation-native-part-v1\\backup",
+      "settings": {
+        "interval_seconds": 60.0,
+        "assemblies": false,
+        "drawings": false,
+        "all_documents": false,
+        "background_activation": false
+      }
+    },
+    "auto_worker_started": true,
+    "explicit_control": false,
+    "worker": {
+      "worker_pid": 37156,
+      "worker_start_time": "2026-10-15T12:07:57.521000+00:00",
+      "process_start_time": "2026-10-15T11:45:58.673000+00:00",
+      "settings": {
+        "interval_seconds": 60.0,
+        "assemblies": false,
+        "drawings": false,
+        "all_documents": false,
+        "background_activation": false
+      },
+      "status_file": "E:\\CodexData\\solidworks-mcp-crash-analysis\\2026-10-15\\recovery-reservation-native-part-v1\\backup\\monitor.json",
+      "reused": false,
+      "policy": {
+        "enabled": true,
+        "source": "solidworks",
+        "preferences": {
+          "auto_recover_enabled": true,
+          "backup_enabled": false,
+          "interval_value": 1,
+          "interval_mode": 2
+        },
+        "directory": "E:\\CodexData\\solidworks-mcp-crash-analysis\\2026-10-15\\recovery-reservation-native-part-v1\\backup",
+        "settings": {
+          "interval_seconds": 60.0,
+          "assemblies": false,
+          "drawings": false,
+          "all_documents": false,
+          "background_activation": false
+        }
+      }
+    },
+    "effective_environment": {
+      "SOLIDWORKS_RECOVERY_MONITOR": "auto",
+      "SOLIDWORKS_RECOVERY_INTERVAL": null,
+      "SOLIDWORKS_RECOVERY_DIRECTORY": "E:\\CodexData\\solidworks-mcp-crash-analysis\\2026-10-15\\recovery-reservation-native-part-v1\\backup",
+      "SOLIDWORKS_RECOVERY_ALL_DOCUMENTS": "0",
+      "SOLIDWORKS_RECOVERY_BACKGROUND_ACTIVATION": "0"
+    }
+  },
+  "snapshot": {
+    "path": "E:\\CodexData\\solidworks-mcp-crash-analysis\\2026-10-15\\recovery-reservation-native-part-v1\\backup\\pid-24588-bed241ee62b0\\snapshot-vc9p94r3\\part.SLDPRT",
+    "sha256": "736de8edaa32b3d57f081d6c4594ee2d123b7072895c7f220533590908857fb0",
+    "bytes": 39935,
+    "manifest": "E:\\CodexData\\solidworks-mcp-crash-analysis\\2026-10-15\\recovery-reservation-native-part-v1\\backup\\pid-24588-bed241ee62b0\\snapshot-vc9p94r3\\manifest.json",
+    "geometry_reopen_required": true
+  },
+  "source_sha256": "13c2884eee513e9eae50bd3a589ccb37fc5523d565175340887c3972ac69ed85",
+  "reopened_geometry": {
+    "initial_unsaved": {
+      "document": "C:\\Users\\yunchien.chen\\mcp\\solidworks-mcp-pid-isolation\\test-results\\remaining-fault-correlation\\sensor-private-valid-part-v1\\sensor-valid-part-v1.SLDPRT",
+      "dimension_full_name": "D1@SensorTarget@sensor-valid-part-v1.Part",
+      "dimension_m": 0.003,
+      "external_reference_count": 0,
+      "dependencies": [],
+      "title": "sensor-valid-part-v1.SLDPRT"
+    },
+    "reopened": [
+      {
+        "document": "C:\\Users\\yunchien.chen\\mcp\\solidworks-mcp-pid-isolation\\test-results\\remaining-fault-correlation\\sensor-private-valid-part-v1\\sensor-valid-part-v1.SLDPRT",
+        "dimension_full_name": "D1@SensorTarget@sensor-valid-part-v1.Part",
+        "dimension_m": 0.0019999999999999983,
+        "external_reference_count": 0,
+        "dependencies": [],
+        "title": "sensor-valid-part-v1.SLDPRT"
+      },
+      {
+        "document": "C:\\Users\\yunchien.chen\\mcp\\solidworks-mcp-pid-isolation\\test-results\\remaining-fault-correlation\\sensor-private-valid-part-v1\\recovery-snapshot-copy-v1.SLDPRT",
+        "dimension_full_name": "D1@SensorTarget@recovery-snapshot-copy-v1.Part",
+        "dimension_m": 0.003,
+        "external_reference_count": 0,
+        "dependencies": [],
+        "title": "recovery-snapshot-copy-v1.SLDPRT"
+      }
+    ],
+    "all_documents_unloaded": true,
+    "model_save_calls": 0
+  },
+  "owned_exit": {
+    "pid": 24588,
+    "start_time": "2026-10-15T11:45:58.673000+00:00",
+    "image": "C:\\Program Files\\SOLIDWORKS Corp\\SOLIDWORKS\\SLDWORKS.exe",
+    "creation_filetime": 134365383586734429,
+    "manifest_start_filetime": 134365383586730000,
+    "handle_acquired_at": 1792066335.7228427,
+    "identity_verified": true,
+    "signaled": true,
+    "exitcode": 0,
+    "wait_intervals_ms": [
+      5000
+    ],
+    "maximum_wait_interval_ms": 30000,
+    "maximum_total_wait_seconds": 120,
+    "handle_retained_across_exit_call": true,
+    "exit_call_returned_at": 1792066335.9459054,
+    "signaled_observed_at": 1792066340.3448844,
+    "watcher_completed_naturally": true,
+    "watcher_completed_at": 1792066340.3632026,
+    "total_wait_seconds": 4.417290400000638,
+    "no_cad_calls_after_exit_request": true,
+    "watcher_result_sha256": "a17eeffd14518c5e1e8c42db284fb55a896ecac5458818c0f540e96ee3922953",
+    "handle_closed_at": 1792066340.3665106
+  },
+  "production_runtime_deployed": false,
+  "actual_mr12_reservation_modified": false,
+  "limitations": [
+    "Private standalone part only; no new assembly/drawing acceptance.",
+    "Native disabled-preference refusal tested offline without changing global preferences.",
+    "Backup fix does not establish cause of unrelated CAD exits.",
+    "Live deployment and actual stale reservation remediation remain unperformed."
+  ]
+}
