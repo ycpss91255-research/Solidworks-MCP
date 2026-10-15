@@ -179,6 +179,30 @@ that simulation made zero actual CAD calls. Its retained evidence is
 `failure-log-verification.log/.json`. Existing MCP processes have not been
 restarted; a newly started MCP process loads the updated code.
 
+## 2026-10-15 blocked audit
+
+Three consecutive goal turns rechecked the same native-replay blocker: at08:11
+commit was94.92%, at08:12:19 it was96.13%, and at08:12:45 it was96.44% with7052MB
+available. Each is above the unchanged90% lab launch threshold. The third audit
+also verifies no owned test runner, CAD instance or debugger is still running;
+protected1772/42248 retain their creation identities. Nothing is being waited
+on inside this chat. The overnight event audit finds no new SOLIDWORKS event1000
+since2026-10-14 21:28, so there is no new native failure evidence to analyze.
+
+Root-cause completion is unproven: BM mirror/mate-reference history and BN full
+rename/equation/dynamic/close history have not run. The received original case
+still lacks a native exception dump, and the prepared replay is not yet a failing
+counterexample. Passing BJ/BK/BL or the259 unit tests cannot replace that causal
+evidence. Diagnosis/logging improvements must not be described as a crash fix.
+
+The broader goal is blocked pending an external change that permits owned native
+replay, or newly available original native/Rx evidence. All private fixtures,
+scripts, hashes, reports and per-chat session files are retained. Resume with a
+fresh headroom/process audit; do not bypass the launcher, operate another chat's
+CAD, or restart a still-live test solely because an observation timed out.
+Evidence: `blocked-audit-20261015-02.json`, `blocked-audit-20261015-03.json`,
+`runner-liveness-20261015.json`, `overnight-event-audit-20261015.json`.
+
 ## Remaining evidence limits
 
 The archive's stack is the Python/COM invocation stack, not the native C++
