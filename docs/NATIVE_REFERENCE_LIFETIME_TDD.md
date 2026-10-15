@@ -387,6 +387,42 @@ That later resource sample does not establish the cause of the earlier count
 assertion. The same retained PID33112 is kept for this pending inspection;
 other chats' SolidWorks processes and settings are not operated.
 
+### Completed follow-up: CV has a later retained free reference
+
+The monitor completed its read-only inspection at07:39:48Z. The requested
+front count4, evaluated equation count4, standard-pattern instances3 and spacing
+500mm are present, but actual front beam count remains3. Thus elapsed idle time
+and fresh MCP attachment did not restore the missing component. A supplemental
+inventory stopped on DISP_E_PARAMNOTOPTIONAL while reading SeedComponentArray;
+it is an inspection binding failure, not a native RPC fault. Its failed report
+and trace are retained, and it was not silently counted as a completed inventory.
+
+Independent saved-file analysis of the after_functional_failure dump identifies
+the same busy moMateDistanceDim_c0x61d17dd0 and member+0x170=0x136708a90
+seen after Save3. The target is now LFH/free,size0x140 with residual DCM3_node
+RTTI. The original named mate0x532d7bf0 still has a null member. The earlier
+target was a busy moCompFace_c with valid CObject GetRuntimeClass dispatch.
+The transition therefore establishes a later dangling native reference; it does
+not prove the exact freeing instruction, exclude intervening pointer assignments,
+or prove that the missing front beam has the same cause.
+
+`verify_cv_late_native_reference.py` verifies actual dump SHA256, Memory64 bounds,
+embedded PID/start identity, matched feature/member, heap metadata and the earlier
+archive hash/dispatch proof. Its result is
+`current-close-40588/cv-late-native-reference-verified.json`.
+After recognizing this native state, no further CAD/save calls were made.
+Owned PID33112/start07:11:16.854000Z was deliberately terminated through a held,
+image/start-validated OS handle at07:49:03Z; handle-signaled exit was verified.
+This intentional cleanup is recorded separately from a native crash in
+`cv-verified-native-state-cleanup.json`. Other CAD PIDs10812/37424 were retained.
+
+The user subsequently prioritized disk cleanup and selected SanDisk rather than
+D:. The17 completed large evidence directories have now been relocated with
+per-file SHA256 verification and original-path junctions, releasing22.827GB
+from C:. CN and CV offline native evidence verifiers passed after relocation.
+See [DIAGNOSTIC_STORAGE.md](DIAGNOSTIC_STORAGE.md); no new CAD trial was launched
+during that requested cleanup.
+
 CU's four completed checkpoint files have been losslessly archived after its
 verified normal exit, using the same original/decompressed-byte SHA checks and
 bounded exact-file duplicate removal. This reserves three full snapshots and

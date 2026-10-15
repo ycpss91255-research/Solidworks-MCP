@@ -64,10 +64,15 @@ CV separates observation and Save3: the link remains null after observation;
 Save3 produces an additional busy named feature linked to a busy moCompFace_c,
 whose MFC GetRuntimeClass convention is independently verified. That live
 CObject link is not automatically a stale API proxy; its ownership is still
-unclassified. CV then fails a physical first-floor count assertion with null
-HRESULT and no native fault marker/event. Its retained failed model is being
-inspected separately. Do not label that failed functional run as a native crash
-or a successful lifetime fix. The member's vendor field name/type was never
+unclassified at that boundary. CV then fails a physical first-floor count assertion
+with null HRESULT and no native fault marker/event. Its later full snapshot now
+shows the same busy feature and unchanged member pointer targeting an LFH/free
+block with residual DCM3_node RTTI. This independently confirms a latent dangling
+reference in CV; separating observation and Save3 did not prevent it. The missing
+component assertion is not proven to share that cause. After full-dump/hash and
+exact process identity verification, owned PID33112 was deliberately terminated
+without another CAD/save call. That cleanup is not a newly observed crash.
+Do not label the failed functional run as a successful lifetime fix. The member's vendor field name/type was never
 published; use native reference consumed by API cleanup/type checking as the
 minimum verified description.
 
