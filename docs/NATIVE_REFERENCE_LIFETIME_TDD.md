@@ -131,3 +131,51 @@ Under ignored `test-results/remaining-fault-correlation/`:
 No allocation/free stack trace was active before CN's original failure. These
 tests seek the invalidating operation without modifying native CAD memory,
 patching binaries or operating another chat's process.
+
+## Finer operation boundary: CS
+
+CS uses a fresh owned process and the same seven verified source snapshots.
+Twenty-one requests remain byte/AST identical to CR. Request05 is split after
+its successful ModifyDefinition, before its first explicit EditRebuild3,
+ForceRebuild3 or Save3. A full-memory checkpoint runs after that first request
+returns (including request-local wrapper cleanup). The continuation reacquires
+the private document/assembly wrappers, then retains the original rebuild,
+transform and save assertions. This intentional boundary changes lifetime and
+timing; it is recorded rather than represented as an identical-request replay.
+
+The complete CO/CR dynamics/first-floor/save/close workflow still follows. Native
+exception watching starts after the checkpoint; a prefix fault must stop CAD
+calls and receive separate handling. The gate requires6GiB available physical
+memory and6GiB commit reserve for three samples before launching. One snapshot
+is budgeted with separate disk headroom; existing dumps are retained.
+
+The saved-file verifier compares both six-case and five-case geometry to CR,
+verifies source/runtime hashes, and reports the actual named-feature heap
+predicate separately from functional close success.
+
+CS's checkpoint has now completed and been independently inspected. Owned
+PID40736/start2026-10-15T06:28:23.674000Z remains the same live process after
+debugger detach. The full3581112047-byte dump has6137 Memory64 ranges and
+SHA25642029e0a421a88ad905ab2fe1a92899593aedf08a73764740c4779fd58d06584.
+Independent native name/caption paths identify one busy moMateDistanceDim_c,
+0x4e6ad680, whose+0x170 member is null. No retained-free API reference is
+observed on this matched object at this boundary.
+
+This differs from CR's post-rebuild/save boundary. It narrows the remaining
+question to explicit rebuild/save or the lifetime/order difference introduced
+by releasing request-local wrappers before rebuild. It does not prove the
+invalid state absent after CS's later rebuild or establish a preventive fix.
+`inspect_cs_modify_boundary.py` checks the actual dump SHA/native heap rows
+and explicitly leaves post-rebuild state unverified. The full dynamics/save/
+close run is still active; its prepared acceptance script is not a full pass.
+
+Preparation initially failed in a local AST comparator because a formatted
+request string is not a literal. The corrected comparator compares complete
+request ASTs, verifies the21 unchanged requests, and reuses only hash-matching
+unlaunched private inputs. No CAD had launched during that preparation error.
+
+The official2023 [IDistanceMateFeatureData instructions](https://help.solidworks.com/2023/english/api/sldworksapi/SolidWorks.Interop.sldworks~SolidWorks.Interop.sldworks.IDistanceMateFeatureData.html?id=2.2.1.105)
+describe GetDefinition, cast, change data, then ModifyDefinition for distance
+mate editing. That documented sequence does not establish correct native
+lifetime in this observed model/runtime, nor does it identify the first free
+instruction. Do not add AccessSelections based on unrelated feature interfaces.
