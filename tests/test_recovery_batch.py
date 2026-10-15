@@ -1,7 +1,7 @@
 import unittest
 from types import SimpleNamespace
 from contextlib import nullcontext
-from unittest.mock import patch
+from unittest.mock import Mock,patch
 from solidworks_mcp.recovery_batch import snapshot_documents
 
 class BatchTests(unittest.TestCase):
@@ -55,5 +55,27 @@ class BatchTests(unittest.TestCase):
         with patch('solidworks_mcp.recovery_batch.snapshot_package',side_effect=package):
             result=self.run_batch([self.assembly],allow_activation=True)
         self.assertFalse(result['success']);self.assertEqual(len(self.calls),1)
+
+    def test_native_package_fault_skips_all_cad_cleanup_and_persists_identity(self):
+        import pywintypes
+        from solidworks_mcp.recovery_snapshot import SnapshotError
+        for wrapped in (False,True):
+            with self.subTest(wrapped=wrapped):
+                self.app.ActiveDoc=self.original;self.calls=[]
+                self.app.GetProcessID=Mock(spec=[],return_value=123);at_fault=[]
+                native=pywintypes.com_error(-2147417851,'native fault',None,None)
+                error=SnapshotError('wrapped native fault',{}) if wrapped else native
+                if wrapped:error.__cause__=native
+                def package(*args,**kwargs):
+                    at_fault.append(self.app.GetProcessID.call_count)
+                    raise error
+                with patch('solidworks_mcp.recovery_batch.snapshot_package',side_effect=package), \
+                     patch('solidworks_mcp.native_fault.FaultStore.record',return_value={'pid':123,'hresult':-2147417851}) as record:
+                    result=self.run_batch(allow_activation=True)
+                self.assertFalse(result['success'])
+                self.assertEqual(self.app.GetProcessID.call_count,at_fault[0])
+                self.assertEqual(self.calls,[('assembly',False,1)])
+                self.assertEqual(result['data']['native_fault']['hresult'],-2147417851)
+                record.assert_called_once_with(123,'start',error)
 
 if __name__=='__main__':unittest.main()

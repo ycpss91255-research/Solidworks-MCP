@@ -4,6 +4,7 @@ import tempfile
 from .recovery_snapshot import get0,held_process
 from .assembly_recovery import document_state,STEP_EXTENSIONS
 from .automation.managed_session import process_identity
+from .native_fault import native_hresult
 
 def repair_step_links(app,pid,generation,mapping,adapter,allow_activation=False,idle=lambda:True):
     root=Path(generation).resolve()
@@ -38,7 +39,7 @@ def repair_step_links(app,pid,generation,mapping,adapter,allow_activation=False,
                 raise RuntimeError('STEP copies do not resolve entirely inside this package')
             if app.GetOpenDocumentByName(str(output)) is not None:
                 raise RuntimeError('Private repair document is already open; refusing to take it over')
-            before=active();opened=None;temporary=None
+            before=active();opened=None;temporary=None;native_failed=False
             try:
                 verify()
                 result=app.OpenDoc6(str(output),1,3,'',0,0)  # Silent | ReadOnly.
@@ -58,8 +59,11 @@ def repair_step_links(app,pid,generation,mapping,adapter,allow_activation=False,
                 actual=references(temporary,False)
                 if len(actual)!=len(recorded) or any(str(Path(p).resolve()).casefold() not in steps for p in actual):
                     raise RuntimeError('Saved STEP owner still refers outside the package')
+            except Exception as exc:
+                native_failed=native_hresult(exc) is not None
+                raise
             finally:
-                if opened is not None:
+                if opened is not None and not native_failed:
                     verify()
                     current=active()
                     own=document_state(opened)

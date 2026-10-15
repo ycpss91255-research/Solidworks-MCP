@@ -60,4 +60,22 @@ class StepRepairTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError,'must be private'):self.repair(allow_activation=True)
         self.app.OpenDoc6.assert_not_called()
 
+    def test_native_save_fault_skips_verify_close_restore_and_output_replacement(self):
+        import pywintypes
+        error=pywintypes.com_error(-2147417851,'native fault',None,None)
+        original_open=self.app.OpenDoc6.side_effect;at_fault=[]
+        self.app.GetProcessID=Mock(spec=[],return_value=123)
+        def failing_open(*args):
+            result=original_open(*args);doc=result[0]
+            def fail(*args):
+                at_fault.append(self.app.GetProcessID.call_count)
+                raise error
+            doc.SaveAs3=fail
+            return result
+        self.app.OpenDoc6.side_effect=failing_open
+        with self.assertRaises(pywintypes.com_error):self.repair(allow_activation=True)
+        self.assertEqual(self.app.GetProcessID.call_count,at_fault[0])
+        self.app.CloseDoc.assert_not_called();self.app.ActivateDoc3.assert_not_called()
+        self.assertEqual(self.copy.read_bytes(),b'original private copy')
+
 if __name__=='__main__':unittest.main()

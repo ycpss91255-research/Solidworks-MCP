@@ -9,6 +9,7 @@ import time
 import logging
 import datetime
 import traceback
+import sys
 from typing import Optional, Dict, Any, Tuple
 
 # COM imports
@@ -48,6 +49,8 @@ class SolidWorksAutomation:
         self._recovery_monitor_error = None
         self._recovery_worker = None
         self._journal_warning_handler = None
+        self._bound_identity = None
+        self._native_fault = None
         
         logger.info("SolidWorksAutomation initialized")
     
@@ -58,19 +61,34 @@ class SolidWorksAutomation:
     @property
     def is_connected(self) -> bool:
         """Check if connected to SolidWorks"""
+        if self.native_fault_result() is not None:
+            return False
         if not self._connected or self._sw_app is None:
             return False
+        if getattr(self, '_bound_identity', None):
+            from .managed_session import process_identity
+            try:
+                if process_identity(int(self._target_pid)) is None:
+                    self._connected = False
+                    self._sw_app = None
+                    return False
+            except Exception:
+                return False  # Unknown OS identity is not permission to probe COM.
         
         try:
             # Test connection by accessing a property
             _ = self._sw_app.RevisionNumber
             return True
-        except:
+        except Exception as exc:
+            if self.record_native_failure(exc) is not None:
+                return False
             try:
                 # Some versions use method instead of property
                 _ = self._sw_app.RevisionNumber()
                 return True
-            except:
+            except Exception as exc:
+                if self.record_native_failure(exc) is not None:
+                    return False
                 self._connected = False
                 self._sw_app = None
                 return False
@@ -89,6 +107,57 @@ class SolidWorksAutomation:
     # Result Helper
     # ========================================================================
     
+    def _fault_store_instance(self):
+        from ..native_fault import FaultStore
+        if getattr(self, '_fault_store', None) is None:
+            self._fault_store = FaultStore()
+        return self._fault_store
+
+    def record_native_failure(self, error):
+        """No CAD calls: retain identity-bound evidence before any later request."""
+        from ..native_fault import native_hresult
+        hresult = native_hresult(error)
+        if hresult is None or self._target_pid is None:
+            return None
+        pid = int(self._target_pid)
+        fault = {'pid': pid, 'start_time': getattr(self, '_bound_identity', None),
+                 'hresult': hresult, 'message': str(error)}
+        self._native_fault = fault
+        self._connected = False
+        try:
+            fault = self._fault_store_instance().record(pid, fault['start_time'], error)
+            self._native_fault = fault
+        except Exception as exc:
+            fault['persistence_error'] = str(exc)
+            logger.error('Native fault marker could not be persisted: %s', exc)
+        return fault
+
+    def native_fault_result(self):
+        """Block known faulted identities before COM, including recovery probes."""
+        if self._target_pid is None:
+            return None
+        from .managed_session import process_identity
+        try:
+            pid = int(self._target_pid)
+            fault = getattr(self, '_native_fault', None)
+            if fault and fault['pid'] == pid:
+                if process_identity(pid) is None:
+                    self._native_fault = None
+                    self._connected = False
+                    self._sw_app = None
+                    return None  # Existing managed startup handles an exited target.
+            else:
+                fault = self._fault_store_instance().read(pid, process_identity)
+            if fault is None:
+                return None
+            self._native_fault = fault
+            message = f'CAD calls to faulted SolidWorks PID {pid} are stopped. Preserve evidence and retire this process; reconnect only after an owned replacement is available.'
+            data = {'configured_pid': pid, 'native_fault_quarantined': True, 'native_fault': fault}
+        except Exception as exc:
+            message = f'Cannot verify native fault state for PID {self._target_pid}: {exc}. No CAD call was made.'
+            data = {'configured_pid': self._target_pid, 'native_fault_state_unverified': True}
+        return self._result(False, message, SwErrors.swConnectionError, data)
+
     def _result(self, success: bool, message: str,
                 error_code: SwErrors = SwErrors.swSuccess,
                 data: Optional[Dict] = None) -> Dict:
@@ -104,6 +173,11 @@ class SolidWorksAutomation:
         Returns:
             Standardized result dictionary
         """
+        if not success:
+            error = sys.exc_info()[1]
+            fault = self.record_native_failure(error) if error is not None else None
+            if fault is not None:
+                data = dict(data or {}, native_fault_quarantined=True, native_fault=fault)
         result = {
             "success": success,
             "message": message,
@@ -121,12 +195,17 @@ class SolidWorksAutomation:
 
     def _connect_target(self) -> Dict:
         """Attach only to the requested ROT entry; never launch or fall back."""
+        blocked = self.native_fault_result()
+        if blocked is not None:
+            return blocked
         self._sw_app = None
         self._connected = False
         try:
             pid = int(self._target_pid)
             if pid <= 0:
                 raise ValueError("SOLIDWORKS_TARGET_PID must be positive")
+            from .managed_session import process_identity
+            self._bound_identity = process_identity(pid)
             if not self._target_com_initialized:
                 pythoncom.CoInitialize()
                 self._target_com_initialized = True
@@ -194,6 +273,9 @@ class SolidWorksAutomation:
 
     def connect(self) -> Dict:
         """Connect only to an explicitly configured, already running PID."""
+        blocked = self.native_fault_result()
+        if blocked is not None:
+            return blocked
         if self._auto_launch:
             try:
                 from .managed_session import connect_managed

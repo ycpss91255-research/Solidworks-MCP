@@ -2,8 +2,12 @@
 
 Status2026-10-15: a reduced red/green native comparison is established. An atomic
 composition subsequently failed native close and was removed. The exact passing
-staged recipe, complete construction and saved-state acceptance are still being
-verified. This document does not mark the broader crash goal done.
+staged recipe passes completed CJ continuation and CK cold acceptance. CL's
+untraced/reconnected unrepaired control also closes. Fresh trace-on CM passes,
+while same-runtime trace-off CN fails with the original native dispatch path;
+tracing is not necessary. Fresh uninterrupted full staged replay CO is running. Current results
+and limits are in [CJ_CK_CL_NATIVE_RESULTS.md](CJ_CK_CL_NATIVE_RESULTS.md).
+This document does not mark the broader crash goal done.
 
 ## Reproduced failure interval
 
@@ -150,13 +154,20 @@ opt-in `--full-memory` mode using [.dump /ma](https://learn.microsoft.com/en-us/
 It checks free disk space against the current owned process footprint plus2GiB;
 normal detach breakpoints retain the small format. This preparation is not a
 claim that a full dump has yet been captured or that inaccessible pages will
-be recoverable. The existing running continuation uses its original default.
+be recoverable. While the existing continuation worker was confirmed still
+waiting, its runner was atomically upgraded to request --full-memory, preserving
+all CAD request ASTs and the same worker/PID/model state. The prior source and
+explicit text/file hashes are retained in `cj-resume-capture-upgrade.json` and
+`run_cj_resume_before_full_memory.py`. At actual attachment, verify
+`debug-cj-resume/ready.json` reports exception_dump_option=/ma; the preparation
+alone is not proof of the effective capture mode or a completed full dump.
 
 CJ now restores the exact passing CH two-call staging, including its original
 rebuild/save checkpoint and fresh manager acquisition. It also runs the full
 first-floor build, both six-case matrices and the five-case first-floor matrix.
 Separate cold acceptance of the saved construction remains required. These
-results are pending, not represented by CH's narrower passing prefix. The failed
+results were initially pending; the completed CJ continuation and CK cold result
+are documented below. Fresh single-MCP replay CO is still required. The failed
 atomic variation is not silently retried on its faulted PID.
 
 CJ's first six-case matrix completes. Its later diagnostic-only verification
@@ -183,6 +194,15 @@ CH's fully staged early refresh passes and the simplified CI composition fails.
 CG's combined request does not identify the exact first C++ write among property
 setting/evaluation/rebuild. Rebinding order alone is not a sufficient general
 explanation without the additional staging/lifetime controls.
+That request also starts its check function with ActivateDoc3(path,False,0,0).
+The official [ActivateDoc3 contract](https://help.solidworks.com/2023/english/api/sldworksapi/SolidWorks.Interop.sldworks~SolidWorks.Interop.sldworks.ISldWorks~ActivateDoc3.html)
+and [activation rebuild enumeration](https://help.solidworks.com/2024/English/api/swconst/SOLIDWORKS.Interop.swconst~SOLIDWORKS.Interop.swconst.swRebuildOnActivation_e.html)
+define0 as user-decision/prompt,1 as no rebuild and2 as rebuild. Thus the
+activation is not a documented no-rebuild operation. No prompt or implicit
+rebuild in this particular request has been established. Any further prefix
+reduction must account for activation and COM context acquisition as well as
+Set2/EvaluateAll/EditRebuild3/ForceRebuild3 and later observation calls; CG/CD
+alone cannot attribute the first corrupting operation specifically to EvaluateAll.
 The original40588 exception dump and exact contemporaneous dependency identity
 remain unavailable; matching intent and fresh failing history are not the same
 as proving that original unknown-module instruction. Retain this distinction.

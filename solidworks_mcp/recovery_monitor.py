@@ -57,6 +57,8 @@ class CadBackend:
         self.all_documents=os.environ.get('SOLIDWORKS_RECOVERY_ALL_DOCUMENTS')=='1'
         self.background_activation=os.environ.get('SOLIDWORKS_RECOVERY_BACKGROUND_ACTIVATION')=='1'
     def connect(self):return self.automation.connect()
+    def native_fault_result(self):return self.automation.native_fault_result()
+    def record_native_failure(self,error):return self.automation.record_native_failure(error)
     def probe(self):
         if not self.automation.is_connected:raise RuntimeError('Configured MCP connection was lost')
         from win32com.client import gencache
@@ -152,6 +154,11 @@ def run_monitor(pid,identity,directory,status_file,interval,backend,
             # Do not invoke COM or dismiss an existing dialog.
             if dialog_reader(pid):record('waiting_dialog')
             else:
+                fault_check=getattr(backend,'native_fault_result',None)
+                blocked=fault_check() if callable(fault_check) else None
+                if isinstance(blocked,dict) and not blocked.get('success'):
+                    state['native_fault_block']=blocked.get('data',{})
+                    raise RuntimeError(blocked.get('message','Native fault target is blocked'))
                 if not connected:
                     result=backend.connect()
                     if not result['success']:raise RuntimeError(result.get('message','Target connection failed'))
@@ -191,6 +198,9 @@ def run_monitor(pid,identity,directory,status_file,interval,backend,
     except KeyboardInterrupt:
         record('stopped',reason='keyboard_interrupt')
     except Exception as exc:
+        recorder=getattr(backend,'record_native_failure',None)
+        fault=recorder(exc) if callable(recorder) else None
+        if isinstance(fault,dict):state['native_fault']=fault
         record('failed',error=str(exc),error_traceback=traceback.format_exc())
     finally:
         try:backend.close()

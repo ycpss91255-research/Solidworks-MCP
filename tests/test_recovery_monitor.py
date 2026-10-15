@@ -61,6 +61,24 @@ class MonitorTests(unittest.TestCase):
         self.assertEqual(result['status'],'failed');self.assertEqual(self.backend.connects,1)
         self.assertEqual(len(self.backend.calls),1);self.assertEqual(result['snapshots'],0)
         self.assertIn('copy failed',result['error_traceback'])
+    def test_native_fault_blocks_preferences_probe_and_save_before_connection(self):
+        fault={'success':False,'message':'faulted PID123','data':{'native_fault_quarantined':True}}
+        self.backend.native_fault_result=Mock(return_value=fault)
+        self.backend.probe=Mock();reader=Mock()
+        result=self.run_monitor(preference_reader=reader)
+        self.assertEqual(result['status'],'failed')
+        self.assertEqual(self.backend.connects,0)
+        self.assertEqual(self.backend.calls,[])
+        self.backend.probe.assert_not_called();reader.assert_not_called()
+    def test_native_probe_exception_is_persisted_before_worker_stops(self):
+        import pywintypes
+        error=pywintypes.com_error(-2147417851,'native fault',None,None)
+        self.backend.probe=Mock(side_effect=error)
+        self.backend.record_native_failure=Mock(return_value={'pid':123,'hresult':-2147417851})
+        result=self.run_monitor()
+        self.backend.record_native_failure.assert_called_once_with(error)
+        self.assertEqual(result['native_fault']['hresult'],-2147417851)
+        self.assertEqual(self.backend.calls,[])
     def test_native_disable_then_reenable_uses_same_worker(self):
         policies=iter([
             {'enabled':False,'preferences':{'auto_recover_enabled':False,'backup_enabled':False}},

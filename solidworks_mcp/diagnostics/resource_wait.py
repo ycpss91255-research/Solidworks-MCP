@@ -3,6 +3,7 @@ import argparse
 from contextlib import contextmanager
 from datetime import datetime, timezone
 import json
+import math
 import msvcrt
 import os
 from pathlib import Path
@@ -28,15 +29,17 @@ def same_live_process(handle, expected_start, *, wait=None, created=None):
     return abs(created(handle) - expected_start) < .01
 
 
-def resource_ready(snapshot, max_commit=90, min_available_mb=4096):
+def resource_ready(snapshot, max_commit=90, min_available_mb=4096, min_commit_reserve_mb=0):
     try:
         commit = snapshot['commit_bytes']
         limit = snapshot['commit_limit_bytes']
         available = snapshot['available_physical_bytes']
-        return (limit > 0 and commit >= 0 and available >= 0
+        return (all(math.isfinite(v) for v in (limit,commit,available))
+                and limit > 0 and 0 <= commit <= limit and available >= 0
                 and 100 * commit / limit <= max_commit
-                and available >= min_available_mb * 1024**2)
-    except (KeyError, TypeError, ZeroDivisionError):
+                and available >= min_available_mb * 1024**2
+                and limit - commit >= min_commit_reserve_mb * 1024**2)
+    except (KeyError, TypeError, ZeroDivisionError, OverflowError):
         return False
 
 
@@ -58,9 +61,13 @@ def exclusive_monitor(path):
 
 def wait_and_run(command, *, sample=memory_snapshot, sleep=time.sleep,
                  record=lambda value: None, run=None, cancelled=lambda: False,
-                 interval=5, safe_samples=3, max_commit=90, min_available_mb=4096):
+                 interval=5, safe_samples=3, max_commit=90, min_available_mb=4096,
+                 min_commit_reserve_mb=0):
     if not command or safe_samples < 1 or not 1 <= interval <= 60:
         raise ValueError('Provide a command and valid sampling settings')
+    if (not all(math.isfinite(v) for v in (max_commit,min_available_mb,min_commit_reserve_mb))
+            or not 0 < max_commit <= 100 or min_available_mb < 0 or min_commit_reserve_mb < 0):
+        raise ValueError('Provide finite nonnegative memory reserves and a commit percentage in (0,100]')
     if run is None:
         run = lambda cmd: subprocess.run(cmd, shell=False, creationflags=subprocess.CREATE_NO_WINDOW).returncode
     healthy = 0
@@ -72,7 +79,7 @@ def wait_and_run(command, *, sample=memory_snapshot, sleep=time.sleep,
             snapshot = sample()
         except Exception as error:
             snapshot = {'error': repr(error)}
-        healthy = healthy + 1 if resource_ready(snapshot, max_commit, min_available_mb) else 0
+        healthy = healthy + 1 if resource_ready(snapshot, max_commit, min_available_mb, min_commit_reserve_mb) else 0
         record({'phase': 'waiting', 'memory': snapshot, 'healthy_samples': healthy})
         if healthy >= safe_samples:
             if cancelled():
@@ -94,6 +101,9 @@ def main():
     parser.add_argument('--state-file', type=Path, required=True)
     parser.add_argument('--cancel-file', type=Path, required=True)
     parser.add_argument('--interval', type=int, default=5)
+    parser.add_argument('--max-commit-percent', type=float, default=90)
+    parser.add_argument('--min-available-mb', type=float, default=4096)
+    parser.add_argument('--min-commit-reserve-mb', type=float, default=0)
     parser.add_argument('command', nargs=argparse.REMAINDER)
     args = parser.parse_args()
     if not args.state_file.is_absolute() or not args.cancel_file.is_absolute():
@@ -107,7 +117,10 @@ def main():
         import win32api, win32process
         identity = {'worker_pid': os.getpid(),
                     'worker_start_time': win32process.GetProcessTimes(win32api.GetCurrentProcess())['CreationTime'].isoformat(),
-                    'command': command}
+                    'command': command,
+                    'resource_policy': {'max_commit_percent':args.max_commit_percent,
+                                        'min_available_mb':args.min_available_mb,
+                                        'min_commit_reserve_mb':args.min_commit_reserve_mb}}
         def record(value):
             value = dict(identity, **value, checked_at=datetime.now(timezone.utc).isoformat())
             with args.state_file.with_suffix('.events.jsonl').open('a', encoding='utf-8') as history:
@@ -116,7 +129,9 @@ def main():
             temporary.write_text(json.dumps(value, indent=2), encoding='utf-8')
             temporary.replace(args.state_file)
         return wait_and_run(command, record=record, interval=args.interval,
-                            cancelled=args.cancel_file.exists)
+                            cancelled=args.cancel_file.exists,max_commit=args.max_commit_percent,
+                            min_available_mb=args.min_available_mb,
+                            min_commit_reserve_mb=args.min_commit_reserve_mb)
 
 
 if __name__ == '__main__':

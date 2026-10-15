@@ -7,13 +7,36 @@ This is evidence for specific failing API/model-state paths, not a finding that
 every historic crash has one cause or that all MCP operations are safe.
 
 The newly reconstructed40588-history case is still under investigation. A
-direction edit alone closes successfully; the following equation/property/
-rebuild request makes close fail. One fully staged early refresh passes a
+direction edit alone closes successfully; the following combined request makes
+the traced CG control fail close. CL later reproduces equation51 and passes
+close with tracing off after a local setup error/reconnection. Fresh uninterrupted
+trace-on CM also reproduces equation51 but passes close, preserving the same
+seven input hashes and original CAD script bytes as failed CG. Trace-off CN
+reproduces the native close fault and supplies a validated full-memory dump;
+tracing is not necessary. One fully staged early refresh passes a
 reduced native matrix, but a simplified atomic wrapper fails and was removed.
-Complete construction and saved-state acceptance remain pending. The older
+The CJ continuation's full construction and separate CK saved/cold acceptance
+now pass; an uninterrupted fresh full replay remains pending. See
+[CJ_CK_CL_NATIVE_RESULTS.md](CJ_CK_CL_NATIVE_RESULTS.md). The older
 saved-state-only negative controls below are historical, not a reason to stop
 the current failing replay. See
 [DRIVEN_MATE_EVALUATION_TDD.md](DRIVEN_MATE_EVALUATION_TDD.md) for current gates.
+
+A separate sensor-query native fault is now correlated to Windows event24437
+and the actual MCP response: a script caught RPC_E_SERVERFAULT and printed it,
+so execute_python incorrectly returned SUCCESS. Two new fake-CAD regressions
+first failed on the pre-observer candidate. The observer is now integrated locally,
+with311 passing tests including tracing on/off, thread isolation, trace-hook
+preservation and caught-fault stdio restart. Other chats' loaded servers have
+not been restarted by this investigation. See
+[SENSOR_FAULT_FALSE_SUCCESS_TDD.md](SENSOR_FAULT_FALSE_SUCCESS_TDD.md).
+
+CN's full dump now shows an MFC runtime-type query dispatching through a solver
+DCM3_node virtual table into do_move_to_list with an invalid third argument,
+then reading0x100000007 during CloseDoc. This establishes the immediate native
+dispatch failure; the earliest corrupting update is still unproven. The actual
+fault marker blocks a fresh no-COM guard while the failed CAD remains live.
+See [CN_FULL_DUMP_NATIVE_DISPATCH.md](CN_FULL_DUMP_NATIVE_DISPATCH.md).
 
 | Finding | Evidence | Prevention |
 | --- | --- | --- |
@@ -120,8 +143,21 @@ returned a traceback but persisted only success=False in the main log, losing
 partial stdout/stderr. The updated handler records PID, HRESULT, script location,
 traceback and partial output without another CAD call. Five failure-evidence
 tests and full259-test discovery pass; a separate mocked process verifies actual
-FileHandler persistence. This improves evidence collection, not native crash
-prevention or attribution, and does not persistently quarantine a faulted PID.
+FileHandler persistence. That earlier change improves evidence collection, not
+native crash prevention or attribution; it did not itself quarantine a faulted PID.
+
+A subsequent containment candidate now persists native/RPC fault markers by
+PID/start identity and blocks later MCP requests and new recovery-worker ticks
+before CAD access, including across an MCP restart. Red/green boundary and real
+stdio/fake-CAD tests verify the behavior; actual owned native-fault acceptance
+is still pending. See [NATIVE_FAULT_QUARANTINE_TDD.md](NATIVE_FAULT_QUARANTINE_TDD.md).
+This candidate does not identify or repair the first corrupting native operation.
+Two backup cleanup paths also continued CAD queries/activation/close after an
+escaping native failure. Red/green regressions now preserve the original failure
+and skip those calls, while ordinary copy failures still restore the active view.
+Full unit discovery passes298 after the resource-gate calibration. These confirmed MCP failure-handling gaps are
+separate from attributing the first native fault; owned red controls reproduce
+with independent recovery monitoring disabled.
 
 Further46576 replay now has failing BM/BP controls and a tested in-place binding
 workaround. The original script structurally mutates the live equation manager

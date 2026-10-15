@@ -79,7 +79,10 @@ server = Server("solidworks-mcp-server", instructions=(
     "The caller must verify PID, document, configuration, rebuild/feature errors, "
     "dynamic geometry and saved results. This helper does not intercept arbitrary scripts. "
     "After a native/RPC server fault, stop CAD calls to that PID, including Save3; "
-    "responsive UI does not prove that the process is healthy."
+    "responsive UI does not prove that the process is healthy. Native fault markers "
+    "persist across MCP restarts for the same PID and process creation identity. "
+    "Do not delete a marker to resume a damaged process; managed replacement is "
+    "allowed only after the old target exits."
 ))
 
 
@@ -413,6 +416,10 @@ async def call_tool(name: str, arguments: dict) -> list[TextContent]:
     """Handle MCP tool calls"""
     try:
         logger.info(f"Tool: {name}, Args: {arguments}")
+        if name != 'get_solidworks_info':
+            blocked = sw_automation.native_fault_result()
+            if isinstance(blocked, dict):
+                return [TextContent(type='text', text=format_result(blocked))]
         
         # Connection Tools
         if name == "connect_solidworks":
@@ -589,6 +596,7 @@ async def call_tool(name: str, arguments: dict) -> list[TextContent]:
         return [TextContent(type="text", text=format_result(result))]
         
     except Exception as e:
+        sw_automation.record_native_failure(e)
         logger.error(f"Tool error: {e}\n{traceback.format_exc()}")
         return [TextContent(type="text", text=f"[ERROR] {e}")]
 
@@ -620,6 +628,9 @@ def _execution_failure_evidence(error, captured_stdout, captured_stderr, code, f
         'script_line': script_line,
         'script_source_line': source_line,
     }
+    fault = sw_automation.record_native_failure(error)
+    if isinstance(fault, dict):
+        data.update(native_fault_quarantined=True, native_fault=fault)
     logger.error('execute_python failed: %s', json.dumps(data, ensure_ascii=False, default=str))
     return data
 
@@ -633,6 +644,9 @@ def _execute_python_fixed(code: str) -> Dict:
     captured_stderr = io.StringIO()
     script_filename = '<string>'
     try:
+        blocked = sw_automation.native_fault_result()
+        if isinstance(blocked, dict):
+            return blocked
         if not sw_automation.is_connected:
             r = sw_automation.connect()
             if not r["success"]:
@@ -673,13 +687,16 @@ def _execute_python_fixed(code: str) -> Dict:
             
             # Execute the code
             trace_dir = os.environ.get('SOLIDWORKS_SCRIPT_TRACE_DIR')
+            from .native_observation import NativeFaultObservation
             if trace_dir:
                 from .script_trace import ScriptTrace
                 with ScriptTrace(code, sw_automation._target_pid, trace_dir) as trace:
                     script_filename = trace.compiled.co_filename
-                    exec(trace.compiled, exec_globals)
+                    with NativeFaultObservation(sw_automation):
+                        exec(trace.compiled, exec_globals)
             else:
-                exec(code, exec_globals)
+                with NativeFaultObservation(sw_automation):
+                    exec(code, exec_globals)
             
         finally:
             # Always restore stdout/stderr
