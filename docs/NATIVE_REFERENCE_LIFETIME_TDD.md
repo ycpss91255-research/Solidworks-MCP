@@ -221,6 +221,6 @@ restores the exact checked bytes for the existing offline analysis tools and
 keeps the archive. An actual before05 restore was executed and its full-file
 SHA verified, then the loose duplicate was re-archived/removed only after the
 same verified archive read. The three ZIPs total3235422436 bytes rather than
-10657183659 loose bytes, freeing7431761223 bytes. Archive SHA receipts remain
+10657183659 loose bytes, freeing7421761223 bytes. Archive SHA receipts remain
 beside each snapshot's original result and offline heap analysis. No fault-time
 dump is deleted or rewritten. Disk free was17452769280 bytes before CT preparation.
