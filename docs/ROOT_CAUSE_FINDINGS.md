@@ -50,9 +50,10 @@ ExitApp explicitly, as above. Sixteen
 [offline recovery-design regressions](../test-results/remaining-fault-correlation/other-sessions-audit-20261015/recovery-retirement-design-offline-v1.json)
 pass, including reproducing the reservation rejection in the current service
 with fake dependencies. They do not constitute a deployed fix or native CAD
-validation. Safe retirement still needs worker/target identity and startup-token
-checks; removing an unconfirmed reservation alone could allow a delayed old
-worker to bind the new session target.
+validation. The subsequent isolated implementation adds worker/target identity,
+startup-token and conservative process-inventory checks; its verified status is
+recorded below. Removing an unconfirmed reservation alone could allow a delayed
+old worker to bind the new session target.
 
 The [MR12 audit](../test-results/remaining-fault-correlation/other-sessions-audit-20261015/forklift.json)
 records six PID cases and their source paths/lines; the
@@ -114,6 +115,39 @@ model, or a Python binding defect. Nor does the separate backup-startup warning
 establish that missing independent backup caused the crash. The older stale
 document-wrapper hypothesis for18088/51148 is not automatically this case's
 cause, and the fixes for other close failures are not acceptance for34632.
+
+### Follow-up log classification and isolated recovery acceptance
+
+The [bounded follow-up audit](../test-results/remaining-fault-correlation/other-sessions-audit-20261015/other-sessions-since1200Z-1239-v1.json)
+covers20:00–20:39:36 Taipei. MR12 has five functional/precondition assertions;
+rack has one external-reference assertion. Their HRESULT fields are null. A
+successful MR12 `CloseAllDocuments(True)` at20:33:18 leaves no documents and is
+followed by use of the same CAD identity; it is not an application exit. The
+explicit-UTC Windows query finds no matching new native event in this window.
+This distinguishes these failures from the earlier34632 native exception; it
+does not certify the models or rule out every unrecorded native fault.
+
+The exact37312 CXPA session ZIP is22 bytes with zero members. Available bounded
+log searches add no native stack. The report preserves this missing evidence
+rather than treating the report filename as a usable dump. It also records15
+new MR12 recovery-reservation warnings separately from CAD failures.
+
+Recovery fencing is implemented in isolated commit `b64a82b2dad927fd2a98a820dadb37f46261ad14`.
+Own PID24588's real lifecycle, dirty-part snapshot, original/snapshot reopen and
+normal ExitApp acceptance pass: the original remains2mm and the recovered copy
+contains the unsaved3mm change. See the [native backup result](../test-results/remaining-fault-correlation/sensor-private-valid-part-v1/recovery-backup-response.json)
+and [reopen/normal-exit result](../test-results/remaining-fault-correlation/sensor-private-valid-part-v1/backup-reopen-exit-response.json).
+The monitor reads AutoRecover=true, Backup=false and the native one-minute
+interval without changing those preferences. The actual MR12 reservation is
+untouched; this acceptance does not establish backup restoration in that chat.
+
+The isolated `codex/crash-recovery-validation` branch combines recovery fencing
+with opt-in exact-title CloseDoc breadcrumbs. Published commit
+`1aff59de3ce85d120f9d3399700335236d8e5339` passes373 software tests. Its first
+combined run's inventory-churn refusal remains preserved; the bounded retry
+change is test-only, and production still refuses uncertain worker inventories.
+This branch is not deployed to the live MCP. Neither tracing nor reservation
+fencing is presented as a native CloseDoc crash repair.
 
 ## Native reproductions and scoped fixes
 
