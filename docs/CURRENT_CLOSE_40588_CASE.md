@@ -1,12 +1,16 @@
 # Current CloseDoc crash: PID40588, 2026-10-14 18:39
 
-Current status (2026-10-15): the investigation has resumed with an older saved
-input and retained live history. BX/BZ/CB now reproduce native close faults;
-CA closes before the distance-direction edit but has incorrect beam placement.
-Late in-place refresh is insufficient; an early staged refresh passes the
-reduced flow, but an atomic composition fails. The dated
-continuation below supersedes the earlier blocker audit; a verified functional
-prevention and exact attribution to the original40588 exception are still open.
+Current status (2026-10-15): older saved input and retained live history now
+reproduce native close faults. CN's full dump establishes a retained freed API
+object reference on the rear installation-height mate and wrong DCM virtual
+dispatch during CloseDoc. CO's full staged construction and CP's saved/cold
+physical acceptance pass, but CQ/CR/CT show the native stale reference can
+survive successful geometry and close. CU's within-run snapshots first observe
+it after transform observation/Save3, with both preceding explicit rebuild
+boundaries clear. Observation versus Save3 remains under test; this is not yet
+a certified native lifetime fix. The original40588 exception instruction cannot
+be established from the replay alone. The dated continuation supersedes the
+earlier blocker audit; see [NATIVE_REFERENCE_LIFETIME_TDD.md](NATIVE_REFERENCE_LIFETIME_TDD.md).
 
 ## Established event and call correlation
 

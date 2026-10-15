@@ -263,8 +263,75 @@ and the full dynamic/first-floor/save/close acceptance. The preparation's
 source/AST checks passed. CU has now passed its three-sample6GiB physical/
 commit-reserve gate and launched owned PID36236/start06:57:47.669000Z;
 worker8072/start06:57:36.580000Z and exec handle36365 identify this single run.
-All native boundaries and full acceptance remain pending. No production
-Python source was changed while the fingerprinted native runs were active.
+At launch all native boundaries and full acceptance were pending. Completed
+native results follow below. No production Python source was changed while
+the fingerprinted native runs were active.
+
+## CU result: first observed invalid state follows observation/Save3
+
+All four owned PID36236/start-identity full snapshots have been independently
+read and SHA-verified. The same native feature0x56781100 is LFH/busy and has a
+null+0x170 member before EditRebuild3, after EditRebuild3, and after
+ForceRebuild3. Both independent caption/name paths match 後側_安裝高度.
+
+After the original component-transform observation and Save3 request, an
+additional matched busy moMateDistanceDim_c0x56782030 retains
++0x170=0x135edb720. The pointed allocation is LFH/busy but its actual RTTI is
+DCM3_pos_type_class (DCM solver hierarchy), so this is an incompatible reused
+object, not a live API command target. The original0x56781100 remains null.
+There are no unclassified non-null targets in this four-boundary comparison.
+
+| CU checkpoint | Matched native state | SHA256 |
+| --- | --- | --- |
+| Before first explicit rebuild | One busy named mate, member null |31059902c8ceae8a8dde93c79c9f7d2f2e78641ed990864b15667d276e071fc5 |
+| After EditRebuild3 | Same mate, member null |9e9cbe9e65891cb23750455124e9f8f2b3412dc0e388c14cbb6913029c22c2c0 |
+| After ForceRebuild3 | Same mate, member null |4b7ff96403ce19a0e3bcf93931e00b4095ecd904818e859bde87fa09b10a41bc |
+| After transform observation/Save3 | Additional busy mate retains incompatible solver reference |a9e598fd6127101ab7e66e4061ca6e81483b1d44f0d710c118680d994a626614 |
+
+`inspect_cu_rebuild_boundaries.py` reports baseline clear and first observed
+invalid boundary=after_observe_save, preceded by clear after_force_rebuild.
+This is within-run evidence; it does not attribute the invalidating instruction
+to EditRebuild3 or ForceRebuild3. The remaining interval includes document/
+assembly reacquisition, GetComponents/component reference/pattern queries,
+Transform2/ArrayData observation, assertions, Save3 and request cleanup/deferred
+native work.
+
+The full CU run has now completed all25 CAD requests, both six-case dynamic
+calls, first-floor construction/five cases, Save3/root CloseDoc/batch close and
+normal ExitApp. A separate verifier compares the persisted6+5 geometry to CS
+within0.00001mm, including pattern/configuration/constraint/count/position;
+immutable sources and production runtime hashes match. The owned process is
+gone, no matching event1000 is present (CG/CN positive controls remain detected),
+and the debugger exits0 without an exception dump. This passing diagnostic
+run remains native RED at the observation/Save3 checkpoint; it is not a
+preventive fix. See `cu-native-boundary-verification.json` and
+`cu-full-acceptance.json` under the private current-close-40588 evidence directory.
+
+## Next observation versus save boundary: CV
+
+The next prepared recipe retains all24 other CU request ASTs. It splits only
+the observation/Save3 request, preserving the original transform observation
+and its physical assertion, then reacquiring the private document for a separate
+Save3(1,0,0). Three native checkpoints will run before observation, after
+observation and after Save3. Component/transform wrappers are released before
+Save3 in this variation; if results differ from CU, that lifetime/timing change
+must be considered rather than claiming Save3 alone is exonerated.
+The preparation's24 unchanged request AST checks passed. CV has now passed
+the same three-sample6GiB physical/commit-reserve gate and launched owned
+PID33112/start07:11:16.854000Z; worker18232/start07:11:05.539000Z and exec
+handle30752 identify this single run. The three native boundaries and full
+acceptance remain pending. This launch is not a verified fix.
+
+CU's four completed checkpoint files have been losslessly archived after its
+verified normal exit, using the same original/decompressed-byte SHA checks and
+bounded exact-file duplicate removal. This reserves three full snapshots and
+an exception-time capture for CV; all original exception-time dumps remain
+unchanged. Restore a checkpoint with
+`restore_cr_checkpoint.py <before_edit_rebuild|after_edit_rebuild|after_force_rebuild|after_observe_save> cu`
+before rerunning saved-file inspections that require its loose dump path.
+All four decompressed full-byte hashes match their original checkpoint proofs;
+pre-CV-preparation free disk was22590623744 bytes. The original CN exception-time
+dump remains loose and unchanged. No production Python source changed for CV.
 
 After CT's verified normal finish, the existing bounded archiver has retained
 CT's two, CQ's two and CS's one completed full snapshots as verified lossless

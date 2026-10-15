@@ -52,9 +52,13 @@ request-local cleanup, before explicit rebuild. CT splits that request boundary
 but still observes a retained free allocation after rebuild/save; its next
 snapshot shows the exact same address reused as a busy DCM solver object.
 The lifetime predicate rejects this run despite complete functional/close PASS.
-This disproves a simple request-boundary-release cure and narrows the remaining
-first-creation interval to explicit rebuild, observation/save or related deferred
-native work. Further within-run API boundaries are required; no universal
+This disproves a simple request-boundary-release cure. CU's four within-run
+snapshots now observe the same named mate null before and after EditRebuild3
+and ForceRebuild3; an additional named feature retaining a reused solver object
+first appears after the subsequent transform-observation/Save3 request. The
+remaining interval is observation/save/context cleanup or related deferred
+native work, not those two explicit rebuild calls alone. Observation and Save3
+still require separate verification. No universal
 ModifyDefinition guard or preventive fix has been claimed from close success.
 The actual
 fault marker blocks a fresh no-COM guard while the failed CAD remains live.

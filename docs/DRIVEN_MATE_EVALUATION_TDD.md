@@ -8,8 +8,14 @@ while same-runtime trace-off CN fails with the original native dispatch path;
 tracing is not necessary. Fresh uninterrupted full staged replay CO passes;
 saved/cold verification CP also passes, including independent physical and source/runtime
 hash comparisons. CN's full dump proves a use-after-free for the rear installation-height
-mate; CQ's checkpoint snapshots seek the first lifetime-invalidating phase. Current results
-and limits are in [CJ_CK_CL_NATIVE_RESULTS.md](CJ_CK_CL_NATIVE_RESULTS.md).
+mate. CQ/CR prove that functional close PASS can coexist with a retained free
+API reference, and CT records that same allocation reused as a DCM solver
+object. CU's within-run snapshots are clear after both explicit rebuild calls;
+the invalid reference first appears after transform observation/Save3. The
+remaining observation-versus-save boundary is under test. These findings
+supersede any interpretation that passing staged equation repair establishes
+a native lifetime cure. See [NATIVE_REFERENCE_LIFETIME_TDD.md](NATIVE_REFERENCE_LIFETIME_TDD.md)
+and [CJ_CK_CL_NATIVE_RESULTS.md](CJ_CK_CL_NATIVE_RESULTS.md).
 This document does not mark the broader crash goal done.
 
 ## Reproduced failure interval
