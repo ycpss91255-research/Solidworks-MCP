@@ -203,6 +203,46 @@ CAD, or restart a still-live test solely because an observation timed out.
 Evidence: `blocked-audit-20261015-02.json`, `blocked-audit-20261015-03.json`,
 `runner-liveness-20261015.json`, `overnight-event-audit-20261015.json`.
 
+## Resumed BM failing native replay and monitored bisection
+
+When commit fell to87.25%, BM launched private PID41460. Its initial replay
+stopped at request02: CreateFeature returned None and the original assertion
+`Mirror creation` failed. The preparatory TypeError hypothesis was wrong; new
+failure logging preserves the actual result. This was a local assertion, not a
+fatal COM/native fault. The same owned process was resumed from request03 with
+a fresh MCP and exception watcher, without relaunching or replacing model input.
+
+Mirror orientation/creation/deletion, left-mate face-reference replacement, old
+child mate/component deletion, equation rebinding and rear beam pattern changes
+completed. Save3 succeeded; CloseAllDocuments(True) failed withRPC_E_SERVERFAULT.
+The watcher captured first-chance c0000005 executing non-executable address0x108,
+with live stack frames through MFC, feature destruction, mate walking, assembly
+destruction and iApiCloseDoc. The retained minidump's exception stream is verified
+as c0000005/address0x108. Live .ecxr reported context retrieval failure; do not
+claim a successfully inspected CPU register context from that command.
+
+Evidence: `report-bm.json`, `report-bm-resume.json`, `trace-bm-resume/`,
+`debug-bm-resume/engine.txt` and `exception.dmp`. This is now an owned failing
+replay of the closing API and prior history. Its native address differs from the
+original event's MFC offset; the earliest corrupting operation remains unisolated.
+The failure occurs before any industry rename/dynamic sequence in this replay,
+so those later operations are not necessary for this reproduced failure path.
+
+No COM calls followed the native failure. Faulted41460 was cleaned through a
+held process handle after checking its session PID, creation identity and image,
+with dump preservation recorded in `bm-faulted-cleanup.json`.
+
+Fresh BO (mirror history through request11) saved all eight documents, batch
+closed and exited successfully. Its frozen source hashes remain intact. Fresh
+BP adds request12, including three mate-reference replacements plus old child
+mate/component deletion, before close. It is launched by the live environment
+monitor rather than manual retry; its native result is still pending here.
+BO/BP retained runners use corrected request02 assertion handling and separate
+fresh frozen copies. [RESOURCE_MONITOR.md](RESOURCE_MONITOR.md) records the user's
+correction and verified waiting-to-running transition. Root-cause completion
+still requires BP evidence, narrower operation controls and an appropriate fix
+with native regression/roundtrip verification.
+
 ## Remaining evidence limits
 
 The archive's stack is the Python/COM invocation stack, not the native C++
