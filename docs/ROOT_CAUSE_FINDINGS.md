@@ -1,6 +1,6 @@
 # SolidWorks crash findings — updated2026-10-15
 
-The investigation reproduced four native failure paths on SOLIDWORKS 2023 SP5
+The investigation reproduced multiple native failure paths on SOLIDWORKS 2023 SP5
 (31.5.0.52), using separate owned instances and private model copies. MCP/API
 operations trigger them; the faults occur inside the native CAD process.
 This is evidence for specific failing API/model-state paths, not a finding that
@@ -75,6 +75,20 @@ without another CAD/save call. That cleanup is not a newly observed crash.
 Do not label the failed functional run as a successful lifetime fix. The member's vendor field name/type was never
 published; use native reference consumed by API cleanup/type checking as the
 minimum verified description.
+
+CW changes the editing history by setting the rear distance direction during
+AddMate5 creation and omitting its later direction mutation. Its full22-request
+replay passes17 functional cases; both early and late native checkpoints find
+only the independently matched busy rear feature with a null+0x170 member.
+CX matches the saved geometry and passes7 cold cases with another null native
+checkpoint, but its complete acceptance fails at the held-handle exit gate:
+the diagnostic CDB watcher omitted `-G` and held the target at its default
+final process-exit breakpoint. This monitor defect was independently reproduced
+and corrected with harmless Python controls, including preserved AV detection.
+CY is the fresh cold replay with that corrected watcher; its result is pending.
+This is scoped positive candidate evidence, not a completed universal fix.
+See the [per-case evidence ledger](ROOT_CAUSE_CASE_LEDGER.md) for confirmed
+causes, verified containment and remaining attribution limits.
 
 A further built-in SaveAs containment gap has3 failing fake-CAD regressions:
 native faults can fall through to another save API or lose the final marker.
@@ -229,8 +243,9 @@ Reduced40588-history controls now separate a successful direction edit/close
 (CG). CH's staged early refresh passes six original physical cases and close,
 while late repair (CB) and an atomic encapsulation (CI) fail. CI's fake tests
 were green but its native test was not; the unverified function was removed.
-Exact rebuild/checkpoint/fresh-manager staging, full construction and cold
-acceptance remain under validation in
+CO/CP verified the exact staged recipe's full functional construction and cold
+acceptance. Native lifetime safety remains unresolved: later CQ/CR/CT/CU/CV
+snapshots show why functional or close success alone is insufficient. See
 [DRIVEN_MATE_EVALUATION_TDD.md](DRIVEN_MATE_EVALUATION_TDD.md). The operational
 interval must not be generalized into a ban on ModifyDefinition or a claim
 that every original native exception instruction has been attributed.

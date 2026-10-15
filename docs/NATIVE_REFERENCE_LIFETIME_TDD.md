@@ -377,15 +377,16 @@ completed CV boundary dumps were streamed to bounded lossless ZIPs, reserving
 removing loose duplicates. The empty failed-preflight directory is retained,
 and the second capture verifies the same live PID/start after detach.
 
-A PID-bound read-only inspection of the retained failed model is queued through
+At this historical checkpoint, a PID-bound read-only inspection was queued through
 resource-gate-cv-readonly.json, worker36632/start07:34:02.547000Z, exec69891.
-It requires4GiB commit reserve/physical headroom, launches no CAD, and will read
+It required4GiB commit reserve/physical headroom, launched no CAD, and was to read
 equations, driver properties, pattern definitions and actual components without
 rebuild/save/close. At15:34 commit reserve was about1.2GiB despite about5GiB
-physical available; the live monitor waits for headroom without replaying CV.
+physical available; the live monitor waited for headroom without replaying CV.
 That later resource sample does not establish the cause of the earlier count
-assertion. The same retained PID33112 is kept for this pending inspection;
-other chats' SolidWorks processes and settings are not operated.
+assertion. PID33112 was retained for that inspection, then deliberately terminated
+after the verified native finding described below. Other chats' SolidWorks
+processes and settings were not operated.
 
 ### Completed follow-up: CV has a later retained free reference
 
@@ -460,3 +461,94 @@ same verified archive read. The three ZIPs total3235422436 bytes rather than
 10657183659 loose bytes, freeing7421761223 bytes. Archive SHA receipts remain
 beside each snapshot's original result and offline heap analysis. No fault-time
 dump is deleted or rewritten. Disk free was17452769280 bytes before CT preparation.
+
+## CW: creation-time direction passes the full fresh replay
+
+CW used own PID25376/start2026-10-15T08:34:11.998000Z and the same seven frozen
+inputs as CO. All 22 request labels/order remain. The rear distance mate is
+explicitly absent before creation and successfully created with `AddMate5`
+`Flip=True`; the later `FlipDimension` assignment and `ModifyDefinition` call
+are omitted. Endpoint order, alignment, other mates, rebuilds, equation staging,
+save/close operations and full functional requirements remain. Seventeen request
+ASTs are identical; three others add only the already-read transform to output
+records. The remaining two are the declared creation/direction changes.
+
+The official [AddMate5 parameter contract](https://help.solidworks.com/2019/english/api/sldworksapi/SOLIDWORKS.Interop.sldworks~SOLIDWORKS.Interop.sldworks.IAssemblyDoc~AddMate5.html)
+supports setting the distance mate's Flip at creation. The existing rear full
+16-value transform is checked against CO, not inferred from the parameter alone.
+Current runtime differs from CO only by the separately verified native SaveAs
+failure-containment change in `automation/documents.py`.
+
+`cw-functional-acceptance.json` independently verifies both complete six-case
+matrices, all five first-floor cases, rear rotation/scale and signed position,
+seven immutable sources, current runtime hashes, saved root/prototype equality,
+and all original save/root-close/batch-close/ExitApp responses. The first six-case
+artifact is preserved separately instead of being overwritten by the second.
+All 6+6+5 cases pass. The CV missing-front-beam failure does not recur here; this
+does not prove that its cause was the native reference defect.
+
+Both full native snapshots find the same independently matched busy
+`moMateDistanceDim_c` at0x63fc0de0, with member+0x170 null and no unknown matched
+feature. The early snapshot is3,156,270,052 bytes, SHA256
+`b2540339db954020ed5add72d62729e5800f7ad74f7a88ebea9808e5daf68715`;
+the late snapshot after all functional work is4,065,894,756 bytes, SHA256
+`87c885622782e806eba17ba9b5285380162b34a9facd1f12ba7c268af7dbdfec`.
+Bounds, embedded PID/start, full-byte hashes and actual heap metadata were
+verified. Both dumps are stored on the authorized SanDisk, with workspace
+junctions preserving their original evidence paths.
+
+Exception capture covered model operations and restarted after each quiescent
+checkpoint. Per-call guards stop on a missing watcher or an exception marker,
+including when dump writing fails; unsolicited breakpoints also stop the run.
+No watched native exception was captured, and the exact PID/start event audit
+found no event1000, with CG as a positive parsing control. CW's own process is
+now absent after the explicit ExitApp request. Its watcher detached after that
+response, so its actual process exit code was not captured; this gap is recorded
+in `cw-full-native-acceptance.json`, rather than claiming that the debugger
+observed the final OS exit.
+
+This fresh replay is positive evidence for avoiding this particular edit history,
+not a universal heap guarantee or proof of the first free instruction. Independent
+saved/cold acceptance remains required before accepting the prevention candidate.
+The initial CW preflight also stopped before CAD launch because an old CP PID
+returned access denied. Live process enumeration proved that PID absent; the
+corrected check records that evidence instead of treating access denied as proof
+of either a live instance or PID reuse. The failed monitor and corrected retry
+are retained separately; only one CW CAD instance was launched.
+
+## CX cold evidence and final-exit monitor defect
+
+CX owned PID43620/start `2026-10-15T09:05:55.072000+00:00` loaded the saved CW
+copy and matched the as-loaded geometry before any edits. All seven cold
+dimension/count cases returned successfully. The independently matched busy
+rear distance feature `0x408b1190`, RTTI `moMateDistanceDim_c`, again had a null
+member+0x170 after those cases; there were no unknown matched features. Full
+checkpoint size is 3,800,823,897 bytes, SHA256
+`80253a23c318507238696692def056e53932d86edd3d38227852be676ce93e32`.
+The root save/copy/close and remaining-document batch close also returned.
+
+However, the complete CX acceptance is **failed**, not green: after ExitApp,
+the held process handle did not signal within120 seconds. The CDB console was
+at `ntdll!NtTerminateProcess+0x14` and its command prompt. The watcher had
+omitted `-G`, so its default final process-exit stop held the target during
+shutdown. Its finally cleanup sent `qd`; the later OS-only observation found
+the owned PID absent (`OpenProcess`87). No actual exit code was captured for
+CX. There were zero matching native fault events, and no exception/breakpoint
+dump. `verify_cx_cold_acceptance.py` correctly rejects the terminal report.
+
+The monitor defect was reproduced independently using harmless newly spawned
+Python targets and exact held process handles. Without `-G`, the child stayed
+held at the final-exit prompt; with `-G`, both child and CDB ended naturally
+with exitcode0 and no stop/detach command. The first baseline cleanup attempt
+using `g` was rejected (`No runnable debuggees`); this failed harness record is
+retained, and its successful `qd` cleanup is distinguished from the fixed arm.
+Evidence: `LAB/cdb-final-exit-regression-20261015-01/comparison.json`.
+The [official CDB options](https://learn.microsoft.com/en-us/windows-hardware/drivers/debugger/cdb-command-line-options)
+describe `-G` as ignoring the final process-termination breakpoint. The own
+watcher now passes this flag; its AV/failfast/breakpoint handlers are retained.
+This changes diagnostic instrumentation, not production MCP or CAD behavior.
+A fresh CY cold replay remains required for the actual SolidWorks exit result.
+
+Large checkpoints continue to use verified SanDisk junctions. The storage
+audit validates25 registered targets and153 relocated file sizes; no D drive
+is used. The failed CX evidence is retained rather than overwritten by CY.
