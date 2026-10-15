@@ -1,6 +1,6 @@
 # SolidWorks crash findings — updated2026-10-15
 
-## Recent other-session audit — 19:10 Taipei
+## Recent other-session audit — 19:10 Taipei, updated after 19:43–19:46
 
 The user reported repeated errors and SolidWorks exits in `後推式貨架 (2)` and
 `MR12 叉車`. Read-only MCP logs, saved thread outputs, process identity records,
@@ -26,10 +26,15 @@ restart, or configuration change was performed in either chat for this audit.
 - MR12 PID37312/start09:30:09.155Z disappears between the last successful call
   at18:55:31.384 and the failed connection at18:59:02.017 (local times). Its
   last script samples MotionStudy time/transforms and has no close/exit call.
-  The scoped logs have no exact exit time, exit code, or native dump; Windows
-  Application/System and the queried Security4689 window add no corresponding
-  crash/exit event. Missing events do not prove normal exit. This case remains
-  unattributed, including whether MCP/API activity caused it.
+  A subsequently located owner receipt records its native error-report process
+  PID14820, parent37312, created at18:56:27.817552, and the message that
+  SOLIDWORKS stopped unexpectedly. The displayed fault module was blank; the
+  owner recorded unchecking report transmission and closing the report. This
+  establishes an observed native error report for the exact session, despite
+  no corresponding crash/exit event in the scoped Windows queries. Exact exit
+  time/code and a native dump remain unavailable; the last successful Motion
+  read is not proven causal. The receipt is preserved in the
+  [updated MR12 correlation](../test-results/remaining-fault-correlation/other-sessions-audit-20261015/forklift-34632-close-doc-correlation.json).
 - A separate MCP backup defect is confirmed: MR12's
   `AppData/Local/SWMCP/d6487dff014ce049/worker-startup.json` still reserves
   PID2836/start2026-10-12T12:51:28.718Z, while no `monitor.json` exists.
@@ -68,12 +73,47 @@ handles for rack38232 and MR12's replacement34632, after checking PID, creation
 time, image and the respective session manifests. It performs no COM call,
 debugger attachment, termination, or UI control. The
 [observer status](../test-results/remaining-fault-correlation/other-sessions-audit-20261015/process-exit-observation-v1.json)
-will record kernel exit time/code if either exits within its one-hour window;
-it cannot retroactively fill37312's gap or identify an exit initiator or root
-cause alone.
+subsequently captured34632's kernel exit time/code. It cannot retroactively
+fill37312's gap or identify an exit initiator or root cause alone.
 The exit-time/code API was checked against a harmless child exiting with23.
 Original root-cause controls and safe backup-recovery regression work remain
 open; this audit is not a declaration that all crash or backup issues are fixed.
+
+### MR12 PID34632: native CloseDoc failure, then owner cleanup
+
+The exact identity is PID34632/start `2026-10-15T10:59:45.358Z`. At19:43:08.859
+its own MCP executes `prepare_ap33_native_drag_review.py`; line11 loops over
+private probe assembly titles and calls `sw.CloseDoc(title)`. Windows
+Application Error1000, record25056 at19:43:18.556, records this same process
+with `c0000005`, unknown module and offset `0x108`. WER records25057/25068
+share report273da92c-1e07-4bca-a816-69fca666d16f. At19:43:33.129 the MCP log
+returns `RPC_E_SERVERFAULT` (`0x80010105`) from that CloseDoc line and records
+`native_fault_quarantined=true` for the same PID/start. The native error thus
+precedes the final process termination.
+
+At19:45:52.502 the MR12 owner explicitly runs
+`stop_faulted_owned_solidworks.ps1` with PID34632 and its expected start time.
+The script checks executable/start identity and then calls
+`Stop-Process -InputObject $targetProcess -Force`; its receipt confirms exit.
+The independent held OS handle records exit at19:45:52.839 with
+`0xffffffff` (-1). That final code belongs to deliberate post-fault cleanup,
+not the earlier access-violation code. The owner then starts its replacement
+PID43932/start11:45:53.954Z. This investigation's separate baseline24588 starts
+at11:45:58.673Z, after both the native fault and cleanup.
+
+The [joined call/event/cleanup evidence](../test-results/remaining-fault-correlation/other-sessions-audit-20261015/forklift-34632-close-doc-correlation.json)
+includes original paths, line numbers, source hashes and the complete failing
+script; [saved thread commands](../test-results/remaining-fault-correlation/other-sessions-audit-20261015/forklift-34632-command-evidence.json)
+confirm the actual owner cleanup invocation. The exact failing title/loop index
+was not emitted before each CloseDoc, and no original exception-state dump is
+available in this audit. Read-only access to the exact WER ReportArchive
+directory named by the event was denied; its event metadata remains preserved,
+and no permissions or security settings were changed. Therefore this is a confirmed native failure during
+the CloseDoc call, not proof of its first corrupting operation, a particular
+model, or a Python binding defect. Nor does the separate backup-startup warning
+establish that missing independent backup caused the crash. The older stale
+document-wrapper hypothesis for18088/51148 is not automatically this case's
+cause, and the fixes for other close failures are not acceptance for34632.
 
 ## Native reproductions and scoped fixes
 
