@@ -99,6 +99,13 @@ signaled state as well as its creation identity: an exited Windows process objec
 can remain queryable. No old job is relaunched merely because observation times out.
 
 This provides a reproduced trigger and tested workaround for this path. The exact
-original46576 native address differs from the owned execute-at0x108 exceptions;
+original46576 native address differs from the BM/BP owned execute-at0x108 exceptions;
 private vendor symbols/internal write provenance are not available. The distinct
 40588 case remains unattributed. These limits keep the broader investigation open.
+
+A later independent40588-history control CB does reproduce the original46576
+recorded MFC+0x23dc91 fault site, with matching DLL version/timestamp metadata.
+This shared site is in CObject::IsKindOf according to matching current public
+symbols, but does not prove a shared first corrupting operation. See
+[DRIVEN_MATE_EVALUATION_TDD.md](DRIVEN_MATE_EVALUATION_TDD.md) for the direct
+event comparison, source hashes and historical dump limits.

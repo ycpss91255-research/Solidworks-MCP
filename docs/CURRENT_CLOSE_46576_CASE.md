@@ -345,3 +345,13 @@ The archive review itself did not operate CAD. Subsequent BJ/BK controls used
 only owned instances and private files as described above. New evidence enables
 a distinct investigation; it does not certify the previous failure as fixed or
 retrospectively complete the root-cause goal.
+
+Later offline correlation finds that the independent40588-history CB control
+and original46576 event23224 share MFC+0x23dc91, c0000005, DLL version14.50.35719.0
+and timestamp58bc9fe7. The current public symbols identify that site within
+CObject::IsKindOf. This is a verified shared detection site, not recovery of the
+original registers/heap or proof that the two workflows first corrupt memory
+in the same operation. The source-XML/control-event comparison is preserved in
+`current-close-40588/original-46576-cb-mfc-site-comparison.json`, with the limits
+and current native regression described in
+[DRIVEN_MATE_EVALUATION_TDD.md](DRIVEN_MATE_EVALUATION_TDD.md).

@@ -58,6 +58,21 @@ Local `current-close-40588/recent-native-event-correlation.json` retains the
 query-derived records, creation identities, timestamps and dump hashes. This
 independently confirms native CAD exceptions for these three failed controls;
 it is not merely an inference from an MCP timeout or a later intentional cleanup.
+The dump's own MiscInfo PID and process creation seconds also match each owned
+session, independently of the debugger sidecar and Windows event. All three
+captures pass the cleanup helper's read-only `--verify-only` path. Future fault
+cleanup validates the actual exception/context, dump identity and hash before
+opening a termination handle; a full capture additionally requires a bounded,
+readable Memory64List payload. File existence alone is insufficient.
+
+The original46576 event23224 (2026-10-14 20:28:51 Taipei) and CB event24299
+also have identical recorded AppVersion/AppTimeStamp, MFC ModuleVersion
+14.50.35719.0/ModuleTimeStamp58bc9fe7, module path, c0000005 and fault offset
+0x23dc91. `original-46576-cb-mfc-site-comparison.json` preserves that direct XML/
+JSON comparison and both input hashes. The matching current public symbols put
+this offset in `CObject::IsKindOf`; the original historical dump/registers are
+still unavailable. Same recorded native site does not prove identical earlier
+corruption, identical model state or byte identity of the historical DLL.
 
 ## Retained helper, failed composition and regression evidence
 
@@ -124,6 +139,11 @@ coverage and confirms that missing RCX/argument coverage, while reading the
 captured stack and fault-target data. Its output is
 `exception-object-memory.json`. Dump readers and cleanup hashing now avoid
 copying a future full dump into a single large Python bytes allocation.
+Four local synthetic file-format checks pass: Memory64List object/vtable reads,
+ordinary MemoryList offsets, missing object bytes remain unknown, and a
+truncated full-memory payload is rejected without an output report. These are
+diagnostic reader checks, separate from273 production unit tests and still not
+evidence of a completed full-memory CAD replay.
 
 For a future owned failing control, the local PID-bound capture script has an
 opt-in `--full-memory` mode using [.dump /ma](https://learn.microsoft.com/en-us/windows-hardware/drivers/debuggercmds/-dump--create-dump-file-).
