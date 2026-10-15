@@ -16,7 +16,7 @@ SanDisk through verified workspace junctions; see [storage](DIAGNOSTIC_STORAGE.m
 | Existing distance-to-limit mate conversion | Combined edits followed by close reproduce MFC/DCM destruction faults. AA captures `dcu3d59+0x11073`, invalid read at `0x100000007`, with feature/mate/assembly destruction frames. | Frozen 230-file controls, AA exception dump, AD/AE/AF full acceptance; [mate evidence](CONFIRMED_NATIVE_MATE_CLOSE_FAULT.md). | Fresh limit-mate creation preserves endpoints, range and all 68 component transforms; complete four-mate follow-up, save, close, reopen and saved ranges pass. Callable tool verified in independent AF. | Feature identity/order changes require explicit acceptance. No universal ban on `ModifyDefinition`; earliest corrupting operation and vendor-versus-contract attribution remain unproven. |
 | Invalid brace configuration | Prior horizontal rebuild plus failed diagonal switch leads to native purecall/abort during close; individual-operation controls pass. | AG–AM controls; AM exception stream is `c0000409`, subcode 7, with equation/model-update/close frames; [configuration evidence](CONFIRMED_CONFIGURATION_FATAL_EXIT.md). | Preserved-equation staged repair, saved checkpoint, parent binding and actual pattern placement pass AX; separate AY verifies saved geometry/matrices. | Repair is specific to the frozen fixture. A much earlier PID28724 fault with a multi-hour MCP gap is not attributed solely by matching signature. |
 | Mate-reference changes, equation recreation and child deletion | BM/BP close faults reproduce the combined history. BO/BQ/BR/BS separate the interaction; omission alone leaves invalid binding in BU. | `LAB/current-close-46576/` comparisons and BM/BP dumps; [equation TDD](EQUATION_BINDING_CLOSE_TDD.md). | In-place same-text equation refresh preserves count/text/order. Terminal BV passes 8 dynamic cases and save/close; terminal BW passes 3 separate saved/cold observations. Both preserve frozen inputs; audited fault-event count is zero. | Original PID46576 has no original exception-state dump. A shared MFC detection site with CB does not prove the same first corrupting operation. |
-| Rear distance-mate native lifetime | CN directly shows a busy named feature retaining a pointer to a freed allocation, then dereferencing its residual solver vtable during cleanup/type checking. CQ/CR/CT/CV observe retained-free or incompatible reused targets despite some successful closes. | CN full dump and [native dispatch](CN_FULL_DUMP_NATIVE_DISPATCH.md); [lifetime TDD](NATIVE_REFERENCE_LIFETIME_TDD.md); `LAB/current-close-40588/cv-late-native-reference-verified.json`. | Identity-bound quarantine stops subsequent managed calls after an observed fault. Early equation refresh and split requests are **not** verified lifetime cures; CO/CP functional passes cannot supply that proof. | CW prevention candidate is in progress below. Exact first-free instruction is unknown, but is not required to establish the observed UAF. Original PID40588's unknown-module event is not retrospectively equated with CN. |
+| Rear distance-mate native lifetime | CN directly shows a busy named feature retaining a pointer to a freed allocation, then dereferencing its residual solver vtable during cleanup/type checking. CQ/CR/CT/CV observe retained-free or incompatible reused targets despite some successful closes. | CN full dump and [native dispatch](CN_FULL_DUMP_NATIVE_DISPATCH.md); [lifetime TDD](NATIVE_REFERENCE_LIFETIME_TDD.md); `LAB/current-close-40588/cv-late-native-reference-verified.json`. | Identity-bound quarantine stops subsequent managed calls after an observed fault. Early equation refresh and split requests are **not** verified lifetime cures. Creation-time rear direction now passes CW's17 fresh cases, CY's7 saved/cold cases, all three bounded native gates and CY's held-handle exit0. | This is a scoped recipe, not a universal lifetime guarantee. Exact first-free instruction is unknown, but is not required to establish the observed UAF. Original PID40588's unknown-module event is not retrospectively equated with CN. |
 | Sensor-query native fault | Original PID48852 event24437 falls inside the actual sensor request: `sldapiu+0x7223a2`, `c0000005`, then caught `RPC_E_SERVERFAULT`. | `LAB/48852-sensor-fault-audit.json` and original call/reply; [sensor TDD](SENSOR_FAULT_FALSE_SUCCESS_TDD.md). | The consumed-exception observer fixes false SUCCESS and blocks later managed requests; mock and real-stdio regressions pass. This is containment, not a native sensor repair. | The compound expression's exact failing member and faithful native replay are unverified. Its later process exit has not been attributed. |
 | CV missing component | First-floor acceptance expects 4 front beams but finds 3; HRESULT is null and no native exception was captured at that assertion. A later dump independently proves a dangling reference. | `LAB/current-close-40588/cv-failed-functional-audit.json`, `cv-late-native-reference-verified.json`. | Failed acceptance remains failed; the corrupted owned PID was retired without another CAD/save call after dump validation. | Missing-component cause and any causal link to the dangling reference remain unproven. It is not itself evidence of a spontaneous process crash. |
 | Memory pressure | Historical System event2004 records virtual-memory exhaustion. Separately, native query failure reproduces near 64% commit; successful mate replacement ran at higher commit than a failing conversion. | [initial read-only audit](../test-results/crash-investigation-20261013.md), event time 2026-10-12 18:12:46; `LAB/cg-cm-close-memory-comparison.json`; dependency/mate controls above. | Explicit low-memory cancellation and observable resource waiting avoid blind retries. Physical availability and commit reserve are checked separately. | Pressure is real but not sufficient to explain every fault. A later scoped event2004 query with no matches does not exclude allocation failure. |
@@ -55,7 +55,7 @@ read from their completed verification records, not recalculated in this audit.
   containment behavior, not universal native CAD safety or migration of loaded
   MCP processes in other chats.
 
-## CW passed; CX exit-monitor failure; final cold acceptance pending
+## CW and CY scoped acceptance passed; CX exit-monitor failure retained
 
 Own PID25376/start `2026-10-15T08:34:11.998000+00:00` completed all22 requests.
 `cw-functional-acceptance.json` verifies both six-case matrices, all five
@@ -88,10 +88,23 @@ monitor defect, not evidence of another native CAD crash. CX was released by
 watcher detach and later verified absent, without a captured OS exit code.
 The terminal failed report and rejecting verifier remain preserved.
 
-Required next evidence is fresh CY saved/cold acceptance using the corrected
-watcher, including its late native checkpoint and held-handle exit check.
-A native gate failure rejects the candidate and stops CAD calls; a successful
-close cannot override that failure.
+CY owned PID48928/start `2026-10-15T09:29:43.212000+00:00` now passes all11
+requests from the same seven frozen CW inputs, preserving CX's CAD request
+ASTs/order. The [independent acceptance](../test-results/remaining-fault-correlation/current-close-40588/cy-cold-acceptance.json)
+verifies geometry before edits, all7 cold cases and rear rotations, source/runtime
+hashes, root and batch close, and actual normal process exit. Its late
+[native gate](../test-results/remaining-fault-correlation/checkpoint-cy-after_cold_functional/native-gate.json)
+finds one matched busy rear feature with null member+0x170 and no unknown
+matched features; full-dump SHA256 is
+`3cb1f0fe824693369e69babb8b182becada6ca8f4a52a938c8b0212a9af9dbfe`.
+
+The same PID/start/image-verified handle held across ExitApp signals with
+exitcode0. The close watcher completes naturally without a detach request or
+fault dump; observation takes6.2945 seconds. The event audit extends beyond
+handle closure and records zero exact-identity CY matches, with CG still a
+positive control. CW+CY therefore pass the scoped fresh/saved-cold recipe,
+including the named-reference gates. This neither converts failed CX to PASS
+nor fills CW's exit-code gap, and it does not certify every native allocation.
 
 ## Completion boundary
 
@@ -101,11 +114,12 @@ PropertyManager with an empty target/value, its confirmation, and the subsequent
 query of `Sensors1`. The sensor was later deleted and saved, so the pre-sensor
 root-only backup is not the lost fault-state fixture. A fresh private valid-target
 versus empty-target sensor comparison, with separately traced getters, is the
-next causal test. These UI observations support a hypothesis; they do not yet
+next causal test. The valid-target controller has started, with actual UI and
+native getter acceptance still pending. These UI observations support a hypothesis; they do not yet
 identify the failing getter or prove that an empty target caused the exception.
 
-The broad root-cause goal remains active. Next work must resolve the current
-candidate verdict, investigate the sensor sub-call and any repeated CV functional
+The broad root-cause goal remains active. The CW/CY candidate verdict is scoped
+PASS; next work must investigate the sensor sub-call and any repeated CV functional
 failure, and record final per-case disposition. Missing original exception-state
 dumps limit historical attribution; a shared detection address cannot fill that
 gap. Unknown first-free provenance does not invalidate the directly observed

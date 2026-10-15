@@ -509,7 +509,8 @@ observed the final OS exit.
 
 This fresh replay is positive evidence for avoiding this particular edit history,
 not a universal heap guarantee or proof of the first free instruction. Independent
-saved/cold acceptance remains required before accepting the prevention candidate.
+saved/cold acceptance was still required at this point; CY completes that scoped
+gate below after the failed CX exit-monitor experiment.
 The initial CW preflight also stopped before CAD launch because an old CP PID
 returned access denied. Live process enumeration proved that PID absent; the
 corrected check records that evidence instead of treating access denied as proof
@@ -547,8 +548,47 @@ The [official CDB options](https://learn.microsoft.com/en-us/windows-hardware/dr
 describe `-G` as ignoring the final process-termination breakpoint. The own
 watcher now passes this flag; its AV/failfast/breakpoint handlers are retained.
 This changes diagnostic instrumentation, not production MCP or CAD behavior.
-A fresh CY cold replay remains required for the actual SolidWorks exit result.
+The fresh CY cold replay below supplies the actual SolidWorks exit result.
 
 Large checkpoints continue to use verified SanDisk junctions. The storage
 audit validates25 registered targets and153 relocated file sizes; no D drive
 is used. The failed CX evidence is retained rather than overwritten by CY.
+
+## CY: saved/cold acceptance and observed normal exit pass
+
+CY used owned PID48928/start `2026-10-15T09:29:43.212000+00:00` and the same
+seven frozen CW saved inputs used to start CX. All11 CAD request ASTs and
+their order match CX; this rerun changes the diagnostic watcher's final-exit
+handling, not the CAD candidate. The prior CX identity had ended before CY
+preparation. The [terminal report](../test-results/remaining-fault-correlation/report-cy.json)
+and [independent acceptance](../test-results/remaining-fault-correlation/current-close-40588/cy-cold-acceptance.json)
+both pass. They verify as-loaded geometry before edits, all7 cold cases,
+rear rotation/scale and signed positions, unchanged source/runtime hashes,
+root save/copy/close and remaining-document batch close.
+
+After all seven cases, the independently matched busy `moMateDistanceDim_c`
+at `0x52d5b8f0` has a null member+0x170; there are no unknown matched features
+and no retained free reference in this bounded predicate. The full checkpoint
+is3,808,893,457 bytes, SHA256
+`3cb1f0fe824693369e69babb8b182becada6ca8f4a52a938c8b0212a9af9dbfe`.
+Its [native gate](../test-results/remaining-fault-correlation/checkpoint-cy-after_cold_functional/native-gate.json)
+and completed snapshot record verify the same PID/start, full-memory bounds,
+hash and post-detach live identity. This documentation update checked those
+compact records and their acceptance hashes without rehashing the large dump.
+
+Immediately before the empty ExitApp request, CY retained a QUERY/SYNC handle
+and checked PID, native creation FILETIME and the SLDWORKS executable image.
+That same handle signaled with exitcode0. The close-phase watcher remained
+attached and finished naturally, without stop/detach requests or fault dumps;
+the total post-return observation took6.2945 seconds. The
+[exact-identity event audit](../test-results/remaining-fault-correlation/current-owned-native-event-audit.json)
+extends beyond handle closure, has zero CY matches, and still detects the CG
+positive control. No CAD call followed ExitApp.
+
+CW's6+6+5 fresh cases, both CW native checkpoints, and CY's7 saved/cold cases,
+late native checkpoint and observed clean exit now satisfy this scoped
+creation-time direction recipe. They do not prove all native allocations safe,
+identify the first-free instruction, or retrospectively attribute every
+historical fault. CX's failed acceptance and CW's uncaptured exit code remain
+unchanged historical limits. The broader investigation, including the sensor
+native control and CV's separate missing-component cause, remains active.

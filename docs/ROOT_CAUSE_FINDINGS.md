@@ -85,8 +85,17 @@ checkpoint, but its complete acceptance fails at the held-handle exit gate:
 the diagnostic CDB watcher omitted `-G` and held the target at its default
 final process-exit breakpoint. This monitor defect was independently reproduced
 and corrected with harmless Python controls, including preserved AV detection.
-CY is the fresh cold replay with that corrected watcher; its result is pending.
-This is scoped positive candidate evidence, not a completed universal fix.
+CY now completes that fresh cold replay with the corrected watcher: all11
+requests, saved geometry before edits, all7 cold cases and rear rotations pass
+from the same frozen CW inputs. Its late native checkpoint again finds a null
+member+0x170 on the independently matched busy rear feature, with no unknown
+matched features. Owned PID48928 exits with held-handle code0; the watcher
+finishes naturally after6.29 seconds, with zero exact-identity fault events.
+The [CY acceptance](../test-results/remaining-fault-correlation/current-close-40588/cy-cold-acceptance.json)
+therefore completes the scoped CW fresh/CY saved-cold acceptance for this
+editing recipe. CX remains failed, and CW's uncaptured OS exit code remains
+an explicit gap. This does not identify the first free instruction or establish
+a universal fix; the sensor native replay and historical attribution remain open.
 See the [per-case evidence ledger](ROOT_CAUSE_CASE_LEDGER.md) for confirmed
 causes, verified containment and remaining attribution limits.
 
@@ -244,8 +253,10 @@ Reduced40588-history controls now separate a successful direction edit/close
 while late repair (CB) and an atomic encapsulation (CI) fail. CI's fake tests
 were green but its native test was not; the unverified function was removed.
 CO/CP verified the exact staged recipe's full functional construction and cold
-acceptance. Native lifetime safety remains unresolved: later CQ/CR/CT/CU/CV
-snapshots show why functional or close success alone is insufficient. See
+acceptance. Later CQ/CR/CT/CU/CV snapshots show why those functional or close
+passes alone are insufficient. The revised creation-time direction recipe now
+passes CW's full fresh workflow and CY's independent saved/cold workflow,
+including the bounded named-reference gates and CY's observed clean exit. See
 [DRIVEN_MATE_EVALUATION_TDD.md](DRIVEN_MATE_EVALUATION_TDD.md). The operational
 interval must not be generalized into a ban on ModifyDefinition or a claim
 that every original native exception instruction has been attributed.
