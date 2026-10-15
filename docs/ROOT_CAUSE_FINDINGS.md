@@ -109,6 +109,17 @@ preservation and caught-fault stdio restart. Other chats' loaded servers have
 not been restarted by this investigation. See
 [SENSOR_FAULT_FALSE_SUCCESS_TDD.md](SENSOR_FAULT_FALSE_SUCCESS_TDD.md).
 
+At19:28 a new private empty-target sensor control explicitly succeeded at
+QueryInterface(ISensor), bypassed the generated constructor, and then reproduced
+the same sldapiu.dll31.5.0.52/RVA0x7223a2 access violation at `SensorType`.
+The verified full exception dump records RCX=0 and a read from0xAD0. This
+excludes swallowed interface-query failure for this reproduction. The MCP
+returned an error and quarantined the exact PID; no later getter/save was issued.
+A valid-target comparison remains necessary before attributing the failure
+exclusively to the empty target. The faulted private PID52240 was closed only
+after evidence validation, and no report was submitted. The linked sensor
+document contains the per-member trace, dump receipt and cleanup verification.
+
 CN's full dump now establishes a native use-after-free on the specific
 後側_安裝高度 mate. Its busy moFeature_c allocation retains, at+0x170, a pointer
 to an LFH heap block already marked free. Native destruction dereferences that

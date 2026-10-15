@@ -119,10 +119,13 @@ cleanup, not another spontaneous crash. Computer-use control was released.
 
 The generated pywin32 constructor can swallow a QueryInterface error and retain
 the original dispatch object. Its return therefore does not prove a successful
-ISensor IID query. The empty-target condition is not yet established as the
-exclusive cause. An explicit-QI empty-target control has passed six offline
-stop-condition tests but has not run against CAD; a valid-target control also
-remains outstanding. The original pre-sensor backup is not a saved fault-state
+ISensor IID query. The later explicit-QI empty-target control on owned PID52240
+now verifies successful IID negotiation before reproducing the same SensorType
+AV, native instruction and module build/offset. Its full dump and per-member
+trace are verified and the faulted private PID has been retired. Constructor
+fallback is therefore excluded for this reproduction. A valid-target control
+remains outstanding; the empty-target condition is not yet established as the
+exclusive cause. The original pre-sensor backup is not a saved fault-state
 fixture, because the original sensor was subsequently deleted and saved.
 
 The broad root-cause goal remains active. The CW/CY candidate verdict is scoped

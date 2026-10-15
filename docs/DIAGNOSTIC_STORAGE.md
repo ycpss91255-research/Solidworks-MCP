@@ -59,3 +59,22 @@ an error; no D: path or C: dump fallback was found in that scoped routing.
 The audit did not scan unrelated user data, move/delete evidence, or call CAD.
 The17-directory transfer result above and the earlier25-directory audit remain
 valid historical snapshots;30 is the registration count at this later check.
+
+## Lossless archival of a completed sensor dump — 19:40 Taipei
+
+The completed PID46396 `debug-sensor-valid-v2/exception.dmp` was archived as
+`exception.dmp.zip` on the same verified SanDisk. The original was3,492,402,159
+bytes; the ZIP is1,106,879,633 bytes. A streaming source hash during compression
+and a separate full streaming decompression both matched the original validated
+SHA256 `b097b628cc9b6a5bd30e3bbf03154dab68d47fe879cdb9673e19a0acea960a5e`.
+Only then was that exact original dump removed. The independently computed ZIP
+SHA256 is `a4ee24f00d52078ad6c877637af034286f38eddb61297a1e9371d06ce0635646`.
+
+The [archival manifest](../test-results/remaining-fault-correlation/debug-sensor-valid-v2/exception.dmp.archival-manifest.json)
+records resolved source/destination paths, checks and safe restoration steps.
+Historical dump-validation receipts retain their original path and describe the
+validated pre-archive file. Offline reanalysis must restore from this verified
+archive on SanDisk; it must not assume the uncompressed file still exists or
+silently extract to C:/D:. Analysis JSON, debugger console and validation receipts
+were preserved. SanDisk had9,148,563,456 bytes free after archival. The newer
+PID52240 dump and other sessions' data were not changed.

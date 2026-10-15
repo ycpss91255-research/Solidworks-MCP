@@ -277,6 +277,11 @@ one zero-byte range at0xfab9000 corresponds to the unreadable page logged by
 CDB. This validates the recorded payload, not capture of every process page.
 The recorded SHA256 is
 `b097b628cc9b6a5bd30e3bbf03154dab68d47fe879cdb9673e19a0acea960a5e`.
+This completed dump was subsequently losslessly archived to `exception.dmp.zip`
+after full decompression verified that same hash; see
+[the archival receipt](../test-results/remaining-fault-correlation/debug-sensor-valid-v2/exception.dmp.archival-manifest.json)
+and [storage policy](DIAGNOSTIC_STORAGE.md). Its original uncompressed path is
+historical until explicitly restored on SanDisk.
 The validation also confirms the original event's module version, timestamp,
 fault offset and exception code. The matching signature and null RCX do not
 prove successful interface negotiation or exclusive empty-target causality.
@@ -298,10 +303,55 @@ transport flag.
 This actual native run verifies error reporting and persisted quarantine,
 with no later getter or CAD cleanup in the probe. It deliberately rethrows
 the fault, so the caught-and-swallowed behavior still relies on the separate
-regressions described above. Explicit interface negotiation, the valid-target
-comparison, healthy save/close acceptance and the underlying reason this
-dispatch reaches the null-base read remain open. No general sensor-method ban
+regressions described above. Explicit interface negotiation was subsequently
+verified by the next control; the valid-target comparison, healthy save/close
+acceptance and the underlying reason this dispatch reaches the null-base read
+remain open. No general sensor-method ban
 or broad crash-investigation completion follows from this one reproduction.
+
+## Explicit ISensor QI control, 2026-10-15 19:28 local
+
+Owned PID52240/start `2026-10-15T11:17:13.216000+00:00` used a byte-identical
+private baseline and a newly native-created empty-target Dimension sensor.
+The [UI evidence](../test-results/remaining-fault-correlation/sensor-private-strictqi-v1/ui-creation-evidence.json)
+records blank target/value, Alert unchecked, and committed `Sensors1`.
+The initial [metadata probe](../test-results/remaining-fault-correlation/sensor-private-strictqi-v1/strictqi-probe-trace.jsonl)
+failed ordinarily at `IDispatch.GetTypeInfo` with `DISP_E_BADINDEX`
+(-2147352565); it never reached explicit QI or SensorType. That failed attempt
+remains preserved, rather than being counted as a native regression result.
+
+The subsequent [one-shot direct-QI trace](../test-results/remaining-fault-correlation/sensor-private-strictqi-v1/directqi-v2-trace.jsonl)
+skips optional type metadata. Sequence24 explicitly requests ISensor IID
+`{D29432D5-E401-424B-B009-F5775BBDBF65}`; sequence25 returns PyIDispatch at
+11:28:00.384635Z. The worker binds that returned interface without invoking
+the generated wrapper constructor. Sequence27 begins `ISensor.SensorType` at
+11:28:00.386071Z; sequence28 records RPC_E_SERVERFAULT at11:29:21.165080Z.
+No alert/data getter, Save, CloseDoc or ExitApp follows the fault.
+
+The [native analysis](../test-results/remaining-fault-correlation/sensor-directqi-native-analysis-v2/result.json)
+and [dump validation](../test-results/remaining-fault-correlation/sensor-directqi-native-analysis-v2/validation.json)
+verify the same c0000005, sldapiu.dll31.5.0.52/timestamp65249524/RVA0x7223a2,
+RCX=0 and read0xAD0. All19 stream ranges and6043 recorded Memory64 payload
+ranges fit the3,444,437,222-byte full dump, ending at EOF. CDB logged one
+unreadable page; completeness refers to recorded payload, not every page.
+The single-pass SHA256 is
+`721e11993d53451aa0ce461146f615abc4d0e162d9285c2005315a25c9292304`.
+The [response](../test-results/remaining-fault-correlation/sensor-private-strictqi-v1/directqi-v2-response.json)
+preserves the MCP error and failed request rather than claiming sensor success.
+
+This control excludes reliance on a swallowed QI failure for this reproduced
+AV. It confirms the failing getter and native null-base access in the tested
+empty-target state; it does not yet prove that only an empty target fails,
+nor retrospectively establish the historical sensor's exact internal state.
+The six [offline direct-QI stop controls](../test-results/remaining-fault-correlation/sensor-directqi-offline-v2/report.json)
+and the actual native failure have separate scopes.
+
+After dump validation, [exact held-identity cleanup](../test-results/remaining-fault-correlation/current-close-40588/sensor-directqi-faulted-cleanup-v2.json)
+terminated only this faulted private PID at11:32:02.788717Z. The
+[post-cleanup inspection](../test-results/remaining-fault-correlation/current-close-40588/sensor-directqi-after-cleanup-v2.json)
+verified its process/window absent, found no report window or reporter process,
+and released computer-use control. The other two CAD windows remained present
+and were not operated. No error report was submitted.
 
 ## Reproducible evidence
 
