@@ -1,0 +1,19 @@
+test_known_launcher_exited_before_claim_can_retry_same_target (tests.test_recovery_startup_fence.StartupFenceTests.test_known_launcher_exited_before_claim_can_retry_same_target) ... FAIL
+
+======================================================================
+FAIL: test_known_launcher_exited_before_claim_can_retry_same_target (tests.test_recovery_startup_fence.StartupFenceTests.test_known_launcher_exited_before_claim_can_retry_same_target)
+----------------------------------------------------------------------
+RuntimeError: Recovery startup remains unconfirmed; no replacement was launched. Preserve the reservation. After the old target exits, inspect/retire this same-session attempt with the guarded command (unknown or live workers will be refused): C:\Users\yunchien.chen\mcp\solidworks-mcp-pid-isolation\.venv\Scripts\python.exe -m solidworks_mcp.recovery_service --retire-stale-startup --session-file C:\Users\YUNCHI~1.CHE\AppData\Local\Temp\tmphpkdgf1x\session.json --directory C:\Users\YUNCHI~1.CHE\AppData\Local\Temp\tmphpkdgf1x
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "C:\Users\yunchien.chen\mcp\solidworks-mcp-recovery-reservation-test\tests\test_recovery_startup_fence.py", line 244, in test_known_launcher_exited_before_claim_can_retry_same_target
+    with self.assertRaisesRegex(RuntimeError, 'retry after import failure'):
+         ~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: "retry after import failure" does not match "Recovery startup remains unconfirmed; no replacement was launched. Preserve the reservation. After the old target exits, inspect/retire this same-session attempt with the guarded command (unknown or live workers will be refused): C:\Users\yunchien.chen\mcp\solidworks-mcp-pid-isolation\.venv\Scripts\python.exe -m solidworks_mcp.recovery_service --retire-stale-startup --session-file C:\Users\YUNCHI~1.CHE\AppData\Local\Temp\tmphpkdgf1x\session.json --directory C:\Users\YUNCHI~1.CHE\AppData\Local\Temp\tmphpkdgf1x"
+
+----------------------------------------------------------------------
+Ran 1 test in 0.031s
+
+FAILED (failures=1)

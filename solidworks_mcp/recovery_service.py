@@ -1,11 +1,152 @@
 """Opt-in MCP connection hook for one persistent recovery worker per session."""
-import json,math,os,sys,time,uuid
+import argparse,json,math,os,subprocess,sys,time,uuid
 from pathlib import Path
 import win32api,win32con,win32event,win32process
 from .automation.managed_session import process_identity,write_state
 from .recovery_monitor import monitor_lock,validate_status_path
 from .desktop_process import start_desktop_process
 from .recovery_settings import recovery_settings
+
+def observe_session_workers(session_file):
+    # Import only for explicit legacy remediation, never on normal CAD calls.
+    from .recovery_process_scan import observe_session_workers as observe
+    return observe(session_file)
+
+def _read_pending(path,session):
+    raw=path.read_bytes();pending=json.loads(raw)
+    if (pending.get('kind')!='recovery_worker_startup'
+            or type(pending.get('pid')) is not int or pending['pid']<=0
+            or not isinstance(pending.get('process_start_time'),str) or not pending['process_start_time']
+            or pending.get('session_file')!=str(session.resolve())
+            or not isinstance(pending.get('startup_token'),str) or not pending['startup_token']):
+        raise RuntimeError('Recovery startup reservation identity/session is invalid; preserving evidence')
+    return raw,pending
+
+def _assert_current(session,expected):
+    latest=json.loads(session.read_text(encoding='utf-8'))
+    if ((latest.get('pid'),latest.get('start_time'))!=(expected.get('pid'),expected.get('start_time'))
+            or process_identity(int(expected['pid']))!=expected['start_time']):
+        raise RuntimeError('Recovery session target changed during startup reconciliation')
+
+def _require_absent_worker(record):
+    if (type(record.get('worker_pid')) is not int or record['worker_pid']<=0
+            or not isinstance(record.get('worker_start_time'),str) or not record['worker_start_time']):
+        raise RuntimeError('Recovery worker identity is unknown; no reservation was retired')
+    # A live reused PID is not permission to retire; access denial propagates.
+    if worker_identity(record['worker_pid']) is not None:
+        raise RuntimeError('Recovery worker is live or its PID was reused; no reservation was retired')
+
+def _require_absent_launcher(record):
+    if (type(record.get('launcher_pid')) is not int or record['launcher_pid']<=0
+            or not isinstance(record.get('launcher_start_time'),str) or not record['launcher_start_time']):
+        raise RuntimeError('Recovery launcher identity is unknown; preserving the reservation')
+    if worker_identity(record['launcher_pid']) is not None:
+        raise RuntimeError('Recovery launcher is live or its PID was reused; preserving the reservation')
+
+def _archive_directory(directory):
+    archive=directory/'retired-startups'
+    if archive.resolve().parent!=directory.resolve():
+        raise RuntimeError('Recovery archive path leaves the private directory; preserving evidence')
+    archive.mkdir(exist_ok=True)
+    return archive
+
+def _archive_pending(directory,pending_path,raw,status_path=None,status_raw=None):
+    if pending_path.read_bytes()!=raw:
+        raise RuntimeError('Recovery reservation changed during observation; preserving it')
+    if status_path is not None and status_path.read_bytes()!=status_raw:
+        raise RuntimeError('Recovery status changed during observation; preserving it')
+    archive=_archive_directory(directory)
+    name=uuid.uuid4().hex
+    destination=archive/(name+'-worker-startup.json')
+    # Both session mutexes are held; preserve original bytes, never unlink them.
+    if status_path is not None:os.replace(status_path,archive/(name+'-monitor.json'))
+    os.replace(pending_path,destination)
+    return destination
+
+def _retire_terminal_pending(session,directory,expected):
+    """Called with launch mutex held. Do not infer death from launch timeout."""
+    with monitor_lock(session):
+        path=directory/'worker-startup.json';raw,pending=_read_pending(path,session)
+        _assert_current(session,expected)
+        if (directory/'requested.stop').exists():
+            raise RuntimeError('Recovery stop marker exists; monitor remains stopped')
+        differs=(pending['pid'],pending['process_start_time'])!=(int(expected['pid']),expected['start_time'])
+        if differs and process_identity(pending['pid']) is not None:
+            raise RuntimeError('Previous recovery target is live or its PID was reused; refusing retirement')
+        status=directory/'monitor.json';status_raw=status.read_bytes() if status.exists() else None
+        observed=json.loads(status_raw) if status_raw is not None else None
+        known=(pending if pending.get('protocol_version')==2 and pending.get('worker_pid') else observed)
+        if observed is not None and (observed.get('startup_token')!=pending['startup_token']
+                or observed.get('session_file')!=str(session.resolve())
+                or (observed.get('pid'),observed.get('process_start_time'))!=(pending['pid'],pending['process_start_time'])):
+            raise RuntimeError('Recovery startup remains unconfirmed; old status cannot release reservation')
+        failed_before_start=(pending.get('protocol_version')==2
+                             and pending.get('launch_state')=='failed_before_process_creation')
+        if not failed_before_start:
+            if known is None:
+                if pending.get('protocol_version')!=2 or pending.get('launcher_pid') is None:
+                    raise RuntimeError(_unconfirmed_message(session,directory))
+                # A dead venv launcher alone cannot establish real worker death.
+                _require_absent_launcher(pending)
+                if observe_session_workers(session):
+                    raise RuntimeError('A same-session worker or launcher remains live; no retry allowed')
+            else:
+                _require_absent_worker(known)
+                if pending.get('launcher_pid') is not None:_require_absent_launcher(pending)
+        _assert_current(session,expected)
+        if status_raw is None and status.exists():
+            raise RuntimeError('Recovery status appeared during observation; preserving the reservation')
+        return _archive_pending(directory,path,raw,status if observed is not None else None,status_raw)
+
+def _unconfirmed_message(session,directory):
+    command=subprocess.list2cmdline([sys.executable,'-m','solidworks_mcp.recovery_service',
+        '--retire-stale-startup','--session-file',str(session),'--directory',str(directory)])
+    return ('Recovery startup remains unconfirmed; no replacement was launched. '
+            'Preserve the reservation. Inspect/retire only a proven terminal same-session '
+            'attempt with the guarded command (unknown or live workers will be refused): '+command)
+
+def retire_stale_startup(session_file,directory):
+    """Explicit legacy repair: preserve evidence; never launch, attach or kill CAD."""
+    session=Path(session_file);directory=Path(directory)
+    if not session.is_absolute() or not directory.is_absolute():
+        raise ValueError('Recovery remediation paths must be absolute')
+    status=directory/'monitor.json';path=directory/'worker-startup.json'
+    with monitor_lock(str(session)+'.worker-launch'),monitor_lock(session):
+        validate_status_path(directory,status,session)
+        expected=json.loads(session.read_text(encoding='utf-8'))
+        _assert_current(session,expected)
+        raw,pending=_read_pending(path,session)
+        if (directory/'requested.stop').exists():
+            raise RuntimeError('Recovery stop marker exists; preserving the reservation')
+        same_target=(pending['pid'],pending['process_start_time'])==(int(expected['pid']),expected['start_time'])
+        if same_target and not (pending.get('protocol_version')==2 and
+                (pending.get('worker_pid') is not None or pending.get('launcher_pid') is not None)):
+            raise RuntimeError('Current-target reservation has no known owner; no retirement allowed')
+        if not same_target and process_identity(pending['pid']) is not None:
+            raise RuntimeError('Old target is live or its PID was reused; no retirement allowed')
+        status_raw=status.read_bytes() if status.exists() else None
+        observed=json.loads(status_raw) if status_raw is not None else None
+        if observed is not None:
+            if (observed.get('startup_token')!=pending['startup_token']
+                    or observed.get('session_file')!=str(session.resolve())
+                    or (observed.get('pid'),observed.get('process_start_time'))!=(pending['pid'],pending['process_start_time'])):
+                raise RuntimeError('Status does not identify this reserved attempt; preserving it')
+            _require_absent_worker(observed)
+        if pending.get('worker_pid') is not None:_require_absent_worker(pending)
+        if pending.get('launcher_pid') is not None:_require_absent_launcher(pending)
+        workers=observe_session_workers(session)
+        if workers:
+            raise RuntimeError('A same-session recovery worker or launcher remains live; no retirement allowed')
+        _assert_current(session,expected)
+        if not same_target and process_identity(pending['pid']) is not None:
+            raise RuntimeError('Old target PID changed during observation; no retirement allowed')
+        if status_raw is None and status.exists():
+            raise RuntimeError('Recovery status appeared during observation; preserving the reservation')
+        destination=_archive_pending(directory,path,raw,status if observed is not None else None,status_raw)
+        return {'retired':True,'reservation_archive':str(destination),'worker_launched':False,
+                'session_file':str(session.resolve()),'old_pid':pending['pid'],
+                'old_process_start_time':pending['process_start_time'],
+                'current_pid':expected['pid'],'same_session_workers_observed':0}
 
 def matching_settings(previous,expected,follow_native=False):
     if not previous or not expected:return False
@@ -85,15 +226,19 @@ def ensure_recovery_worker(pid,app=None):
         pending_path=directory/'worker-startup.json'
         pending=json.loads(pending_path.read_text(encoding='utf-8')) if pending_path.exists() else None
         if pending:
-            if (pending.get('kind')!='recovery_worker_startup' or pending.get('pid')!=int(pid)
-                    or pending.get('process_start_time')!=expected['start_time']
-                    or pending.get('session_file')!=str(session.resolve())):
-                raise RuntimeError('Recovery startup reservation identity mismatch; refusing a duplicate')
+            _,pending=_read_pending(pending_path,session)
             observed=json.loads(status.read_text(encoding='utf-8')) if status.exists() else None
-            if not observed or observed.get('startup_token')!=pending['startup_token']:
-                # A venv launcher's exit does not prove its real worker exited.
-                # Keep the reservation until that worker's own status identifies it.
-                raise RuntimeError('Recovery startup remains unconfirmed; no replacement was launched')
+            same_target=(pending['pid'],pending['process_start_time'])==(int(pid),expected['start_time'])
+            confirmed=observed and observed.get('startup_token')==pending['startup_token']
+            if not same_target or not confirmed:
+                terminal_claim=(pending.get('protocol_version')==2 and
+                    (pending.get('worker_pid') or pending.get('launcher_pid')
+                     or pending.get('launch_state')=='failed_before_process_creation'))
+                if not terminal_claim and not confirmed:
+                    prefix='' if same_target else 'Recovery startup reservation identity mismatch. '
+                    raise RuntimeError(prefix+_unconfirmed_message(session,directory))
+                _retire_terminal_pending(session,directory,expected)
+                pending=None
         if status.exists():
             previous=json.loads(status.read_text(encoding='utf-8'))
             live=worker_identity(previous['worker_pid'])
@@ -116,19 +261,52 @@ def ensure_recovery_worker(pid,app=None):
             if pending:
                 # Matching worker-written status plus its absent handle proves
                 # this reserved attempt is terminal, unlike a polling timeout.
-                pending_path.unlink()
+                _retire_terminal_pending(session,directory,expected)
+                pending=None
         if marker.exists():raise RuntimeError('Recovery stop marker exists; monitor remains stopped')
         root=Path(__file__).resolve().parents[1]
         token=uuid.uuid4().hex
         arguments=['-m','solidworks_mcp.recovery_monitor','--session-file',str(session),
                    '--directory',str(directory),'--status-file',str(status),'--interval',str(interval),
                    '--stop-file',str(marker),'--startup-token',token,
+                   '--expected-pid',str(pid),'--expected-start-time',expected['start_time'],
                    '--settings-json',json.dumps(settings)]
         if policy:arguments.append('--follow-native-preferences')
-        write_state(pending_path,{'kind':'recovery_worker_startup','pid':int(pid),
-                    'process_start_time':expected['start_time'],'session_file':str(session.resolve()),
-                    'startup_token':token})
-        worker=start_desktop_process(sys.executable,root,arguments)
+        reservation={'kind':'recovery_worker_startup','protocol_version':2,'pid':int(pid),
+                     'process_start_time':expected['start_time'],'session_file':str(session.resolve()),
+                     'startup_token':token,'launch_state':'reserved'}
+        # The short monitor lock prevents a delayed child from claiming an old
+        # token while this new attempt is published. Release it before launch.
+        with monitor_lock(session):
+            _assert_current(session,expected)
+            if status.exists():
+                # The prior dead worker was already verified above. Preserve its
+                # status before the new child's first status write replaces it.
+                prior=json.loads(status.read_text(encoding='utf-8'))
+                _require_absent_worker(prior)
+                archive=_archive_directory(directory)
+                os.replace(status,archive/(uuid.uuid4().hex+'-monitor.json'))
+            write_state(pending_path,reservation)
+        child_created=False
+        def before_resume(handle,launcher_pid):
+            nonlocal child_created
+            child_created=True
+            reservation.update(launcher_pid=int(launcher_pid),
+                launcher_start_time=win32process.GetProcessTimes(handle)['CreationTime'].isoformat(),
+                # CreateProcessW was given this exact executable. Its loader
+                # may not have initialized a module list while still suspended.
+                launcher_executable=str(Path(sys.executable).resolve()).casefold(),
+                launch_state='created_suspended')
+            write_state(pending_path,reservation)
+        try:
+            worker=start_desktop_process(sys.executable,root,arguments,before_resume=before_resume)
+        except Exception as exc:
+            # The launcher invokes before_resume before any child code can run.
+            # If it never invoked that callback, there is no unknown real worker.
+            if not child_created:
+                reservation.update(launch_state='failed_before_process_creation',launch_error=str(exc))
+                write_state(pending_path,reservation)
+            raise
         # Require the actual child's status before reporting successful startup.
         deadline=time.monotonic()+10
         while time.monotonic()<deadline:
@@ -143,9 +321,21 @@ def ensure_recovery_worker(pid,app=None):
                     if current['status']=='failed':raise RuntimeError(current.get('error','Recovery worker failed'))
                     if current['status']=='stopped':raise RuntimeError('Recovery worker stopped during startup')
                     if current.get('settings')!=settings:raise RuntimeError('Recovery worker startup settings mismatch')
+                    _assert_current(session,expected)
                     pending_path.unlink()
                     return {'worker_pid':actual,'worker_start_time':current['worker_start_time'],
                             'process_start_time':expected['start_time'],'settings':settings,'status_file':str(status),'reused':False,'policy':policy}
             if worker_identity(worker) is None:raise RuntimeError('Recovery worker exited before startup confirmation')
             time.sleep(0.1)
         raise RuntimeError(f'Recovery worker {worker} startup observation timed out; do not launch a replacement')
+
+
+def main():
+    parser=argparse.ArgumentParser(description='Safely retire an old same-session recovery startup; never operates CAD')
+    parser.add_argument('--retire-stale-startup',action='store_true',required=True)
+    parser.add_argument('--session-file',type=Path,required=True)
+    parser.add_argument('--directory',type=Path,required=True)
+    args=parser.parse_args()
+    print(json.dumps(retire_stale_startup(args.session_file,args.directory),indent=2))
+
+if __name__=='__main__':main()

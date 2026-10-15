@@ -1,0 +1,12 @@
+{
+  "cad_calls": 0,
+  "existing_process_mutations": 0,
+  "launcher_source_sha256": "e2032f4b8eb6f1c62d90b9943df20fb09f0f6e4436621d35fcb262312d95fa81",
+  "launcher_pid": 50220,
+  "launcher_start_time": "2026-10-15T11:31:15.857000+00:00",
+  "launcher_executable": "c:\\users\\yunchien.chen\\mcp\\solidworks-mcp-pid-isolation\\.venv\\scripts\\python.exe",
+  "before_resume_precedes_child": true,
+  "actual_worker_pid": 36108,
+  "held_launcher_exit_code": 0,
+  "passed": true
+}

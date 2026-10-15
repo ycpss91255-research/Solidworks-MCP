@@ -100,7 +100,7 @@ class RecoveryServiceTests(unittest.TestCase):
         (self.root/'requested.stop').touch()
         with self.assertRaisesRegex(RuntimeError,'stop marker'):self.invoke()
     def test_launch_reports_child_status_and_passes_private_paths(self):
-        def launch(executable,cwd,arguments):
+        def launch(executable,cwd,arguments,**kwargs):
             self.assertEqual(executable,sys.executable)
             self.assertIn(str(self.session),arguments);self.assertIn(str(self.status),arguments)
             self.record['startup_token']=arguments[arguments.index('--startup-token')+1]
@@ -113,7 +113,7 @@ class RecoveryServiceTests(unittest.TestCase):
         self.environment['SOLIDWORKS_RECOVERY_MONITOR']='auto'
         policy={'enabled':True,'source':'solidworks','directory':str(self.root),
                 'settings':self.record['settings'],'preferences':{'auto_recover_enabled':True}}
-        def launch(executable,cwd,arguments):
+        def launch(executable,cwd,arguments,**kwargs):
             self.assertIn('--follow-native-preferences',arguments)
             self.record.update(startup_token=arguments[arguments.index('--startup-token')+1],
                                follow_native_preferences=True)
@@ -144,7 +144,7 @@ class RecoveryServiceTests(unittest.TestCase):
     def test_observation_timeout_then_reconnect_does_not_launch_again(self):
         with patch('solidworks_mcp.recovery_service.time.monotonic',side_effect=[0,11]):
             with self.assertRaisesRegex(RuntimeError,'observation timed out'):
-                self.invoke(None,launcher=lambda *args:999)
+                self.invoke(None,launcher=lambda *args,**kwargs:999)
         self.assertTrue((self.root/'worker-startup.json').exists())
         with patch.dict(os.environ,self.environment,clear=True), \
              patch('solidworks_mcp.recovery_service.process_identity',return_value='cad-start'), \
@@ -166,7 +166,7 @@ class RecoveryServiceTests(unittest.TestCase):
         with self.assertRaisesRegex(RuntimeError,'finishing shutdown'):
             self.invoke((str(Path(sys._base_executable).resolve()).casefold(),'worker-start'))
     def test_launch_failure_is_explicit(self):
-        def launch(*args):raise RuntimeError('Desktop unavailable')
+        def launch(*args,**kwargs):raise RuntimeError('Desktop unavailable')
         with self.assertRaisesRegex(RuntimeError,'Desktop unavailable'):self.invoke(launcher=launch)
     def test_unrelated_status_not_overwritten(self):
         self.status.write_text('{"kind":"user-data"}')

@@ -1,0 +1,56 @@
+test_known_dead_stale_claim_is_archived_then_retried (red_regression_tests.StartupFenceTests.test_known_dead_stale_claim_is_archived_then_retried) ... FAIL
+test_immediate_launch_failure_can_retry_without_creator_exit (red_regression_tests.StartupFenceTests.test_immediate_launch_failure_can_retry_without_creator_exit) ... FAIL
+test_startup_arguments_pin_expected_identity (red_regression_tests.StartupFenceTests.test_startup_arguments_pin_expected_identity) ... ERROR
+
+======================================================================
+ERROR: test_startup_arguments_pin_expected_identity (red_regression_tests.StartupFenceTests.test_startup_arguments_pin_expected_identity)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "C:\Users\yunchien.chen\mcp\solidworks-mcp-recovery-reservation-test\test-results\recovery-reservation-fence\red-regression-tests.py", line 83, in test_startup_arguments_pin_expected_identity
+    service.ensure_recovery_worker(123)
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^
+  File "C:\Users\yunchien.chen\mcp\solidworks-mcp-recovery-reservation-test\test-results\recovery-reservation-fence\red-baseline-recovery_service.py", line 131, in ensure_recovery_worker
+    worker=start_desktop_process(sys.executable,root,arguments)
+  File "C:\Users\yunchien.chen\AppData\Local\Python\pythoncore-3.14-64\Lib\unittest\mock.py", line 1176, in __call__
+    return self._mock_call(*args, **kwargs)
+           ~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^
+  File "C:\Users\yunchien.chen\AppData\Local\Python\pythoncore-3.14-64\Lib\unittest\mock.py", line 1180, in _mock_call
+    return self._execute_mock_call(*args, **kwargs)
+           ~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^
+  File "C:\Users\yunchien.chen\AppData\Local\Python\pythoncore-3.14-64\Lib\unittest\mock.py", line 1247, in _execute_mock_call
+    result = effect(*args, **kwargs)
+  File "C:\Users\yunchien.chen\mcp\solidworks-mcp-recovery-reservation-test\test-results\recovery-reservation-fence\red-regression-tests.py", line 75, in launch
+    self.assertEqual(arguments[arguments.index('--expected-pid') + 1], '123')
+                               ~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^
+ValueError: list.index(x): x not in list
+
+======================================================================
+FAIL: test_known_dead_stale_claim_is_archived_then_retried (red_regression_tests.StartupFenceTests.test_known_dead_stale_claim_is_archived_then_retried)
+----------------------------------------------------------------------
+RuntimeError: Recovery startup reservation identity mismatch; refusing a duplicate
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "C:\Users\yunchien.chen\mcp\solidworks-mcp-recovery-reservation-test\test-results\recovery-reservation-fence\red-regression-tests.py", line 114, in test_known_dead_stale_claim_is_archived_then_retried
+    with self.assertRaisesRegex(RuntimeError, 'test next launch'):
+         ~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: "test next launch" does not match "Recovery startup reservation identity mismatch; refusing a duplicate"
+
+======================================================================
+FAIL: test_immediate_launch_failure_can_retry_without_creator_exit (red_regression_tests.StartupFenceTests.test_immediate_launch_failure_can_retry_without_creator_exit)
+----------------------------------------------------------------------
+RuntimeError: Recovery startup remains unconfirmed; no replacement was launched
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "C:\Users\yunchien.chen\mcp\solidworks-mcp-recovery-reservation-test\test-results\recovery-reservation-fence\red-regression-tests.py", line 92, in test_immediate_launch_failure_can_retry_without_creator_exit
+    with self.assertRaisesRegex(RuntimeError, 'before child'):
+         ~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: "before child" does not match "Recovery startup remains unconfirmed; no replacement was launched"
+
+----------------------------------------------------------------------
+Ran 3 tests in 0.112s
+
+FAILED (failures=2, errors=1)

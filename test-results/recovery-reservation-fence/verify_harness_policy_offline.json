@@ -1,0 +1,68 @@
+{
+  "passed": true,
+  "actual_cad_calls": 0,
+  "actual_worker_launches": 0,
+  "harness_sha256": "876cfc7deaa5c1014b4a3babc95c23605692bff2af575f0a8eb81146549e9c45",
+  "test_sha256": "eb31a8eab3ce36e4558cba513b5c0fb186d10fbda7365c9e974fdca00933435e",
+  "cases": [
+    {
+      "enabled": true,
+      "injected_fault": false,
+      "watcher_exit": false,
+      "passed": true,
+      "preference_calls": [
+        319,
+        320,
+        3,
+        301,
+        319,
+        320,
+        3,
+        301
+      ],
+      "fake_ensure_modes": [
+        "auto"
+      ],
+      "trace_rows": 20
+    },
+    {
+      "enabled": false,
+      "injected_fault": false,
+      "watcher_exit": false,
+      "passed": true,
+      "preference_calls": [
+        319,
+        320,
+        319,
+        320
+      ],
+      "fake_ensure_modes": [
+        "auto",
+        "1"
+      ],
+      "trace_rows": 12
+    },
+    {
+      "enabled": true,
+      "injected_fault": true,
+      "watcher_exit": false,
+      "passed": true,
+      "preference_calls": [
+        319
+      ],
+      "fake_ensure_modes": [],
+      "trace_rows": 4
+    },
+    {
+      "enabled": true,
+      "injected_fault": false,
+      "watcher_exit": true,
+      "passed": true,
+      "preference_calls": [
+        319
+      ],
+      "fake_ensure_modes": [],
+      "trace_rows": 4
+    }
+  ]
+}

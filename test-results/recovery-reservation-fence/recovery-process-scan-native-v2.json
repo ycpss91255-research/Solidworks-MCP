@@ -1,0 +1,32 @@
+{
+  "cad_calls": 0,
+  "existing_process_mutations": 0,
+  "all_scans_hold_both_session_mutexes": true,
+  "legacy_cli_without_expected_target_or_token": true,
+  "scanner_sha256": "f0ad3973ba4ccff79e38985a0de3b62d92131b9cc588272748b1d4d95c140eea",
+  "cases": [
+    {
+      "arm": "live",
+      "passed": true,
+      "launcher_pid": 14708,
+      "actual_pid": 3936,
+      "matched_pids": [
+        14708,
+        3936
+      ]
+    },
+    {
+      "arm": "exit-during-snapshot",
+      "actual_pid": 1320,
+      "launcher_pid": 52980,
+      "exit_code": 0,
+      "error": "Candidate PID 52980 exited during inventory",
+      "passed": true
+    },
+    {
+      "arm": "after-natural-exits",
+      "passed": true
+    }
+  ],
+  "passed": true
+}

@@ -33,6 +33,52 @@ def monitor_lock(session_file):
         if acquired:win32event.ReleaseMutex(mutex)
         mutex.Close()
 
+@contextmanager
+def worker_startup(session_file,directory,expected_pid,expected_start_time,startup_token):
+    """Claim a reserved attempt before any CAD call; hold its monitor lock.
+
+    The parent owns the separate launch mutex while waiting for confirmation.
+    Never acquire that mutex here: retirement takes launch then monitor, while
+    this worker takes only monitor and keeps it throughout its lifetime.
+    """
+    session_file=Path(session_file);directory=Path(directory)
+    if not session_file.is_absolute() or not directory.is_absolute():
+        raise ValueError('Worker startup paths must be absolute')
+    if not startup_token or (expected_pid is None)!=(expected_start_time is None):
+        raise ValueError('Worker startup requires a token and a complete expected identity when supplied')
+    with monitor_lock(session_file):
+        pending_path=directory/'worker-startup.json'
+        pending=json.loads(pending_path.read_text(encoding='utf-8'))
+        target=json.loads(session_file.read_text(encoding='utf-8'))
+        if (pending.get('kind')!='recovery_worker_startup' or pending.get('protocol_version',1) not in (1,2)
+                or pending.get('session_file')!=str(session_file.resolve())
+                or pending.get('startup_token')!=startup_token):
+            raise RuntimeError('Worker startup reservation/token no longer belongs to this attempt')
+        if expected_pid is None:
+            # Compatibility with an already-running old parent: the immutable
+            # expected identity comes ONLY from its token-matched reservation,
+            # never from the mutable current session. Upgrade only on claim.
+            expected_pid=pending.get('pid');expected_start_time=pending.get('process_start_time')
+        if (type(expected_pid) is not int or expected_pid<=0
+                or not isinstance(expected_start_time,str) or not expected_start_time):
+            raise RuntimeError('Worker startup reservation has no valid target identity')
+        identity=(int(expected_pid),expected_start_time)
+        if (identity!=(pending.get('pid'),pending.get('process_start_time'))
+                or identity!=(target.get('pid'),target.get('start_time'))
+                or process_identity(int(expected_pid))!=expected_start_time):
+            raise RuntimeError('Worker startup target identity changed; no retargeting or CAD calls allowed')
+        if pending.get('worker_pid') is not None:
+            raise RuntimeError('Worker startup reservation was already claimed')
+        if (directory/'requested.stop').exists():
+            raise RuntimeError('Recovery stop marker exists; worker remains stopped')
+        handle=win32api.GetCurrentProcess()
+        pending.update(protocol_version=2,worker_pid=os.getpid(),
+            worker_start_time=win32process.GetProcessTimes(handle)['CreationTime'].isoformat(),
+            worker_executable=str(Path(win32process.GetModuleFileNameEx(handle,0)).resolve()).casefold(),
+            launch_state='claimed')
+        write_state(pending_path,pending)
+        yield target
+
 def visible_dialog(pid):
     windows=[]
     def visit(hwnd,_):
@@ -215,6 +261,8 @@ def main():
     parser.add_argument('--interval',type=float,required=True)
     parser.add_argument('--max-ticks',type=int)
     parser.add_argument('--startup-token',help='Parent/worker startup correlation token')
+    parser.add_argument('--expected-pid',type=int,help='Immutable target of the reserved startup attempt')
+    parser.add_argument('--expected-start-time',help='Immutable CAD creation time of the startup attempt')
     parser.add_argument('--settings-json',help='Effective scope from the bound session recovery policy')
     parser.add_argument('--follow-native-preferences',action='store_true',help='Read bound CAD preferences before each scheduled save')
     parser.add_argument('--stop-file',type=Path,help='Private .stop marker; exits at the next scheduler check')
@@ -236,10 +284,22 @@ def main():
             parser.error('Stop marker must be a separate absolute .stop file inside the recovery directory')
     if not math.isfinite(args.interval) or args.interval<=0:parser.error('Interval must be finite and positive')
     if args.max_ticks is not None and args.max_ticks<=0:parser.error('max-ticks must be positive')
-    target=json.loads(args.session_file.read_text(encoding='utf-8'))
-    pid=int(target['pid']);identity=target['start_time']
-    if process_identity(pid)!=identity:raise RuntimeError('Recorded target has exited or changed; no CAD process was launched')
-    with monitor_lock(args.session_file):
+    if (args.expected_pid is None)!=(args.expected_start_time is None):
+        parser.error('--expected-pid and --expected-start-time must be supplied together')
+    if not args.startup_token and (args.expected_pid is not None or args.expected_start_time is not None):
+        parser.error('Expected target requires a reserved startup token')
+    if args.startup_token:
+        ownership=worker_startup(args.session_file,args.directory,args.expected_pid,
+                                 args.expected_start_time,args.startup_token)
+    else:
+        target=json.loads(args.session_file.read_text(encoding='utf-8'))
+        pid=int(target['pid']);identity=target['start_time']
+        if process_identity(pid)!=identity:
+            raise RuntimeError('Recorded target has exited or changed; no CAD process was launched')
+        ownership=monitor_lock(args.session_file)
+    with ownership as claimed_target:
+        if args.startup_token:
+            pid=int(claimed_target['pid']);identity=claimed_target['start_time']
         backend=CadBackend(pid,args.directory)
         def current_identity(requested):
             latest=json.loads(args.session_file.read_text(encoding='utf-8'))
