@@ -39,3 +39,8 @@ tests. The pipeline's active exec handle is19958; later turns must verify that
 handle or the recorded worker identity before deciding it is stopped or starting
 another copy. Persistent goal status remains active while this monitored work
 is live. Never mark the crash investigation complete from resource-monitor tests.
+
+The pipeline later completed BO successfully and terminated after BP reproduced
+a native batch-close fault. Exec19958 is now terminal; workers must not be treated
+as live solely because their state files remain. A future test uses a fresh state
+and fixture, not an automatic replay of that failed CAD transaction.

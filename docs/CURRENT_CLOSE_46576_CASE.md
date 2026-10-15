@@ -243,6 +243,21 @@ correction and verified waiting-to-running transition. Root-cause completion
 still requires BP evidence, narrower operation controls and an appropriate fix
 with native regression/roundtrip verification.
 
+BP completed all request12 operations and then reproduced RPC_E_SERVERFAULT
+at CloseAllDocuments(True), with a captured native exception dump. BO passed
+without request12; BP failed with it, before the rear circular pattern, native
+industry rename and dynamic parameter workflow. This narrows a sufficient
+trigger sequence to the request12 group (three mate face-reference replacements,
+equation rebind, old child mate/component deletion and associated rebuild/save).
+It does not yet isolate one call within that group. BP was cleaned by verified
+identity-held process handle after capture, without another COM call.
+
+The monitored pipeline is now terminal because the native BP control failed,
+not because headroom was temporarily unavailable. Do not restart that command
+or reuse the modified BP fixture. The next causal controls require fresh copies
+and new owned sessions. Resource-monitor waiting/resumption is verified; the
+crash investigation remains active and incomplete.
+
 ## Remaining evidence limits
 
 The archive's stack is the Python/COM invocation stack, not the native C++
