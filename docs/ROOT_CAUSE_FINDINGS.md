@@ -1,5 +1,82 @@
 # SolidWorks crash findings — updated2026-10-15
 
+## Recent other-session audit — 19:10 Taipei
+
+The user reported repeated errors and SolidWorks exits in `後推式貨架 (2)` and
+`MR12 叉車`. Read-only MCP logs, saved thread outputs, process identity records,
+and Windows events show several different mechanisms. No CAD operation,
+restart, or configuration change was performed in either chat for this audit.
+
+- Both chats retain a `GetDocuments()` list and continue querying its document
+  wrappers after an earlier `CloseDoc` may have unloaded dependent documents.
+  MR12 PID18088 fails at `GetPathName` at14:31:44; rack PID51148 fails at the
+  same operation at16:53:37. Both return RPC_E_DISCONNECTED (0x80010108) and the
+  current MCP records a whole-PID native-fault quarantine. Their subsequent
+  exits are explicit recovery actions: MR12 `Stop-Process`, rack Alt+F4 after
+  checking the process was still responsive. This is not proof of spontaneous
+  native crashes. Microsoft's [COM code definition](https://learn.microsoft.com/en-us/windows/win32/com/com-error-codes-3)
+  describes an object disconnect, not an assertion that the process crashed.
+  A stale document wrapper is a supported hypothesis, not a reproduced cause;
+  isolate and verify that document-lifetime sequence before relaxing any
+  native-fault protection.
+- MR12 PID37424 explicitly executes `ExitApp()` at17:29 after save/unload.
+  Rack PID14708 is explicitly stopped during recovery from blocked loading.
+  Do not count these intentional closes as evidence that MCP spontaneously
+  terminated SolidWorks.
+- MR12 PID37312/start09:30:09.155Z disappears between the last successful call
+  at18:55:31.384 and the failed connection at18:59:02.017 (local times). Its
+  last script samples MotionStudy time/transforms and has no close/exit call.
+  The scoped logs have no exact exit time, exit code, or native dump; Windows
+  Application/System and the queried Security4689 window add no corresponding
+  crash/exit event. Missing events do not prove normal exit. This case remains
+  unattributed, including whether MCP/API activity caused it.
+- A separate MCP backup defect is confirmed: MR12's
+  `AppData/Local/SWMCP/d6487dff014ce049/worker-startup.json` still reserves
+  PID2836/start2026-10-12T12:51:28.718Z, while no `monitor.json` exists.
+  `ensure_recovery_worker` refuses the newer target before creating a worker;
+  the audited logs contain172 matching warnings. This establishes failed
+  independent-backup startup, not a causal link to CAD exit. The reservation
+  has not been removed and the live chats' runtime behavior is unchanged.
+
+The [shared runtime audit](../test-results/remaining-fault-correlation/other-sessions-audit-20261015/shared-runtime.json)
+finds no automatic ExitApp/termination path for an existing target on timeout,
+cancellation or quarantine. Arbitrary caller-supplied scripts can still request
+ExitApp explicitly, as above. Sixteen
+[offline recovery-design regressions](../test-results/remaining-fault-correlation/other-sessions-audit-20261015/recovery-retirement-design-offline-v1.json)
+pass, including reproducing the reservation rejection in the current service
+with fake dependencies. They do not constitute a deployed fix or native CAD
+validation. Safe retirement still needs worker/target identity and startup-token
+checks; removing an unconfirmed reservation alone could allow a delayed old
+worker to bind the new session target.
+
+The [MR12 audit](../test-results/remaining-fault-correlation/other-sessions-audit-20261015/forklift.json)
+records six PID cases and their source paths/lines; the
+[rack audit](../test-results/remaining-fault-correlation/other-sessions-audit-20261015/rack.json)
+separates native events, later RPC loss, deliberate cleanup, and the live session.
+The
+[normalized Windows event inventory](../test-results/remaining-fault-correlation/other-sessions-audit-20261015/normalized-crashes.json)
+contains30 crash events since October14, of which22 exactly match this chat's
+separate reproduction manifests. Those22 must not be attributed to the two
+working chats. Rack PID1772 has a distinct recorded SLDMODU native exception;
+the earlier rack sensor event24437 matches the module version, exception code
+and fault offset reproduced in this chat's private instance. That match does
+not establish the original sensor's exact target/interface state. Neither fact
+explains every recent exit.
+
+At19:05:20 a bounded, read-only OS observer began holding query/synchronize
+handles for rack38232 and MR12's replacement34632, after checking PID, creation
+time, image and the respective session manifests. It performs no COM call,
+debugger attachment, termination, or UI control. The
+[observer status](../test-results/remaining-fault-correlation/other-sessions-audit-20261015/process-exit-observation-v1.json)
+will record kernel exit time/code if either exits within its one-hour window;
+it cannot retroactively fill37312's gap or identify an exit initiator or root
+cause alone.
+The exit-time/code API was checked against a harmless child exiting with23.
+Original root-cause controls and safe backup-recovery regression work remain
+open; this audit is not a declaration that all crash or backup issues are fixed.
+
+## Native reproductions and scoped fixes
+
 The investigation reproduced multiple native failure paths on SOLIDWORKS 2023 SP5
 (31.5.0.52), using separate owned instances and private model copies. MCP/API
 operations trigger them; the faults occur inside the native CAD process.

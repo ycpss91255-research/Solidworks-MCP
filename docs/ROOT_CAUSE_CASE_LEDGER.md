@@ -108,15 +108,22 @@ nor fills CW's exit-code gap, and it does not certify every native allocation.
 
 ## Completion boundary
 
-The bounded original sensor audit now identifies a concrete next control:
-`LAB/sensor-fixture-candidate-audit.json` records the original dimension-sensor
-PropertyManager with an empty target/value, its confirmation, and the subsequent
-query of `Sensors1`. The sensor was later deleted and saved, so the pre-sensor
-root-only backup is not the lost fault-state fixture. A fresh private valid-target
-versus empty-target sensor comparison, with separately traced getters, is the
-next causal test. The valid-target controller has started, with actual UI and
-native getter acceptance still pending. These UI observations support a hypothesis; they do not yet
-identify the failing getter or prove that an empty target caused the exception.
+The fresh empty-target sensor control now reproduces event24437's exact
+`sldapiu.dll` build and RVA0x7223a2 at `ISensor.SensorType`. Owned PID46396's
+validated full dump records c0000005, RCX=0 and a read at0xAD0. The separate
+getter trace stops at this first getter; no later sensor getter or save runs.
+See [SENSOR_FAULT_FALSE_SUCCESS_TDD.md](SENSOR_FAULT_FALSE_SUCCESS_TDD.md)
+and its linked native analysis/validation. After preserving verified evidence,
+the exact identity-held faulted process was deliberately terminated; that is
+cleanup, not another spontaneous crash. Computer-use control was released.
+
+The generated pywin32 constructor can swallow a QueryInterface error and retain
+the original dispatch object. Its return therefore does not prove a successful
+ISensor IID query. The empty-target condition is not yet established as the
+exclusive cause. An explicit-QI empty-target control has passed six offline
+stop-condition tests but has not run against CAD; a valid-target control also
+remains outstanding. The original pre-sensor backup is not a saved fault-state
+fixture, because the original sensor was subsequently deleted and saved.
 
 The broad root-cause goal remains active. The CW/CY candidate verdict is scoped
 PASS; next work must investigate the sensor sub-call and any repeated CV functional

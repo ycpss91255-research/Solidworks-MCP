@@ -550,9 +550,11 @@ watcher now passes this flag; its AV/failfast/breakpoint handlers are retained.
 This changes diagnostic instrumentation, not production MCP or CAD behavior.
 The fresh CY cold replay below supplies the actual SolidWorks exit result.
 
-Large checkpoints continue to use verified SanDisk junctions. The storage
-audit validates25 registered targets and153 relocated file sizes; no D drive
-is used. The failed CX evidence is retained rather than overwritten by CY.
+Large checkpoints continue to use verified SanDisk junctions. The historical
+17:08 Taipei storage-audit snapshot validated25 registered targets and153
+relocated file sizes without using D:. The later17:51 audit covers30 registered
+targets, including CY and sensor-valid; see [current storage evidence](DIAGNOSTIC_STORAGE.md).
+The failed CX evidence is retained rather than overwritten by CY.
 
 ## CY: saved/cold acceptance and observed normal exit pass
 
