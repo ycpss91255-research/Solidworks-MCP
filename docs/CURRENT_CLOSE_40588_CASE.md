@@ -137,7 +137,7 @@ CAD/debuggers exited and protected42248/46576 creation identities are unchanged.
 This repetition confirms a rollback/restoration-sensitive model-state change;
 it still does not reproduce the original CloseDoc exception.
 
-## Bounded final controls and blocker audit
+## Earlier bounded controls and blocker audit
 
 BH PID11784 restores the immutable prototype and accesses/releases ONLY the
 rear-standard pattern, without reading seeds, changing a property or explicitly
@@ -187,3 +187,106 @@ reports and debugger/script traces are under ignored
 `test-results/remaining-fault-correlation/`. `frozen-private-fixture` and its
 file hash manifest retain the private clone. The opt-in recipes deliberately
 do not publish user CAD bytes or start/attach to another session's instance.
+
+## Investigation resumed with older retained history (2026-10-15)
+
+The preceding evidentiary impasse is superseded by a newly located input and
+same-PID history, not by interpreting another passing saved-state test as a fix.
+`generic-before-front-rear.SLDASM`, saved at18:17:42, predates the previously
+replayed18:30 input. Its preserved SHA256 is
+`04a5adffed82d90a39f0515a8f2466958eec84d463e7486f2691d6d59ab9cc3a`.
+The original logs retain18 calls from18:17 through18:36 for40588. Among the
+newly included operations are front/rear mate creation, live equation deletion
+and re-addition, rear-height equation repair, and first-floor pattern creation.
+The18:34:59 call accesses pattern selections and then fails while casting a
+returned seed to IComponent2, without ModifyDefinition or ReleaseSelectionAccess.
+This failure was omitted from the earlier shortened controls.
+
+This is a real API-contract problem: SOLIDWORKS documents that selection access
+puts a feature into rollback and requires ModifyDefinition after modification,
+or ReleaseSelectionAccess when it is not modified. The retained selection_scope
+helper covers ordinary diagnostic exceptions. The missing release is a candidate
+history difference, not yet proof of the original native corruption:
+[official selection lifecycle](https://help.solidworks.com/2023/English/api/sldworksapiprogguide/Miscellaneous/Accessing_Selections_that_Define_Features.htm).
+
+BX PID38148 starts from this older root with frozen private dependencies, checks
+closed references and all loaded paths, and replays requests0..11. The original
+rear equation Status=-1 and its subsequent repair are reproduced. However,
+request12's dynamic matrix passes all cases whereas the original failed after
+the second case. The harness stops with an explicit fidelity mismatch; it does
+not silently continue toward the failed selection request15. Dependency bytes
+are frozen and hash-checked, but are not proven identical to all crash-time
+dependencies. BX must therefore not be called an exact40588 replay.
+
+The subsequent private-only normal CloseAllDocuments attempt DOES reproduce a
+native server fault. `report-bx-close.json` records RPC_E_SERVERFAULT, and the
+owned exception watcher captures a2,134,660-byte exception dump before any
+further CAD operation. Its debugger exception record is c0000005, an invalid
+read at0x100000007 in dcu3d59!DCM3_node::do_move_to_list+0x83. The stack proceeds
+through mfc140u, sldapiu, moFeature destruction, moMateWalker destruction and
+iApiCloseDoc. Live .ecxr could not retrieve exception context. A subsequent
+offline inspection DOES successfully load .ecxr from the preserved dump:
+RIP matches the exception address, RBP is0xFFFFFFFF, and the failing instruction
+`mov rax,qword ptr [rbp+8]` reads0x100000007. The independent exception-stream
+parser records matching RIP and AMD64 control flags in exception-record.json;
+offline-context.txt retains the debugger's registers/disassembly/stack. This
+establishes the invalid node pointer at destruction, not its earlier writer.
+This failing prefix precedes request15: unbalanced selection access is not a
+necessary condition for THIS reproduced close failure. The address/signature
+is not identical to40588's original Windows event, so common mechanism remains
+to be demonstrated through reduced red/green controls.
+
+No Save/Close/ExitApp retry was issued after the server fault. The preserved
+dump and session creation identity were verified before terminating only the
+faulted owned process via its held process handle. This cleanup is an explicit
+test action, not a spontaneous application exit. BX's immutable source hashes
+remain unchanged.
+
+BZ PID16816 restores identical immutable sources, ends after request9, saves
+and copies the root, then runs the original single-document CloseDoc. It again
+returns RPC_E_SERVERFAULT, with a2,055,042-byte exception dump: c0000005 at the
+same dcu3d59 address and the same invalid read0x100000007. Thus neither the
+first-floor pattern build, the subsequent dynamic matrix, nor the failed
+selection access is necessary for the reproduced failure. The closed document
+is the root assembly; this is not only a failure while closing a different
+child during BX's batch cleanup. No further CAD call follows the failure.
+The preserved dump and exact process identity are verified before handle-based
+cleanup of only16816.
+
+Trace memory immediately before closing is87.32% commit for BX and91.84% for
+BZ; both have available physical memory and no active recovery worker. This
+does not prove resource pressure has no influence. `bx-bz-native-comparison.json`
+retains exact snapshots, call attribution and equal immutable source hashes.
+CB PID37172 is a fresh one-change prevention candidate: keep the same prefix,
+replace request9's delete/re-add repair with refresh_existing_equation, then
+require the original six-case independent-control matrix, save and CloseDoc.
+The update preserves the equation at index11, valid Status11/value217.043 and
+unchanged equation count/text/order. All six dynamic cases and Save3 pass.
+CloseDoc STILL returns RPC_E_SERVERFAULT. Its2,154,779-byte exception dump has
+c0000005 at mfc140u+0x23dc91, invalid read0x1, with matching stored exception RIP.
+Thus the46576 in-place workaround is NOT sufficient prevention for this path.
+Do not recommend it as a verified40588 fix. Exact process/dump identity is
+preserved before faulted-process cleanup; no CAD call is retried afterward.
+
+CB's dynamic operation stalls on a visible low-memory task dialog in its owned
+PID during a beam-length property change. The trace stops at that Set2 line and
+CPU activity subsides; the dialog text contains rm_commitcharge with Yes/No.
+It later disappears and all six cases finish. Both separate cancellation
+watchers report no matched events, so this investigation cannot claim either
+watcher closed it. Its disappearance's actor is unknown. The resource delay is
+not misreported as a native fault, nor does it erase the later captured CloseDoc
+fault. This test does not exclude a memory-pressure contribution. The production
+memory-warning handler is scoped to open_document; raw execute_python currently
+has no equivalent explicit action scope around property changes.
+
+CA is the next fresh control, stopping at request4, before distance-mate flipping
+and before the rear equation repair. The prepared CC full-flow candidate is not
+launched after CB disproved the proposed prevention. New tests use fresh frozen
+sources; they do not retry the partially modified faulted process.
+
+Local evidence: `current-close-40588/earlier-history/manifest.json`,
+`40588-1817-1839-requests.json`, `40588-full-retained-api-history.json`,
+`returned-error-audit.json`, `report-bx.json`, `report-bx-close.json`,
+`debug-bx-close/exception.dmp`, and `current-close-40588/bx-faulted-cleanup.json`.
+The retained85 PID-tagged reports contain no earlier native/RPC fault before
+the18:39 report; absent/unrecorded calls are not excluded by that audit.

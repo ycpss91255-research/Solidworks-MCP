@@ -120,3 +120,13 @@ operational trigger and its red/green/native saved-state evidence are recorded i
 [EQUATION_BINDING_CLOSE_TDD.md](EQUATION_BINDING_CLOSE_TDD.md). Its precise native
 address differs from the original Windows event, and40588 remains unattributed;
 neither limitation is removed by273 passing unit tests or by this new fix.
+
+The40588 investigation has now resumed from a newly found18:17 backup and
+previously omitted same-PID operations. BX reproduces a native close fault
+after the earlier build/equation history, with an owned exception dump in
+DCM node destruction. It stops before the later failed selection-access call;
+that omission cannot explain this reproduced failure. The dynamic-state and
+exception-address differences still prevent exact attribution to the original
+40588 event. Reduced controls are in progress; see the dated continuation in
+[CURRENT_CLOSE_40588_CASE.md](CURRENT_CLOSE_40588_CASE.md). The previous blocker
+audit is historical and is no longer a reason to stop this new failing replay.
