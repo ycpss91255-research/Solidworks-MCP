@@ -1,0 +1,91 @@
+diff --git a/tests/test_recovery_startup_windows.py b/tests/test_recovery_startup_windows.py
+index 9ca60cb..cee8086 100644
+--- a/tests/test_recovery_startup_windows.py
++++ b/tests/test_recovery_startup_windows.py
+@@ -12,6 +12,7 @@ ROOT = Path(__file__).resolve().parents[1]
+ sys.path.insert(0, str(ROOT))
+ from solidworks_mcp import recovery_monitor as monitor
+ from solidworks_mcp import recovery_service as service
++from solidworks_mcp import recovery_process_scan as process_scan
+ from solidworks_mcp.automation.managed_session import write_state
+ 
+ 
+@@ -195,7 +196,7 @@ class RecoveryStartupWindowsTests(unittest.TestCase):
+             with monitor.monitor_lock(str(self.session) + '.worker-launch'), \
+                  patch.object(service, 'process_identity', return_value='fixture-target-start'):
+                 # No inventory, OS worker identity, file, or mutex mocks here.
+-                archive = service._retire_terminal_pending(self.session, self.directory, self.target)
++                archive = self.retire_with_stable_inventory(original)
+             self.assertEqual(archive.read_bytes(), original)
+             self.assertFalse(self.pending.exists())
+             self.reserve('preclaim-retry-token')
+@@ -206,6 +207,69 @@ class RecoveryStartupWindowsTests(unittest.TestCase):
+                 child.terminate()
+                 child.communicate(timeout=5)
+ 
++    def retire_with_stable_inventory(self, original):
++        # The real whole-machine inventory can change between its snapshots.
++        # Retry only its conservative refusal, after proving no side effects.
++        children_before = list(self.children)
++        with patch.object(service, 'start_desktop_process', side_effect=AssertionError('retirement launched a worker')) as launch, \
++             patch.object(subprocess, 'Popen', side_effect=AssertionError('retirement spawned a process')) as spawn:
++            for attempt in range(3):
++                try:
++                    archive = service._retire_terminal_pending(self.session, self.directory, self.target)
++                except process_scan.RecoveryInventoryUncertain:
++                    self.assertEqual(self.pending.read_bytes(), original)
++                    self.assertFalse((self.directory / 'retired-startups').exists())
++                    self.assertFalse((self.directory / 'monitor.json').exists())
++                    self.assertEqual(self.children, children_before)
++                    launch.assert_not_called()
++                    spawn.assert_not_called()
++                    if attempt == 2:
++                        raise  # Exhaustion remains a failure, never a skip/pass.
++                else:
++                    launch.assert_not_called()
++                    spawn.assert_not_called()
++                    return archive
++
++    def test_unstable_inventory_exhaustion_preserves_refusal_evidence(self):
++        pending = json.loads(self.pending.read_text())
++        pending.update(launcher_pid=456, launcher_start_time='exited-fixture-start',
++                       launcher_executable=str(Path(sys.executable).resolve()))
++        write_state(self.pending, pending)
++        original = self.pending.read_bytes()
++        # Real scanner decision, deterministic process-list churn; no live CAD
++        # identity or OS process is needed to reproduce the uncertain inventory.
++        appeared = {'pid': 98765, 'name': 'python.exe', 'image': str(Path(sys.executable).resolve()),
++                    'command_line': 'python.exe unrelated.py', 'creation_date': 'fixture-time'}
++        with monitor.monitor_lock(str(self.session) + '.worker-launch'), \
++             patch.object(service, 'process_identity', return_value='fixture-target-start'), \
++             patch.object(service, 'worker_identity', return_value=None), \
++             patch.object(process_scan, '_process_snapshot', side_effect=[[], [appeared]] * 3) as snapshots:
++            with self.assertRaisesRegex(process_scan.RecoveryInventoryUncertain, 'inventory changed'):
++                self.retire_with_stable_inventory(original)
++        self.assertEqual(snapshots.call_count, 6)
++        self.assertEqual(self.pending.read_bytes(), original)
++        self.assertFalse((self.directory / 'retired-startups').exists())
++        self.assertFalse((self.directory / 'monitor.json').exists())
++        self.assertEqual(self.children, [])
++
++    def test_inventory_retry_does_not_swallow_unrelated_error(self):
++        pending = json.loads(self.pending.read_text())
++        pending.update(launcher_pid=456, launcher_start_time='exited-fixture-start',
++                       launcher_executable=str(Path(sys.executable).resolve()))
++        write_state(self.pending, pending)
++        original = self.pending.read_bytes()
++        with monitor.monitor_lock(str(self.session) + '.worker-launch'), \
++             patch.object(service, 'process_identity', return_value='fixture-target-start'), \
++             patch.object(service, 'worker_identity', return_value=None), \
++             patch.object(service, 'observe_session_workers', side_effect=RuntimeError('unrelated refusal')) as scan:
++            with self.assertRaisesRegex(RuntimeError, 'unrelated refusal'):
++                self.retire_with_stable_inventory(original)
++        self.assertEqual(scan.call_count, 1)
++        self.assertEqual(self.pending.read_bytes(), original)
++        self.assertFalse((self.directory / 'retired-startups').exists())
++        self.assertFalse((self.directory / 'monitor.json').exists())
++        self.assertEqual(self.children, [])
++
+     def test_old_cli_token_only_main_is_fenced_before_backend(self):
+         for arm in ('valid', 'wrong-token', 'wrong-target', 'wrong-session', 'wrong-os-start'):
+             with self.subTest(arm=arm):

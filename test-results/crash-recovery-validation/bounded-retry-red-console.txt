@@ -1,0 +1,16 @@
+test_unstable_inventory_exhaustion_preserves_refusal_evidence (tests.test_recovery_startup_windows.RecoveryStartupWindowsTests.test_unstable_inventory_exhaustion_preserves_refusal_evidence) ... FAIL
+test_inventory_retry_does_not_swallow_unrelated_error (tests.test_recovery_startup_windows.RecoveryStartupWindowsTests.test_inventory_retry_does_not_swallow_unrelated_error) ... ok
+
+======================================================================
+FAIL: test_unstable_inventory_exhaustion_preserves_refusal_evidence (tests.test_recovery_startup_windows.RecoveryStartupWindowsTests.test_unstable_inventory_exhaustion_preserves_refusal_evidence)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "C:\Users\yunchien.chen\mcp\solidworks-mcp-close-doc-trace-test\tests\test_recovery_startup_windows.py", line 229, in test_unstable_inventory_exhaustion_preserves_refusal_evidence
+    self.assertEqual(snapshots.call_count, 6)
+    ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: 2 != 6
+
+----------------------------------------------------------------------
+Ran 2 tests in 0.118s
+
+FAILED (failures=1)

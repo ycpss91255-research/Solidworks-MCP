@@ -1,0 +1,8 @@
+test_unstable_inventory_exhaustion_preserves_refusal_evidence (tests.test_recovery_startup_windows.RecoveryStartupWindowsTests.test_unstable_inventory_exhaustion_preserves_refusal_evidence) ... ok
+test_inventory_retry_does_not_swallow_unrelated_error (tests.test_recovery_startup_windows.RecoveryStartupWindowsTests.test_inventory_retry_does_not_swallow_unrelated_error) ... ok
+test_real_preclaim_launcher_exit_and_empty_inventory_allow_same_target_retry (tests.test_recovery_startup_windows.RecoveryStartupWindowsTests.test_real_preclaim_launcher_exit_and_empty_inventory_allow_same_target_retry) ... ok
+
+----------------------------------------------------------------------
+Ran 3 tests in 2.461s
+
+OK

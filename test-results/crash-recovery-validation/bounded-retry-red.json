@@ -1,0 +1,16 @@
+{
+  "utc": "2026-10-15T12:37:41.507657+00:00",
+  "source_snapshot": "test-results\\crash-recovery-validation\\bounded-retry-red-test.py",
+  "source_sha256": "7127b7c99e32f828ea1a86f9d941f6b627cccaee7281d2b4c32734fed8bfc133",
+  "argv": [
+    "C:\\Users\\yunchien.chen\\mcp\\solidworks-mcp-pid-isolation\\.venv\\Scripts\\python.exe",
+    "-m",
+    "unittest",
+    "tests.test_recovery_startup_windows.RecoveryStartupWindowsTests.test_unstable_inventory_exhaustion_preserves_refusal_evidence",
+    "tests.test_recovery_startup_windows.RecoveryStartupWindowsTests.test_inventory_retry_does_not_swallow_unrelated_error",
+    "-v"
+  ],
+  "returncode": 1,
+  "expected_failure": "unstable scanner made one attempt (2 snapshots), not bounded 3 attempts (6 snapshots)",
+  "actual_cad_calls": 0
+}

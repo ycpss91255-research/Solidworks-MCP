@@ -1,0 +1,4 @@
+# Preserve exact captured evidence bytes and diagnostic whitespace.
+* -text whitespace=cr-at-eol
+*.txt -whitespace
+*.patch -whitespace

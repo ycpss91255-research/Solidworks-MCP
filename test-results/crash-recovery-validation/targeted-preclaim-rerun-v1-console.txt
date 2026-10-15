@@ -1,0 +1,6 @@
+test_real_preclaim_launcher_exit_and_empty_inventory_allow_same_target_retry (tests.test_recovery_startup_windows.RecoveryStartupWindowsTests.test_real_preclaim_launcher_exit_and_empty_inventory_allow_same_target_retry) ... ok
+
+----------------------------------------------------------------------
+Ran 1 test in 2.030s
+
+OK

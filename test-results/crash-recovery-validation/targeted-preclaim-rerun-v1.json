@@ -1,0 +1,19 @@
+{
+  "started_utc": "2026-10-15T12:31:16.891856+00:00",
+  "completed_utc": "2026-10-15T12:31:19.523535+00:00",
+  "argv": [
+    "C:\\Users\\yunchien.chen\\mcp\\solidworks-mcp-pid-isolation\\.venv\\Scripts\\python.exe",
+    "-m",
+    "unittest",
+    "tests.test_recovery_startup_windows.RecoveryStartupWindowsTests.test_real_preclaim_launcher_exit_and_empty_inventory_allow_same_target_retry",
+    "-v"
+  ],
+  "returncode": 0,
+  "test_count": 1,
+  "seconds": 2.03,
+  "source_sha256_before": "b4d7d523b67063ec0a32cd8279f5564c9bb3a57306fda718cd9d1449972109fc",
+  "source_sha256_after": "b4d7d523b67063ec0a32cd8279f5564c9bb3a57306fda718cd9d1449972109fc",
+  "scope": "One unchanged case rerun after combined suite reported conservative RecoveryInventoryUncertain; original mixed result preserved",
+  "actual_cad_calls": 0,
+  "passed": true
+}

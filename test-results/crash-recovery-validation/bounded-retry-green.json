@@ -1,0 +1,18 @@
+{
+  "utc": "2026-10-15T12:38:38.493100+00:00",
+  "source_sha256": "b31d1c800a45ff6a52ae99d265d9eb893c7179303d2c1c1873a3cfc9c15a2224",
+  "argv": [
+    "C:\\Users\\yunchien.chen\\mcp\\solidworks-mcp-pid-isolation\\.venv\\Scripts\\python.exe",
+    "-m",
+    "unittest",
+    "tests.test_recovery_startup_windows.RecoveryStartupWindowsTests.test_unstable_inventory_exhaustion_preserves_refusal_evidence",
+    "tests.test_recovery_startup_windows.RecoveryStartupWindowsTests.test_inventory_retry_does_not_swallow_unrelated_error",
+    "tests.test_recovery_startup_windows.RecoveryStartupWindowsTests.test_real_preclaim_launcher_exit_and_empty_inventory_allow_same_target_retry",
+    "-v"
+  ],
+  "returncode": 0,
+  "test_count": 3,
+  "seconds": 2.461,
+  "passed": true,
+  "actual_cad_calls": 0
+}
