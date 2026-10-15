@@ -1,0 +1,9 @@
+{
+  "baseline_commit": "5266061e1ac739b0ed1149b1e58c36284eb3fcd7",
+  "baseline_source_sha256": "8101c43c007884c1043d550f663d8174e50d6c64ca13f1bcc65498b7a5913aac",
+  "test_sha256": "d299dc13bbcec27a0ae7def03a488df28faab074f798616303aa25f63ff877d4",
+  "test_count": 5,
+  "failures": 3,
+  "red_console": "red.txt",
+  "actual_cad_calls": 0
+}

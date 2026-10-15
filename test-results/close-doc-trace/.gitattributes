@@ -1,0 +1,2 @@
+# Keep captured diagnostic console whitespace unchanged.
+*.txt -whitespace

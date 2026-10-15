@@ -1,0 +1,71 @@
+test_breadcrumb_write_failure_does_not_change_call_or_exception (tests.test_script_trace_close_doc.CloseDocTraceTests.test_breadcrumb_write_failure_does_not_change_call_or_exception) ... 
+  test_breadcrumb_write_failure_does_not_change_call_or_exception (tests.test_script_trace_close_doc.CloseDocTraceTests.test_breadcrumb_write_failure_does_not_change_call_or_exception) (event='close_doc_begin') ... ERROR
+  test_breadcrumb_write_failure_does_not_change_call_or_exception (tests.test_script_trace_close_doc.CloseDocTraceTests.test_breadcrumb_write_failure_does_not_change_call_or_exception) (event='close_doc_end') ... ERROR
+  test_breadcrumb_write_failure_does_not_change_call_or_exception (tests.test_script_trace_close_doc.CloseDocTraceTests.test_breadcrumb_write_failure_does_not_change_call_or_exception) (event='close_doc_fail') ... ERROR
+
+======================================================================
+ERROR: test_breadcrumb_write_failure_does_not_change_call_or_exception (tests.test_script_trace_close_doc.CloseDocTraceTests.test_breadcrumb_write_failure_does_not_change_call_or_exception) (event='close_doc_begin')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "C:\Users\yunchien.chen\mcp\solidworks-mcp-close-doc-trace-test\tests\test_script_trace_close_doc.py", line 167, in test_breadcrumb_write_failure_does_not_change_call_or_exception
+    self.run_script("sw.CloseDoc('ok.SLDASM')\nsw.CloseDoc('bad.SLDASM')",
+    ~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+                    {'sw': sw}, RuntimeError)
+                    ^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\yunchien.chen\mcp\solidworks-mcp-close-doc-trace-test\tests\test_script_trace_close_doc.py", line 59, in run_script
+    exec(trace.compiled, namespace)
+    ~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "<script-44268-3c8200ce3e6b47c1848d707a7ead9cb9>", line 1, in <module>
+  File "C:/fake-pywin32-cache/gen_py/solidworks.py", line 3, in CloseDoc
+  File "C:\Users\yunchien.chen\mcp\solidworks-mcp-close-doc-trace-test\solidworks_mcp\script_trace.py", line 117, in trace
+    self.record('close_doc_begin', frame, **details)
+    ~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\yunchien.chen\mcp\solidworks-mcp-close-doc-trace-test\tests\test_script_trace_close_doc.py", line 164, in broken_record
+    raise OSError('simulated breadcrumb write failure')
+OSError: simulated breadcrumb write failure
+
+======================================================================
+ERROR: test_breadcrumb_write_failure_does_not_change_call_or_exception (tests.test_script_trace_close_doc.CloseDocTraceTests.test_breadcrumb_write_failure_does_not_change_call_or_exception) (event='close_doc_end')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "C:\Users\yunchien.chen\mcp\solidworks-mcp-close-doc-trace-test\tests\test_script_trace_close_doc.py", line 167, in test_breadcrumb_write_failure_does_not_change_call_or_exception
+    self.run_script("sw.CloseDoc('ok.SLDASM')\nsw.CloseDoc('bad.SLDASM')",
+    ~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+                    {'sw': sw}, RuntimeError)
+                    ^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\yunchien.chen\mcp\solidworks-mcp-close-doc-trace-test\tests\test_script_trace_close_doc.py", line 59, in run_script
+    exec(trace.compiled, namespace)
+    ~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "<script-44268-6b20cd9cd4f640db838a0adf74dd8c07>", line 1, in <module>
+  File "C:/fake-pywin32-cache/gen_py/solidworks.py", line 4, in CloseDoc
+  File "C:\Users\yunchien.chen\mcp\solidworks-mcp-close-doc-trace-test\solidworks_mcp\script_trace.py", line 126, in trace
+    self.record('close_doc_end', frame, **details)
+    ~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\yunchien.chen\mcp\solidworks-mcp-close-doc-trace-test\tests\test_script_trace_close_doc.py", line 164, in broken_record
+    raise OSError('simulated breadcrumb write failure')
+OSError: simulated breadcrumb write failure
+
+======================================================================
+ERROR: test_breadcrumb_write_failure_does_not_change_call_or_exception (tests.test_script_trace_close_doc.CloseDocTraceTests.test_breadcrumb_write_failure_does_not_change_call_or_exception) (event='close_doc_fail')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "C:\Users\yunchien.chen\mcp\solidworks-mcp-close-doc-trace-test\tests\test_script_trace_close_doc.py", line 167, in test_breadcrumb_write_failure_does_not_change_call_or_exception
+    self.run_script("sw.CloseDoc('ok.SLDASM')\nsw.CloseDoc('bad.SLDASM')",
+    ~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+                    {'sw': sw}, RuntimeError)
+                    ^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\yunchien.chen\mcp\solidworks-mcp-close-doc-trace-test\tests\test_script_trace_close_doc.py", line 59, in run_script
+    exec(trace.compiled, namespace)
+    ~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "<script-44268-124964b512ef41c8973a1a3c92259f52>", line 2, in <module>
+  File "C:\Users\yunchien.chen\mcp\solidworks-mcp-close-doc-trace-test\solidworks_mcp\script_trace.py", line 122, in trace
+    self.record('close_doc_fail', frame, **details)
+    ~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\yunchien.chen\mcp\solidworks-mcp-close-doc-trace-test\tests\test_script_trace_close_doc.py", line 164, in broken_record
+    raise OSError('simulated breadcrumb write failure')
+OSError: simulated breadcrumb write failure
+
+----------------------------------------------------------------------
+Ran 1 test in 0.110s
+
+FAILED (errors=3)

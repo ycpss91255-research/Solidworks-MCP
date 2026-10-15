@@ -1,0 +1,68 @@
+{
+  "passed": true,
+  "actual_cad_calls": 0,
+  "com_connections": 0,
+  "generated_source": "C:\\Users\\YUNCHI~1.CHE\\AppData\\Local\\Temp\\gen_py\\3.14\\83A33D31-27C5-11CE-BFD4-00400513BB57x0x31x0.py",
+  "generated_source_sha256": "4e2a08dd0ddeb507a30d0bfbed0bf84437aaec51dd1dca05c18af03c48a5301f",
+  "wrapper_module": "win32com.gen_py.83A33D31-27C5-11CE-BFD4-00400513BB57x0x31x0",
+  "wrapper_class": "ISldWorks",
+  "fake_backend_calls": [
+    "ok.SLDASM",
+    "bad.SLDASM"
+  ],
+  "breadcrumbs": [
+    {
+      "time_ns": 1792066930817107700,
+      "server_pid": 7048,
+      "solidworks_pid": 4321,
+      "event": "close_doc_begin",
+      "memory": {},
+      "filename": "C:\\Users\\YUNCHI~1.CHE\\AppData\\Local\\Temp\\gen_py\\3.14\\83A33D31-27C5-11CE-BFD4-00400513BB57x0x31x0.py",
+      "line": 58461,
+      "api": "ISldWorks.CloseDoc",
+      "title": "ok.SLDASM",
+      "caller_filename": "<script-7048-1c20c8633fc94a1082e8e4f08ba649ba>",
+      "caller_line": 2
+    },
+    {
+      "time_ns": 1792066930818136500,
+      "server_pid": 7048,
+      "solidworks_pid": 4321,
+      "event": "close_doc_end",
+      "memory": {},
+      "filename": "C:\\Users\\YUNCHI~1.CHE\\AppData\\Local\\Temp\\gen_py\\3.14\\83A33D31-27C5-11CE-BFD4-00400513BB57x0x31x0.py",
+      "line": 58463,
+      "api": "ISldWorks.CloseDoc",
+      "title": "ok.SLDASM",
+      "caller_filename": "<script-7048-1c20c8633fc94a1082e8e4f08ba649ba>",
+      "caller_line": 2
+    },
+    {
+      "time_ns": 1792066930818260700,
+      "server_pid": 7048,
+      "solidworks_pid": 4321,
+      "event": "close_doc_begin",
+      "memory": {},
+      "filename": "C:\\Users\\YUNCHI~1.CHE\\AppData\\Local\\Temp\\gen_py\\3.14\\83A33D31-27C5-11CE-BFD4-00400513BB57x0x31x0.py",
+      "line": 58461,
+      "api": "ISldWorks.CloseDoc",
+      "title": "bad.SLDASM",
+      "caller_filename": "<script-7048-1c20c8633fc94a1082e8e4f08ba649ba>",
+      "caller_line": 2
+    },
+    {
+      "time_ns": 1792066930818516200,
+      "server_pid": 7048,
+      "solidworks_pid": 4321,
+      "event": "close_doc_fail",
+      "memory": {},
+      "filename": "C:\\Users\\YUNCHI~1.CHE\\AppData\\Local\\Temp\\gen_py\\3.14\\83A33D31-27C5-11CE-BFD4-00400513BB57x0x31x0.py",
+      "line": 58463,
+      "api": "ISldWorks.CloseDoc",
+      "title": "bad.SLDASM",
+      "caller_filename": "<script-7048-1c20c8633fc94a1082e8e4f08ba649ba>",
+      "caller_line": 2
+    }
+  ],
+  "source_sha256": "6d4234d43dd5f6d3b5c6c4c55ded6ee51bbb9d9eb8ab50826b3f88541e12f443"
+}

@@ -1,0 +1,28 @@
+{
+  "started_utc": "2026-10-15T12:25:21.751627+00:00",
+  "completed_utc": "2026-10-15T12:25:46.309621+00:00",
+  "base": "5266061e1ac739b0ed1149b1e58c36284eb3fcd7",
+  "branch": "codex/close-doc-trace",
+  "test_count": 323,
+  "test_seconds": 22.055,
+  "wall_seconds": 24.557,
+  "returncode": 0,
+  "source_sha256": {
+    "solidworks_mcp/script_trace.py": "6d4234d43dd5f6d3b5c6c4c55ded6ee51bbb9d9eb8ab50826b3f88541e12f443",
+    "tests/test_script_trace_close_doc.py": "403bdb3171f9e08230fa2301ca50cb1b9cc59fe7ce872702813901c3fa736d5e",
+    "docs/CLOSE_DOC_TRACE_TDD.md": "0f7a02ce8174969b34f4327e396afad7a15a6c6490fae1463bcfffb384ee0277"
+  },
+  "source_unchanged_during_test": true,
+  "diff_check_returncode": 0,
+  "diff_check_output": "",
+  "relative_links": [
+    {
+      "target": "../tests/test_script_trace_close_doc.py",
+      "exists": true
+    }
+  ],
+  "actual_cad_calls": 0,
+  "live_runtime_modified": false,
+  "actual_session_metadata_modified": false,
+  "passed": true
+}

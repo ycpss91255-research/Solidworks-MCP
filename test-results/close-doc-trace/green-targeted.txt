@@ -1,0 +1,30 @@
+test_abrupt_exit_preserves_begin_with_exact_title (tests.test_script_trace_close_doc.CloseDocTraceTests.test_abrupt_exit_preserves_begin_with_exact_title) ... ok
+test_breadcrumb_write_failure_does_not_change_call_or_exception (tests.test_script_trace_close_doc.CloseDocTraceTests.test_breadcrumb_write_failure_does_not_change_call_or_exception) ... ok
+test_caught_failure_then_next_call_gets_independent_outcome (tests.test_script_trace_close_doc.CloseDocTraceTests.test_caught_failure_then_next_call_gets_independent_outcome) ... ok
+test_failure_names_exact_iteration_without_false_end (tests.test_script_trace_close_doc.CloseDocTraceTests.test_failure_names_exact_iteration_without_false_end) ... ok
+test_loop_records_exact_titles_and_callsite (tests.test_script_trace_close_doc.CloseDocTraceTests.test_loop_records_exact_titles_and_callsite) ... ok
+test_non_close_and_same_named_fake_objects_are_excluded (tests.test_script_trace_close_doc.CloseDocTraceTests.test_non_close_and_same_named_fake_objects_are_excluded) ... ok
+test_non_plain_string_is_not_inspected_or_coerced (tests.test_script_trace_close_doc.CloseDocTraceTests.test_non_plain_string_is_not_inspected_or_coerced) ... ok
+test_trace_is_scoped_to_current_thread (tests.test_script_trace_close_doc.CloseDocTraceTests.test_trace_is_scoped_to_current_thread) ... ok
+test_abrupt_child_exit_keeps_breadcrumb (tests.test_script_trace.ScriptTraceTests.test_abrupt_child_exit_keeps_breadcrumb) ... ok
+test_exception_preserves_last_line_and_restores_trace (tests.test_script_trace.ScriptTraceTests.test_exception_preserves_last_line_and_restores_trace) ... ok
+test_execute_python_opt_in_preserves_result_without_cad (tests.test_script_trace.ScriptTraceTests.test_execute_python_opt_in_preserves_result_without_cad) ... ok
+test_generated_external_code_is_excluded_but_user_exec_is_traced (tests.test_script_trace.ScriptTraceTests.test_generated_external_code_is_excluded_but_user_exec_is_traced) ... ok
+test_metrics_and_absolute_directory (tests.test_script_trace.ScriptTraceTests.test_metrics_and_absolute_directory) ... ok
+test_caught_fault_blocks_next_save_without_health_probe (tests.test_native_observation.CaughtNativeFaultTests.test_caught_fault_blocks_next_save_without_health_probe) ... ok
+test_caught_ordinary_binding_error_does_not_quarantine (tests.test_native_observation.CaughtNativeFaultTests.test_caught_ordinary_binding_error_does_not_quarantine) ... ok
+test_script_catching_native_error_must_not_report_success (tests.test_native_observation.CaughtNativeFaultTests.test_script_catching_native_error_must_not_report_success) ... ok
+test_existing_trace_receives_events_and_is_restored (tests.test_native_observation.ObservationTests.test_existing_trace_receives_events_and_is_restored) ... ok
+test_fallback_caught_fault (tests.test_native_observation.ObservationTests.test_fallback_caught_fault) ... ok
+test_full_monitoring_slots_fall_back_without_stealing_existing_tools (tests.test_native_observation.ObservationTests.test_full_monitoring_slots_fall_back_without_stealing_existing_tools) ... ok
+test_monitoring_caught_fault (tests.test_native_observation.ObservationTests.test_monitoring_caught_fault) ... ok
+test_monitoring_slots_released_on_ordinary_exception (tests.test_native_observation.ObservationTests.test_monitoring_slots_released_on_ordinary_exception) ... ok
+test_other_thread_native_error_is_not_attributed_to_this_cad (tests.test_native_observation.ObservationTests.test_other_thread_native_error_is_not_attributed_to_this_cad) ... ok
+test_caught_fault_blocks_next_save_without_health_probe (tests.test_native_observation.TracedExecutionTests.test_caught_fault_blocks_next_save_without_health_probe) ... ok
+test_caught_ordinary_binding_error_does_not_quarantine (tests.test_native_observation.TracedExecutionTests.test_caught_ordinary_binding_error_does_not_quarantine) ... ok
+test_script_catching_native_error_must_not_report_success (tests.test_native_observation.TracedExecutionTests.test_script_catching_native_error_must_not_report_success) ... ok
+
+----------------------------------------------------------------------
+Ran 25 tests in 1.517s
+
+OK

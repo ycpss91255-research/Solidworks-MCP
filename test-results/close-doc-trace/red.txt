@@ -1,0 +1,78 @@
+test_failure_names_exact_iteration_without_false_end (tests.test_script_trace_close_doc.CloseDocTraceTests.test_failure_names_exact_iteration_without_false_end) ... C:/fake-pywin32-cache/gen_py/solidworks.py:2: DeprecationWarning: MakeIID is deprecated - please use pywintypes.IID() instead.
+FAIL
+test_loop_records_exact_titles_and_callsite (tests.test_script_trace_close_doc.CloseDocTraceTests.test_loop_records_exact_titles_and_callsite) ... C:/fake-pywin32-cache/gen_py/solidworks.py:2: DeprecationWarning: MakeIID is deprecated - please use pywintypes.IID() instead.
+FAIL
+test_non_close_and_same_named_fake_objects_are_excluded (tests.test_script_trace_close_doc.CloseDocTraceTests.test_non_close_and_same_named_fake_objects_are_excluded) ... C:/fake-pywin32-cache/gen_py/solidworks.py:2: DeprecationWarning: MakeIID is deprecated - please use pywintypes.IID() instead.
+C:/fake-pywin32-cache/gen_py/solidworks.py:2: DeprecationWarning: MakeIID is deprecated - please use pywintypes.IID() instead.
+ok
+test_non_plain_string_is_not_inspected_or_coerced (tests.test_script_trace_close_doc.CloseDocTraceTests.test_non_plain_string_is_not_inspected_or_coerced) ... C:/fake-pywin32-cache/gen_py/solidworks.py:2: DeprecationWarning: MakeIID is deprecated - please use pywintypes.IID() instead.
+ok
+test_trace_is_scoped_to_current_thread (tests.test_script_trace_close_doc.CloseDocTraceTests.test_trace_is_scoped_to_current_thread) ... C:/fake-pywin32-cache/gen_py/solidworks.py:2: DeprecationWarning: MakeIID is deprecated - please use pywintypes.IID() instead.
+FAIL
+
+======================================================================
+FAIL: test_failure_names_exact_iteration_without_false_end (tests.test_script_trace_close_doc.CloseDocTraceTests.test_failure_names_exact_iteration_without_false_end)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "C:\Users\yunchien.chen\mcp\solidworks-mcp-close-doc-trace-test\tests\test_script_trace_close_doc.py", line 89, in test_failure_names_exact_iteration_without_false_end
+    self.assertEqual([(r['event'], r['title']) for r in rows],
+    ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+                     [('close_doc_begin', 'ok.SLDASM'), ('close_doc_end', 'ok.SLDASM'),
+                     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+                      ('close_doc_begin', 'bad.SLDASM'), ('close_doc_fail', 'bad.SLDASM')])
+                      ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: Lists differ: [] != [('close_doc_begin', 'ok.SLDASM'), ('close[88 chars]SM')]
+
+Second list contains 4 additional elements.
+First extra element 0:
+('close_doc_begin', 'ok.SLDASM')
+
+- []
++ [('close_doc_begin', 'ok.SLDASM'),
++  ('close_doc_end', 'ok.SLDASM'),
++  ('close_doc_begin', 'bad.SLDASM'),
++  ('close_doc_fail', 'bad.SLDASM')]
+
+======================================================================
+FAIL: test_loop_records_exact_titles_and_callsite (tests.test_script_trace_close_doc.CloseDocTraceTests.test_loop_records_exact_titles_and_callsite)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "C:\Users\yunchien.chen\mcp\solidworks-mcp-close-doc-trace-test\tests\test_script_trace_close_doc.py", line 72, in test_loop_records_exact_titles_and_callsite
+    self.assertEqual([(r['event'], r['title']) for r in rows],
+    ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+                     [('close_doc_begin', 'first.SLDASM'), ('close_doc_end', 'first.SLDASM'),
+                     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+                      ('close_doc_begin', '�ĤG��.SLDPRT'), ('close_doc_end', '�ĤG��.SLDPRT')])
+                      ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: Lists differ: [] != [('close_doc_begin', 'first.SLDASM'), ('cl[93 chars]RT')]
+
+Second list contains 4 additional elements.
+First extra element 0:
+('close_doc_begin', 'first.SLDASM')
+
+- []
++ [('close_doc_begin', 'first.SLDASM'),
++  ('close_doc_end', 'first.SLDASM'),
++  ('close_doc_begin', '�ĤG��.SLDPRT'),
++  ('close_doc_end', '�ĤG��.SLDPRT')]
+
+======================================================================
+FAIL: test_trace_is_scoped_to_current_thread (tests.test_script_trace_close_doc.CloseDocTraceTests.test_trace_is_scoped_to_current_thread)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "C:\Users\yunchien.chen\mcp\solidworks-mcp-close-doc-trace-test\tests\test_script_trace_close_doc.py", line 126, in test_trace_is_scoped_to_current_thread
+    self.assertEqual([r['title'] for r in rows], ['owner-thread', 'owner-thread'])
+    ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: Lists differ: [] != ['owner-thread', 'owner-thread']
+
+Second list contains 2 additional elements.
+First extra element 0:
+'owner-thread'
+
+- []
++ ['owner-thread', 'owner-thread']
+
+----------------------------------------------------------------------
+Ran 5 tests in 0.283s
+
+FAILED (failures=3)
