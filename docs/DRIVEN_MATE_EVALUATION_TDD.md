@@ -44,6 +44,21 @@ for the observed fault. These are not proof that pressure has no influence.
 CB's earlier low-memory dialog delay is recorded separately from its later
 native fault; its disappearance was not attributed to an unverified action.
 
+An independent Application Error event query from10:40 onward was correlated
+using BOTH PID and process creation time, then checked against each stored dump:
+
+| Trial | Owned PID | Event1000 record | Module and RVA | Comparison |
+| --- | --- | --- | --- | --- |
+| CB |37172|24299|mfc140u+0x23dc91|c0000005 and module offset match dump|
+| CG |45452|24331|dcu3d59+0x11073|c0000005 and module offset match dump|
+| CH |2900|none in queried interval|normal close and ExitApp|no event with this PID/start identity|
+| CI |42480|24360|mfc140u+0x33d8b0|c0000005 and module offset match dump|
+
+Local `current-close-40588/recent-native-event-correlation.json` retains the
+query-derived records, creation identities, timestamps and dump hashes. This
+independently confirms native CAD exceptions for these three failed controls;
+it is not merely an inference from an MCP timeout or a later intentional cleanup.
+
 ## Retained helper, failed composition and regression evidence
 
 The retained API is still
@@ -72,6 +87,50 @@ matching stored RIP. Thus the fake ordering model was incomplete. The unverified
 function and its six tests were removed from production; their exact source is
 archived locally with the failed trial. They are not advertised as a safe API or
 as evidence that273 current tests verify the native staging problem.
+
+Further offline CI inspection confirms what that execute violation means at
+the failure point. Its captured MemoryInfoList region is MEM_COMMIT (0x1000),
+MEM_IMAGE (0x1000000), Protect=PAGE_READONLY (0x2), in System32/mfc140u.dll at
+RVA0x33d8b0. Exception parameter0 is8 (execution), stored RIP/target agree,
+and the region has no execute permission. The caller at mfc140u+0x23dc91 loads
+an indirect function target; its return address0x23dc9a also appears below the
+DCM failures and the CB read failure. This narrows the common failure site to
+invalid native object/dispatch state during feature/mate destruction. It does
+NOT identify the earlier writer or distinguish use-after-free from another
+invalid-object/lifetime defect, and does not exclude pressure as a contributor.
+
+The dump's region was parsed directly according to
+[MINIDUMP_MEMORY_INFO](https://learn.microsoft.com/en-us/windows/win32/api/minidumpapiset/ns-minidumpapiset-minidump_memory_info)
+and [memory protection constants](https://learn.microsoft.com/en-us/windows/win32/memory/memory-protection-constants).
+The independent offline .ecxr/register/disassembly/stack output is retained.
+CDB !address itself could not proceed without ntdll type symbols; its failure
+was not represented as a successful memory-map inspection. Local evidence:
+`debug-ci-config-repair/exception-memory-region.json`, `offline-context.txt`
+and `offline-dispatch.txt`, plus the exception dump and its SHA256 manifest.
+
+Microsoft's matching public MFC symbols now identify mfc140u+0x23dc80 as
+`CObject::IsKindOf(CRuntimeClass*)` and the CI execute target, +0x33d8b0, as
+`CAfxStringMgr::vftable` (six entries). The successful lookup is preserved in
+`public-mfc-symbols-native-path.txt`. The downloaded public PDB SHA256 is
+`70aa5532c468f40ef0f42d3f4164a2e859b524f898b57ca657397e526f0d285e`.
+The CObject type check is dispatching to string-manager vtable DATA rather than
+an executable function entry. This is evidence of an invalid native object or
+dispatch state at destruction, not proof of the API call that first caused it.
+The small CI dump does not contain the object bytes at RCX=0x52cf9240;
+`dq @rcx` cannot read them. Heap ownership, allocation history and an earlier
+writer therefore cannot be inferred from this dump.
+An independent bounded file reader checks actual MemoryList/Memory64List
+coverage and confirms that missing RCX/argument coverage, while reading the
+captured stack and fault-target data. Its output is
+`exception-object-memory.json`. Dump readers and cleanup hashing now avoid
+copying a future full dump into a single large Python bytes allocation.
+
+For a future owned failing control, the local PID-bound capture script has an
+opt-in `--full-memory` mode using [.dump /ma](https://learn.microsoft.com/en-us/windows-hardware/drivers/debuggercmds/-dump--create-dump-file-).
+It checks free disk space against the current owned process footprint plus2GiB;
+normal detach breakpoints retain the small format. This preparation is not a
+claim that a full dump has yet been captured or that inaccessible pages will
+be recoverable. The existing running continuation uses its original default.
 
 CJ now restores the exact passing CH two-call staging, including its original
 rebuild/save checkpoint and fresh manager acquisition. It also runs the full

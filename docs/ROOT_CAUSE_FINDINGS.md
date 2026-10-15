@@ -1,10 +1,19 @@
-# SolidWorks crash findings — 2026-10-14
+# SolidWorks crash findings — updated2026-10-15
 
 The investigation reproduced four native failure paths on SOLIDWORKS 2023 SP5
 (31.5.0.52), using separate owned instances and private model copies. MCP/API
 operations trigger them; the faults occur inside the native CAD process.
 This is evidence for specific failing API/model-state paths, not a finding that
 every historic crash has one cause or that all MCP operations are safe.
+
+The newly reconstructed40588-history case is still under investigation. A
+direction edit alone closes successfully; the following equation/property/
+rebuild request makes close fail. One fully staged early refresh passes a
+reduced native matrix, but a simplified atomic wrapper fails and was removed.
+Complete construction and saved-state acceptance remain pending. The older
+saved-state-only negative controls below are historical, not a reason to stop
+the current failing replay. See
+[DRIVEN_MATE_EVALUATION_TDD.md](DRIVEN_MATE_EVALUATION_TDD.md) for current gates.
 
 | Finding | Evidence | Prevention |
 | --- | --- | --- |
@@ -72,11 +81,12 @@ than retrying blindly or saving the incomplete result. This optional tool does
 not rewrite arbitrary `execute_python` scripts or migrate another session's
 caller. Restart that session's MCP connection to load the updated tool.
 
-The new40588 CloseDoc case has four completed private controls, including a
-pre-layer reconstruction with recorded inputs and exactly matching pre-refresh
-equations/pattern/component observations. None reproduces its native crash;
-post-refresh beam counts diverge (original6, replay7). Full input provenance,
-fidelity limits and retained follow-up are in
+The initial40588 saved-state controls included a pre-layer reconstruction with
+recorded inputs and matching pre-refresh equations/pattern/component observations.
+Those shortened controls did not reproduce a native crash; post-refresh beam
+counts diverged (original6, replay7). The later discovery of an older18:17 input
+and omitted live history now produces native failures. Full input provenance,
+fidelity limits and current follow-up are in
 [CURRENT_CLOSE_40588_CASE.md](CURRENT_CLOSE_40588_CASE.md). This case remains
 unattributed rather than being declared another instance of an existing fix.
 
@@ -88,22 +98,22 @@ the reconstructed control remains7. Neither reproduces the native close crash.
 The pattern cache/state difference is now measured, not inferred from an equation
 count, and must still not be declared the heap-corruption cause.
 
-The bounded40588 investigation subsequently confirms rear-standard selection
-access/restoration alone regenerates6→7 components. An uninstrumented,
-two-separate-MCP-process close control also passes. A native failing replay,
-original exception dump and complete crash-time input/process state remain
-unavailable across three consecutive continuations. The detailed completion
-and blocker audit is retained in CURRENT_CLOSE_40588_CASE.md. The broader goal
-is not achieved; the verified three paths and their fixes must not be generalized
-to the still-unattributed events.
+The saved-state controls also show rear-standard selection access/restoration
+alone regenerating6→7 components, and a passing uninstrumented two-MCP close.
+These delimit that older input's behavior. The original exception dump and exact
+crash-time dependencies are still missing, but a fresh failing native replay is
+now available. The earlier blocker audit in CURRENT_CLOSE_40588_CASE.md is
+explicitly historical and superseded. The broader goal is not achieved; verified
+workarounds for other paths must not be generalized to unattributed events.
 
 The separately received46576 batch-close case is retained in
 [CURRENT_CLOSE_46576_CASE.md](CURRENT_CLOSE_46576_CASE.md). Its Windows events
 establish access violation followed by heap corruption after a subsequent caller
 continued Save3. Fresh private BJ/BK saved-state and eight-case dynamic controls,
-plus BL's pre-mirror cold baseline, all close normally; they do not reproduce
-the original native fault. Mirror, mate-reference replacement/deletion and
-multi-document renaming history are retained for still-unexecuted BM/BN controls.
+plus BL's pre-mirror cold baseline, all close normally. Subsequent BM/BP history
+replays reproduce native failures and BQ/BR/BS separate their interacting edits;
+BV/BW validate the full in-place binding workaround and saved geometry. The
+initial negative controls alone are not the final state of that investigation.
 
 One confirmed diagnostic defect was corrected: execute_python failures previously
 returned a traceback but persisted only success=False in the main log, losing
