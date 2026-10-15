@@ -166,8 +166,25 @@ question to explicit rebuild/save or the lifetime/order difference introduced
 by releasing request-local wrappers before rebuild. It does not prove the
 invalid state absent after CS's later rebuild or establish a preventive fix.
 `inspect_cs_modify_boundary.py` checks the actual dump SHA/native heap rows
-and explicitly leaves post-rebuild state unverified. The full dynamics/save/
-close run is still active; its prepared acceptance script is not a full pass.
+and explicitly leaves post-rebuild state unverified.
+
+CS has now completed all23 requests: both six-case dynamic calls, five
+first-floor cases, save/root CloseDoc/batch close/ExitApp. A separate artifact
+comparison verifies the persisted six-case and five-case geometry against CR,
+including actual positions/counts/pattern flags/configurations/constraint states
+within0.00001mm. All immutable source and production runtime hashes match.
+Owned PID40736 exited normally; the event audit finds zero matching event1000
+while still finding CG/CN's known failures. No exception dump was created.
+Post-rebuild native allocation state remains uninspected in this trial; close
+success must not be used to fill that gap.
+
+The first comparison attempt reported a pattern-flag mismatch because it
+compared GetComponents enumeration order. The saved evidence shows the same
+fixed/arrayed frames in reversed enumeration order, at exactly the same two
+positions. Sorting component records by actual position before comparing all
+their attributes corrects the comparator; it does not drop the pattern flag
+assertion, alter geometry, or rerun CAD requests. Full orientations and names
+remain outside this comparison's stated scope.
 
 Preparation initially failed in a local AST comparator because a formatted
 request string is not a literal. The corrected comparator compares complete
@@ -179,3 +196,31 @@ describe GetDefinition, cast, change data, then ModifyDefinition for distance
 mate editing. That documented sequence does not establish correct native
 lifetime in this observed model/runtime, nor does it identify the first free
 instruction. Do not add AccessSelections based on unrelated feature interfaces.
+
+## Post-rebuild verification preparation: CT
+
+CT is prepared to preserve all23 CS CAD request ASTs exactly, changing only
+the two between-request snapshot locations: after the split continuation's
+rebuild/save, and after its early equation refresh. Native exception watching
+begins after both snapshots, before the complete dynamics/first-floor/close
+acceptance. Both snapshots must classify the actual matched native objects;
+functional pass alone remains insufficient. Preparation is not a test result.
+CT has passed its three-sample memory gate and launched owned PID50708 at
+2026-10-15T06:42:34.734000Z. Its worker PID11932/start06:42:23.317000Z and
+resource-gate state identify this single run. Native snapshots and full
+acceptance are pending; no production Python source was changed for this test.
+
+To retain disk headroom for these two full snapshots and a possible exception
+dump, all three completed CR full dumps have been archived losslessly. The archiver
+requires CS's verified normal finish and absent exact owned process before
+starting; it checks the original SHA, streams ZIP compression/decompression,
+and compares the decompressed full-byte SHA before removing only the duplicate
+loose file. Each archive receipt retains original path, bytes, SHA and ZIP SHA.
+All native evidence remains recoverable. `restore_cr_checkpoint.py <label>`
+restores the exact checked bytes for the existing offline analysis tools and
+keeps the archive. An actual before05 restore was executed and its full-file
+SHA verified, then the loose duplicate was re-archived/removed only after the
+same verified archive read. The three ZIPs total3235422436 bytes rather than
+10657183659 loose bytes, freeing7431761223 bytes. Archive SHA receipts remain
+beside each snapshot's original result and offline heap analysis. No fault-time
+dump is deleted or rewritten. Disk free was17452769280 bytes before CT preparation.
