@@ -3,7 +3,8 @@
 Current status (2026-10-15): the investigation has resumed with an older saved
 input and retained live history. BX/BZ/CB now reproduce native close faults;
 CA closes before the distance-direction edit but has incorrect beam placement.
-The in-place equation workaround alone is disproved for this case. The dated
+Late in-place refresh is insufficient; an early staged refresh passes the
+reduced flow, but an atomic composition fails. The dated
 continuation below supersedes the earlier blocker audit; a verified functional
 prevention and exact attribution to the original40588 exception are still open.
 
@@ -327,6 +328,8 @@ Current prefix matrix (same immutable source hashes; new owned process per row):
 | CB | Same through request8, then in-place repair and six cases | Binding and six cases valid | Native AV / RPC_E_SERVERFAULT |
 | BX | Through first-floor build and request12 | Dynamic matrix differs from original failure; stopped | Native AV during batch close |
 | CG | Add only request6 to CD | First check records Equations error51 | Native AV / RPC_E_SERVERFAULT |
+| CH | Original edit/rebuild/save, then fresh manager and early refresh | All six cases match original geometry | Pass |
+| CI | Atomic edit/refresh before original checkpoint, manager acquired before edit | Six cases and saves valid | Native AV / RPC_E_SERVERFAULT |
 
 CG PID45452 ends immediately after the original request6 expected validation
 failure, before requests7..9. CloseDoc fails with RPC_E_SERVERFAULT and a
@@ -343,10 +346,28 @@ for this reproduced fault.
 The operational failure interval is now request6 after the direction edit,
 not the much later CloseDoc itself. This does not yet isolate the first native
 write among property setting/evaluation/rebuild, or prove exact original40588
-CPU context. CH is running the planned comparison that refreshes the binding
+CPU context. CH completes the planned comparison that refreshes the binding
 before that first evaluation. CB refreshed only AFTER the failing evaluation;
 valid later equations and geometry did not repair its native process state.
-These are observed order differences, not yet a verified prevention claim.
+CH PID2900 passes all six original dynamic cases, Save3, root CloseDoc and
+normal ExitApp, with unchanged immutable source hashes and no captured native
+AV. Close-time commit is90.08%. Independent comparison with the original18:28
+six-case output matches inputs, lengths, counts/positions, pattern flags,
+configurations and constraints within1e-5mm. CB matches the same geometry while
+still failing close; geometry alone is not native health.
+
+CI PID42480 disproves a simplified atomic encapsulation: it obtains the manager
+before ModifyDefinition and refreshes before the original rebuild/save checkpoint.
+All six physical cases and saves pass, but CloseDoc fails; its2,045,899-byte
+exception dump records c0000005 execution violation in mfc140u. Its experimental
+function and six fake tests were removed after native rejection and preserved
+with the failed local evidence. The current full unit suite is273 passing tests.
+Do not claim that early SetEquation alone is a generally verified solution.
+
+CJ is now verifying CH's exact two-call recipe, original rebuild/save checkpoint
+and fresh manager acquisition, plus the complete first-floor construction and
+both dynamic matrices. See [DRIVEN_MATE_EVALUATION_TDD.md](DRIVEN_MATE_EVALUATION_TDD.md)
+for the actual contract, failed composition and remaining saved-state gates.
 
 Local evidence: `current-close-40588/earlier-history/manifest.json`,
 `40588-1817-1839-requests.json`, `40588-full-retained-api-history.json`,

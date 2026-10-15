@@ -130,3 +130,14 @@ exception-address differences still prevent exact attribution to the original
 40588 event. Reduced controls are in progress; see the dated continuation in
 [CURRENT_CLOSE_40588_CASE.md](CURRENT_CLOSE_40588_CASE.md). The previous blocker
 audit is historical and is no longer a reason to stop this new failing replay.
+
+Reduced40588-history controls now separate a successful direction edit/close
+(CD) from native close failure after the next equation/property/rebuild request
+(CG). CH's staged early refresh passes six original physical cases and close,
+while late repair (CB) and an atomic encapsulation (CI) fail. CI's fake tests
+were green but its native test was not; the unverified function was removed.
+Exact rebuild/checkpoint/fresh-manager staging, full construction and cold
+acceptance remain under validation in
+[DRIVEN_MATE_EVALUATION_TDD.md](DRIVEN_MATE_EVALUATION_TDD.md). The operational
+interval must not be generalized into a ban on ModifyDefinition or a claim
+that every original native exception instruction has been attributed.
