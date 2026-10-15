@@ -69,7 +69,17 @@ server = Server("solidworks-mcp-server", instructions=(
     "SOLIDWORKS_JOURNAL_WARNING_ACTION=dismiss, managed startup may acknowledge "
     "only its own PID's exact journal/AutoRecover warning; this does not repair AutoRecover. "
     "For low-memory warnings during open_document, explicitly choose "
-    "memory_warning_action=continue or cancel; default manual leaves it for the user."
+    "memory_warning_action=continue or cancel; default manual leaves it for the user. "
+    "Do not add, delete or disable equations while traversing a live IEquationMgr; "
+    "SOLIDWORKS documents that this can crash. For intentional structural changes, "
+    "finish reading a detached snapshot before mutating the relation list. "
+    "For an unchanged existing single-configuration equation binding, prefer an "
+    "in-place Equation property update; solidworks_mcp.equation_binding.refresh_existing_equation "
+    "validates exact text/index and preserves equation count/order without Delete/Add2. "
+    "The caller must verify PID, document, configuration, rebuild/feature errors, "
+    "dynamic geometry and saved results. This helper does not intercept arbitrary scripts. "
+    "After a native/RPC server fault, stop CAD calls to that PID, including Save3; "
+    "responsive UI does not prove that the process is healthy."
 ))
 
 

@@ -12,6 +12,22 @@ import time
 from solidworks_mcp.script_trace import memory_snapshot
 
 
+def same_live_process(handle, expected_start, *, wait=None, created=None):
+    """A queryable kernel object and matching creation time do not prove life."""
+    if wait is None:
+        import win32event
+        wait = win32event.WaitForSingleObject
+    status = wait(handle, 0)
+    if status == 0:  # Signaled process handle: exited, even if still queryable.
+        return False
+    if status != 258:  # WAIT_TIMEOUT: process is still running.
+        raise RuntimeError(f'Unable to establish process liveness: wait={status}')
+    if created is None:
+        import win32process
+        created = lambda value: win32process.GetProcessTimes(value)['CreationTime'].timestamp()
+    return abs(created(handle) - expected_start) < .01
+
+
 def resource_ready(snapshot, max_commit=90, min_available_mb=4096):
     try:
         commit = snapshot['commit_bytes']

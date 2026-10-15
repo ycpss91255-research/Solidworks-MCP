@@ -1,6 +1,6 @@
 # SolidWorks crash findings — 2026-10-14
 
-The investigation reproduced three native failure paths on SOLIDWORKS 2023 SP5
+The investigation reproduced four native failure paths on SOLIDWORKS 2023 SP5
 (31.5.0.52), using separate owned instances and private model copies. MCP/API
 operations trigger them; the faults occur inside the native CAD process.
 This is evidence for specific failing API/model-state paths, not a finding that
@@ -12,6 +12,7 @@ every historic crash has one cause or that all MCP operations are safe.
 | Existing distance-mate conversion followed by document close | Combined `IsAdvancedMate=true` / `ModifyDefinition` edits reproduce native solver/MFC failures. Exception-time dump shows an invalid read through `rbp=0xffffffff` during mate/feature/assembly destruction servicing `CloseDoc`. | Create fresh limit mates from the existing endpoints, rather than converting the old feature kind in place. Explicit identity-change acknowledgment is required. |
 | Invalid configuration after prior rebuild | Frozen pre-repair rack files reproduce error61704 and, after horizontal rebuild plus failed diagonal switch, native purecall/abort during close. AM has an actual exception-stream dump showing c0000409 subcode7 and equation/model-update/close frames. Individual-operation controls close normally. | Preserve valid working equations while recreating the inactive configuration, validate/save a private checkpoint, then restore parent binding and resolve pattern members. AX passes the full frozen-input geometry, dynamic input, actual pattern count/placement, save/close/reopen workflow. |
 | Memory pressure | Windows resource-exhaustion event independently establishes historical commit exhaustion. Native fault controls above also reproduce without exhaustion; successful fresh-mate control ran at higher commit usage than one failing control. | Respect explicit open-document memory-warning cancellation. Memory pressure does not explain every native failure. |
+| Mate reference update plus equation recreation and old-child deletion | Owned BM/BP fail batch close with native exception dumps. BQ/BR/BS separate the interaction. Omitting refresh leaves invalid equation51; an in-place same-text update restores binding. | New helper preserves count/text/order. Fresh BV passes8 dynamic cases/save/close; separate BW passes saved baseline, changed input/restoration and normal close. See EQUATION_BINDING_CLOSE_TDD.md. |
 | Timeout | One traced replay timed out during comtypes type-library loading. Filtering generated-code tracing allowed completion. | A timeout alone does not prove a CAD crash. Correlate the PID, last API, native event and process exit. |
 
 The fresh-mate control preserves 68 component transforms exactly and completes
@@ -111,3 +112,11 @@ traceback and partial output without another CAD call. Five failure-evidence
 tests and full259-test discovery pass; a separate mocked process verifies actual
 FileHandler persistence. This improves evidence collection, not native crash
 prevention or attribution, and does not persistently quarantine a faulted PID.
+
+Further46576 replay now has failing BM/BP controls and a tested in-place binding
+workaround. The original script structurally mutates the live equation manager
+inside its traversal, a crash risk explicitly documented by SOLIDWORKS. The
+operational trigger and its red/green/native saved-state evidence are recorded in
+[EQUATION_BINDING_CLOSE_TDD.md](EQUATION_BINDING_CLOSE_TDD.md). Its precise native
+address differs from the original Windows event, and40588 remains unattributed;
+neither limitation is removed by273 passing unit tests or by this new fix.

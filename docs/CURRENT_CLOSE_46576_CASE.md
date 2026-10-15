@@ -258,6 +258,78 @@ or reuse the modified BP fixture. The next causal controls require fresh copies
 and new owned sessions. Resource-monitor waiting/resumption is verified; the
 crash investigation remains active and incomplete.
 
+## BQ/BR/BS isolate an interaction; BU fix candidate is running
+
+Three further fresh frozen-input controls complete save/batch-close/normal exit:
+
+| Control | Changes after mirror history | Native close result |
+| --- | --- | --- |
+| BQ, PID34420 | Three mate face-reference replacements; no equation delete/add or child deletion | Pass |
+| BR, PID35020 | Reference replacements and old child mate/component deletion; omit equation delete/add | Pass |
+| BS, PID39132 | Reference replacements and original equation delete/add; omit child deletion | Pass |
+| BP, PID47776 | Reference replacements, equation delete/add and child deletion together | RPC_E_SERVERFAULT with native dump |
+
+All completed controls preserve frozen source hashes. This narrows the reproduced
+path to an interaction of equation recreation and subsequent child deletion
+after the mate edits. It does not establish that either operation alone always
+fails, or identify the earliest corrupting C++ write. These controls also do not
+test another SOLIDWORKS version or exclude every historic fault.
+
+The original equation block deletes the existing D1@左端_安裝高度 equation and adds
+the identical text again. BR's omission removes no requested driving behavior;
+however native close success alone is insufficient to certify dynamic geometry.
+BU therefore tests the complete mirror/rear-beam-pattern history with that
+existing equation retained and explicitly checks its text before/after the
+replacement/deletion stage. It then runs all eight original dynamic geometry
+cases using pre-rename document paths, saves/closes, reopens the saved private
+assembly for cold physical baseline acceptance, saves/closes again and exits.
+
+BU is a candidate, not a verified fix yet. Exec50061/resource worker36936 and
+owned CAD35180 were confirmed running. Its trace/watcher uses a600-second
+capture window. The filesystem-only exec76820 observer preserves the eight-row
+dynamic observations before the cold baseline reuses the report path; it makes
+no CAD calls. Check actual handles/creation identities and reports before
+declaring completion or launching a successor. All resource gates remain
+observable and automatically resume after temporary pressure.
+
+Retained sources/results: `prepare_bq.py`, `prepare_br.py`, `prepare_bs.py`,
+`prepare_bu.py`, respective run/report/trace/debug directories, and
+`native-close-control-matrix.json`. Formal rack files and other CAD sessions
+remain untouched. A successful BU must still be inspected for coverage and
+compared with original dynamic observations before any root-cause completion.
+
+## Binding diagnosis and verified in-place update
+
+BU's unrefreshed equation fails the full physical/feature gate at the first case
+with Equations error51. The targeted readback locates row2,
+`"D1@左端_安裝高度" = "前側安裝高度"`, Status=-1 despite retained text and a plausible
+initial position. In-place property update restores Status=2 without changing
+the equation list. Warm repair passes8 dynamic cases and save/close; a subsequent
+low-memory reopen is explicitly cancelled, inspected and closed, not counted as
+successful cold verification.
+
+Fresh BV15976 applies the callable helper from frozen inputs before child
+deletion, passes the full mirror/rear-pattern sequence and8 dynamic cases,
+save/batch-close/normal exit. Separate BW38848 opens frozen/copied saved BV
+files, verifies as-loaded physical baseline, changed height/spacing and restored
+baseline, then saves/closes/exits. All8 fresh and3 saved/cold observations match
+the original scalar/count/placement/pattern/constraint results within1e-5mm;
+immutable source hashes are preserved. Final audit finds no event1000 for these
+successful owned controls and no remaining owned CAD/debugger.
+
+Cold-harness path/import setup errors and a process-exit waiting bug were fixed
+before model opening/acceptance. The queue now verifies process-handle signaling
+as well as creation time, preventing indefinite waits on an already-exited but
+queryable Windows process object. Existing healthy owned PID38848 was resumed,
+not relaunched. These local harness issues are not recorded as CAD crashes.
+
+The complete TDD/official-API rationale is
+[EQUATION_BINDING_CLOSE_TDD.md](EQUATION_BINDING_CLOSE_TDD.md). New production
+helper and MCP instructions avoid live-manager structural traversal edits; they
+do not automatically rewrite arbitrary callers. Full unit discovery passes273.
+This establishes a reproduced interaction and tested workaround for the owned
+path, not the precise original C++ corrupting write or attribution of40588.
+
 ## Remaining evidence limits
 
 The archive's stack is the Python/COM invocation stack, not the native C++
