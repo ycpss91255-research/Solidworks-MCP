@@ -75,7 +75,8 @@ object with no COM binding. Preserve and validate the native dump before retirin
 the exact faulted process. Do not test containment by deliberately sending Save3
 into that live faulted CAD process. Then verify an owned replacement can connect
 without inheriting the old identity's quarantine. Full construction, physical
-acceptance and saved/cold acceptance remain required for the separate mate fix.
+acceptance and saved/cold acceptance are separate requirements for the mate fix;
+fresh uninterrupted CO and separate CP now pass both on the integrated runtime.
 
 This guard operates at request/health/tick boundaries. It cannot interrupt an
 already running native call, intercept arbitrary raw COM clients, or protect a

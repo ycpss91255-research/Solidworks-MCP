@@ -15,6 +15,8 @@ The crash goal is not complete.
 | CL PID44012 | Initial local FileNotFoundError before history00's CAD mutations: test backup directory was missing. No native dump/HRESULT. Folder fixed, same healthy CAD resumed from history00. Exact original equation51 reproduced, then Save3/CloseDoc/batch close/ExitApp pass. | ScriptTrace off, but MCP restarted after the setup failure. This is a native close control, not functional acceptance of the unrepaired model. |
 | CM PID28424 | Fresh CAD, one uninterrupted MCP, tracing on; original0..6 reproduces equation51, then Save3/root CloseDoc/batch close/ExitApp all pass. Actual /ma readiness, no native exception dump, debugger exit0; immutable sources preserved. | Native close control, not valid geometry acceptance. |
 | CN PID39868 | Same runtime/input/request ASTs, tracing off. Equation51 reproduced; root CloseDoc fails with RPC_E_SERVERFAULT/native dcu3d59+0x11073. Full2.69GB dump validates actual object/dispatch memory, marker acceptance and exact-identity cleanup. | Proves tracing is not necessary for this fault; one pass/fail pair does not estimate failure frequency or identify the first corrupting operation. |
+| CO PID42388 | Fresh CAD, one uninterrupted MCP on the integrated observer runtime. Original prefix, exact two-call staged refresh, both six-case matrices, complete first-floor build, five first-floor cases, Save3/root CloseDoc/batch close/ExitApp all pass. Actual /ma ready, no exception dump, debugger exit0, sources preserved, process exited. | The corrected assembly-interface diagnostic is the sole CAD-script change from the successful CJ continuation. Separate cold CP also passes from CO's saved output. |
+| CP PID29392 | Separate fresh CAD and single MCP from seven frozen/copied saved CO models. As-loaded geometry before explicit rebuild/property edits, five first-floor cases, two2900/3000mm length cases, Save3/root CloseDoc/batch close/ExitApp pass. Actual /ma readiness, no exception dump, debugger exit0; source/runtime hashes preserved; OS confirms exit. | Independent CO/CP comparison passes counts, positions within1e-5mm, pattern/configuration/constraint flags and input intent. Names/full orientation matrices are outside that comparison. |
 
 All three completed continuations preserve immutable source hashes. CJ/CK have
 no matching Application Error1000 with their PID AND millisecond creation
@@ -76,9 +78,21 @@ runtime, resource conditions and native object/COM reference lifetimes also
 differ. A new uninterrupted full staged-build replay is still required after
 the causal controls. Native-fault quarantine has unit/real-stdio/fake-CAD and
 healthy native-path evidence; actual native-marker acceptance now passes on CN.
-CO is running the fresh uninterrupted full staged-build replay with the newly
-integrated caught-exception observer. See
+CO now passes the fresh uninterrupted full staged-build replay with the newly
+integrated caught-exception observer. CP's saved/cold acceptance and independent
+physical comparison also pass. See
 [CN_FULL_DUMP_NATIVE_DISPATCH.md](CN_FULL_DUMP_NATIVE_DISPATCH.md).
+
+CP's generator initially replaced the substring `-co` too broadly, affecting
+only two output artifact filenames (`configuration`/`complete`) and the capture
+directory name. The completed runner/results were preserved. An AST/literal
+audit confirms the three cold CAD scripts differ from CK only in those two
+output paths; no model API, model path, inputs or assertions changed. The
+independent verifier reads the actual `generic-first-floor-cpnfiguration-`
+`verification.json`, and actual capture is `debug-cp-cpnfig-repair`. Future
+generation uses a label boundary and asserts the cold script strings unchanged.
+This is a retained harness naming defect, not an unreported native/test failure.
+Evidence: `cp-runner-path-audit.json` and `co-cp-physical-comparison.json`.
 
 Private evidence under ignored `test-results/remaining-fault-correlation/`:
 `report-cj-resume.json`, `report-ck.json`, `report-cl.json`, `report-cl-resume.json`,

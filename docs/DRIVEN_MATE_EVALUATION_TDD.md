@@ -5,7 +5,10 @@ composition subsequently failed native close and was removed. The exact passing
 staged recipe passes completed CJ continuation and CK cold acceptance. CL's
 untraced/reconnected unrepaired control also closes. Fresh trace-on CM passes,
 while same-runtime trace-off CN fails with the original native dispatch path;
-tracing is not necessary. Fresh uninterrupted full staged replay CO is running. Current results
+tracing is not necessary. Fresh uninterrupted full staged replay CO passes;
+saved/cold verification CP also passes, including independent physical and source/runtime
+hash comparisons. CN's full dump proves a use-after-free for the rear installation-height
+mate; CQ's checkpoint snapshots seek the first lifetime-invalidating phase. Current results
 and limits are in [CJ_CK_CL_NATIVE_RESULTS.md](CJ_CK_CL_NATIVE_RESULTS.md).
 This document does not mark the broader crash goal done.
 

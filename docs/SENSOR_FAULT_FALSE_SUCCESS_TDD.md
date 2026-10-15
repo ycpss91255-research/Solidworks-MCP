@@ -52,7 +52,8 @@ inside an arbitrary user script. The RED evidence is retained under the ignored
 lab. After CM/CN completed on their unchanged runtime, the fix was integrated
 as native_observation.py and its tests promoted to tests/test_native_observation.py.
 Full discovery now passes311 tests in8.315s, including an additional real-stdio
-caught-fault/restart regression. CO is testing healthy native CAD on this runtime;
+caught-fault/restart regression. CO full construction and CP saved/cold acceptance
+now pass on this runtime;
 no new native caught-sensor reproduction is claimed.
 
 An isolated candidate now observes native exceptions before a script can consume

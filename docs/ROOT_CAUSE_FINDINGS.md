@@ -16,7 +16,8 @@ reproduces the native close fault and supplies a validated full-memory dump;
 tracing is not necessary. One fully staged early refresh passes a
 reduced native matrix, but a simplified atomic wrapper fails and was removed.
 The CJ continuation's full construction and separate CK saved/cold acceptance
-now pass; an uninterrupted fresh full replay remains pending. See
+now pass; fresh uninterrupted full staged replay CO and separate saved/cold
+acceptance CP also pass on the integrated observer runtime. See
 [CJ_CK_CL_NATIVE_RESULTS.md](CJ_CK_CL_NATIVE_RESULTS.md). The older
 saved-state-only negative controls below are historical, not a reason to stop
 the current failing replay. See
@@ -31,10 +32,14 @@ preservation and caught-fault stdio restart. Other chats' loaded servers have
 not been restarted by this investigation. See
 [SENSOR_FAULT_FALSE_SUCCESS_TDD.md](SENSOR_FAULT_FALSE_SUCCESS_TDD.md).
 
-CN's full dump now shows an MFC runtime-type query dispatching through a solver
-DCM3_node virtual table into do_move_to_list with an invalid third argument,
-then reading0x100000007 during CloseDoc. This establishes the immediate native
-dispatch failure; the earliest corrupting update is still unproven. The actual
+CN's full dump now establishes a native use-after-free on the specific
+後側_安裝高度 mate. Its busy moFeature_c allocation retains, at+0x170, a pointer
+to an LFH heap block already marked free. Native destruction dereferences that
+block's residual DCM3_node vtable in an MFC runtime-type query, dispatching into
+do_move_to_list and reading0x100000007. Matching heap symbols, independent
+Memory64List member/name reads and disassembly verify this chain. The exact
+earlier free instruction remains unproven; CQ's after05/06 snapshots are pending.
+The actual
 fault marker blocks a fresh no-COM guard while the failed CAD remains live.
 See [CN_FULL_DUMP_NATIVE_DISPATCH.md](CN_FULL_DUMP_NATIVE_DISPATCH.md).
 
@@ -150,12 +155,12 @@ A subsequent containment candidate now persists native/RPC fault markers by
 PID/start identity and blocks later MCP requests and new recovery-worker ticks
 before CAD access, including across an MCP restart. Red/green boundary and real
 stdio/fake-CAD tests verify the behavior; actual owned native-fault acceptance
-is still pending. See [NATIVE_FAULT_QUARANTINE_TDD.md](NATIVE_FAULT_QUARANTINE_TDD.md).
+now passes on CN. See [NATIVE_FAULT_QUARANTINE_TDD.md](NATIVE_FAULT_QUARANTINE_TDD.md).
 This candidate does not identify or repair the first corrupting native operation.
 Two backup cleanup paths also continued CAD queries/activation/close after an
 escaping native failure. Red/green regressions now preserve the original failure
 and skip those calls, while ordinary copy failures still restore the active view.
-Full unit discovery passes298 after the resource-gate calibration. These confirmed MCP failure-handling gaps are
+Full unit discovery passes311 after caught-exception observation is integrated. These confirmed MCP failure-handling gaps are
 separate from attributing the first native fault; owned red controls reproduce
 with independent recovery monitoring disabled.
 
