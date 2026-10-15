@@ -38,7 +38,15 @@ to an LFH heap block already marked free. Native destruction dereferences that
 block's residual DCM3_node vtable in an MFC runtime-type query, dispatching into
 do_move_to_list and reading0x100000007. Matching heap symbols, independent
 Memory64List member/name reads and disassembly verify this chain. The exact
-earlier free instruction remains unproven; CQ's after05/06 snapshots are pending.
+earlier free instruction remains unproven. CQ's after05/06 snapshots reproduce
+the retained free reference despite successful close. CR's three checkpoints
+now narrow its creation to the direction-edit request05: the independently
+matched feature has a null member before that request, while an additional
+busy object with the same matched name/caption retains a free API allocation
+after it. That same reference survives the early equation refresh, even though
+all functional geometry/save/close checks pass. The helper repairs binding but
+is not proven to cure native lifetime. See
+[NATIVE_REFERENCE_LIFETIME_TDD.md](NATIVE_REFERENCE_LIFETIME_TDD.md).
 The actual
 fault marker blocks a fresh no-COM guard while the failed CAD remains live.
 See [CN_FULL_DUMP_NATIVE_DISPATCH.md](CN_FULL_DUMP_NATIVE_DISPATCH.md).

@@ -63,8 +63,50 @@ state, member identity and referenced allocation/type. A busy feature pointing
 to a free/reused incompatible object remains RED even if later close succeeds.
 A null member or a valid allocation must also be interpreted with the feature's
 state/type and reference provenance; do not declare all native references safe
-from one cleared field. CR's memory result is pending; preparation/launch is
-not a green result.
+from one cleared field.
+
+## CR result: functional pass, native lifetime still RED
+
+CR completed all22 original CO CAD requests, both six-case matrices, the five
+independent first-floor cases, save/root close/batch close/normal ExitApp. Seven
+immutable inputs and all recorded production runtime hashes still match. Owned
+PID21300 exited; there is no matching Windows event1000 (the same audit finds
+the known CG/CN crash events). The native watcher produced no exception dump.
+
+The three independent native snapshots give a narrower, different verdict:
+
+| CR checkpoint | Matched native feature | Member+0x170 | Heap evidence |
+| --- | --- | --- | --- |
+| Before request05 |0x5610ab80, moMateDistanceDim_c | Null | Feature LFH/busy |
+| After request05 | Original0x5610ab80 still null; additional0x5610a160 with the same independently matched name/caption |0x1334798d0 on the additional object | Additional feature LFH/busy, API target LFH/free,size0x140 |
+| After early equation refresh | Both objects remain; additional0x5610a160 unchanged | Same0x1334798d0 | Still feature busy/API target free |
+
+The freed target retains auCmdTarget_c RTTI and its CCmdTarget/CObject base
+hierarchy. That residual type does not make a free allocation valid. This
+disproves the stronger claim that the passing early equation refresh eliminates
+this native lifetime defect. It repairs equation binding and passes functional
+checks, but the invalid reference survives.
+
+The first observed creation is now within request05: its GetDefinition,
+FlipDimension update, ModifyDefinition, rebuild/save and Python request cleanup.
+The snapshot before that request has no non-null+0x170 on the independently
+matched object; the snapshot after it has the additional busy object with a
+free API target. This does not identify an individual first-free instruction,
+assign undo/history ownership to the duplicate object, or prove every native
+reference safe before05. A finer boundary test is required before certifying
+a preventive native lifetime fix.
+
+CR snapshot SHA256:
+
+- before05:f34f000a815c5efea7f69e9c1e0e0e926f41a854ce276f1eca45c63d819a62fe
+- after05:fe831506a33ac76013c761e1fd83adbdfb8bfee84f7e62289da96b28a9373900
+- after_refresh:5afe53eaab568c1f1799ffdca7400afd00b7362e77c59ced735bf9af93607b14
+
+Actual saved-file predicates `verify_cq_native_reference_red.py` and
+`verify_cr_native_reference_red.py` both pass their RED-evidence assertions;
+their JSON results are in `current-close-40588/`. The CQ verifier initially
+failed reading its UTF-8 report with Windows' cp950 default. Explicit UTF-8
+fixes that local analysis issue; it did not change or rerun CAD requests.
 
 The native watcher is delayed until after the checkpoints. A prefix native
 failure would lack this trial's exception-time capture; such a failure must
