@@ -47,6 +47,15 @@ after it. That same reference survives the early equation refresh, even though
 all functional geometry/save/close checks pass. The helper repairs binding but
 is not proven to cure native lifetime. See
 [NATIVE_REFERENCE_LIFETIME_TDD.md](NATIVE_REFERENCE_LIFETIME_TDD.md).
+CS then observes no retained pointer immediately after ModifyDefinition and
+request-local cleanup, before explicit rebuild. CT splits that request boundary
+but still observes a retained free allocation after rebuild/save; its next
+snapshot shows the exact same address reused as a busy DCM solver object.
+The lifetime predicate rejects this run despite complete functional/close PASS.
+This disproves a simple request-boundary-release cure and narrows the remaining
+first-creation interval to explicit rebuild, observation/save or related deferred
+native work. Further within-run API boundaries are required; no universal
+ModifyDefinition guard or preventive fix has been claimed from close success.
 The actual
 fault marker blocks a fresh no-COM guard while the failed CAD remains live.
 See [CN_FULL_DUMP_NATIVE_DISPATCH.md](CN_FULL_DUMP_NATIVE_DISPATCH.md).

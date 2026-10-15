@@ -208,7 +208,75 @@ functional pass alone remains insufficient. Preparation is not a test result.
 CT has passed its three-sample memory gate and launched owned PID50708 at
 2026-10-15T06:42:34.734000Z. Its worker PID11932/start06:42:23.317000Z and
 resource-gate state identify this single run. Native snapshots and full
-acceptance are pending; no production Python source was changed for this test.
+acceptance were pending at launch; completed results follow below. No
+production Python source was changed for this test.
+
+## CT result: split request also leaves native state RED
+
+The completed CT checkpoints disprove the proposed preventive interpretation
+of the split request. After rebuild/save, named busy moMateDistanceDim_c
+0x133fab750 retains+0x170=0xedea9380; that target is LFH/free,size0x140.
+After the subsequent early equation refresh, the same feature and member still
+point to0xedea9380, but the allocation is now LFH/busy and has solver RTTI
+DCM3_pos_type_class with DCM3_geom_type_class/DCM3_type_class/
+DCM3_GLOBALS_ACCESSOR/DCM3_node bases. It is an incompatible reused solver
+object, not a repaired live API command target. A second independently matched
+busy mate0x1a97ea90 has a null member in both snapshots.
+
+This within-PID observation directly records free-to-reused allocation at the
+same retained pointer. It strengthens the use-after-free mechanism established
+by CN's exception-time dispatch, without proving which earlier instruction
+freed the API object. Releasing the first request's local wrappers before
+explicit rebuild does not eliminate the defect. No production helper or guard
+claiming that fix was added.
+
+Both full snapshots have validated bounds and owned PID/start identity:
+
+- after_rebuild_save:3596232424 bytes, SHA25694f4ffe76ec5b2117729f8ccc31eb298461b008cefae0d950a04f722a921a93a
+- after_refresh:3596925487 bytes, SHA25643ee6cf3b991f1cf719f7cd74cc8e370e8fbaf76756646eeaef598412461ac9e
+
+CT nevertheless completes all23 CAD requests, both six-case dynamic calls,
+five first-floor cases, save/root CloseDoc/batch close/ExitApp. Independent
+persisted geometry comparison against CS passes (positions/counts/pattern/
+configuration/constraints,0.00001mm), and immutable source/runtime hashes match.
+The owned process exits; event1000 audit has zero CT matches and still detects
+CG/CN positive controls. The native watcher exits0 without an exception dump.
+`verify_ct_full_acceptance.py` intentionally fails its final native predicate,
+after saving a report separating functional PASS from native RED. Do not weaken
+that assertion or certify this as a lifetime fix.
+
+`inspect_ct_native_lifetime.py` distinguishes free retained targets from busy
+targets whose RTTI shows actual reuse as DCM solver objects. Unknown non-null
+targets also prevent a green result. These predicates still cover only the
+independently matched named-feature references, not every native allocation.
+
+## Next within-run boundaries: CU
+
+The next test is prepared to split only CS's rebuild/save continuation into
+EditRebuild3, ForceRebuild3, then the original component-transform observation
+and Save3. All22 other request ASTs remain unchanged. Four full checkpoints
+will inspect the same run before EditRebuild3 and after each of those three
+stages. Additional request boundaries reacquire the private document/assembly
+and release local wrappers; this timing/lifetime difference remains explicit.
+The native exception watcher begins after the checkpoints before early refresh
+and the full dynamic/first-floor/save/close acceptance. The preparation's
+source/AST checks passed. CU has now passed its three-sample6GiB physical/
+commit-reserve gate and launched owned PID36236/start06:57:47.669000Z;
+worker8072/start06:57:36.580000Z and exec handle36365 identify this single run.
+All native boundaries and full acceptance remain pending. No production
+Python source was changed while the fingerprinted native runs were active.
+
+After CT's verified normal finish, the existing bounded archiver has retained
+CT's two, CQ's two and CS's one completed full snapshots as verified lossless
+ZIPs to reserve space for all four CU snapshots and a possible native exception
+dump. Each source and decompressed-stream SHA must match before a duplicate
+loose file is removed; original exception-time dumps remain untouched. Restore
+with `restore_cr_checkpoint.py <label> <cq|cs|ct>` when offline tools need the
+original loose filename. Every archive receipt remains beside the corresponding
+native heap analysis and original snapshot proof.
+All five full decompressed streams were SHA-verified before removing duplicate
+loose copies; pre-launch free disk was26963316736 bytes. The CN original
+exception-time full dump remains loose and unchanged.
 
 To retain disk headroom for these two full snapshots and a possible exception
 dump, all three completed CR full dumps have been archived losslessly. The archiver
