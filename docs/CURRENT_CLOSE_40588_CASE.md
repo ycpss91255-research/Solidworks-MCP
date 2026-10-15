@@ -1,5 +1,12 @@
 # Current CloseDoc crash: PID40588, 2026-10-14 18:39
 
+Current status (2026-10-15): the investigation has resumed with an older saved
+input and retained live history. BX/BZ/CB now reproduce native close faults;
+CA closes before the distance-direction edit but has incorrect beam placement.
+The in-place equation workaround alone is disproved for this case. The dated
+continuation below supersedes the earlier blocker audit; a verified functional
+prevention and exact attribution to the original40588 exception are still open.
+
 ## Established event and call correlation
 
 The rack session's `generic-base-frame-request.json` first saves the already open
@@ -283,6 +290,63 @@ CA is the next fresh control, stopping at request4, before distance-mate flippin
 and before the rear equation repair. The prepared CC full-flow candidate is not
 launched after CB disproved the proposed prevention. New tests use fresh frozen
 sources; they do not retry the partially modified faulted process.
+
+CA PID47776 (created2026-10-15 10:43:30; a recycled numeric PID, distinct from
+the earlier BP process) completes requests0..4, Save3, root CloseDoc, empty
+batch cleanup and normal ExitApp. The debugger records no native exception,
+and the owned CAD/debugger processes are gone. Source hashes remain unchanged.
+Its rear beam is still atY=-267.043mm, rather than the intended167.043mm. This
+is a passing CLOSE CONTROL only, not a functional workaround. A valid fix must
+also place the beam correctly and pass all intended independent controls.
+CD PID31272 restores fresh identical sources and adds only request5, the typed
+IDistanceMateFeatureData FlipDimension/ModifyDefinition/rebuild/save operation,
+before closing. RearY becomes167.043mm as intended. Save3, CloseDoc and normal
+ExitApp all succeed without a captured native exception. Thus that edit ALONE
+does not reproduce the native fault; CA and CD do not justify banning every
+FlipDimension/ModifyDefinition call. CG next adds only the original request6
+equation evaluation/dynamic check, which failed in the source run because the
+rear equation lost its binding. A separately prepared CH candidate moves the
+retained in-place refresh directly after request5, BEFORE that first evaluation.
+Its result is pending; the later-refresh CB failure is not hidden or reclassified.
+
+The other prepared candidates are not yet launched: CE creates the initial
+distance mate with the correct flip and verifies full controls; CF uses the
+documented EditDistanceMate path with the two selected entities and mate feature.
+These are hypotheses, not completed fixes. The required successful result must
+include correct geometry, valid equations, all intended dynamic cases, save,
+native close, and separate saved-state acceptance. A passing close control with
+the wrong beam height is deliberately not substituted for those requirements.
+
+Current prefix matrix (same immutable source hashes; new owned process per row):
+
+| Trial | Last relevant operation | Functional observation | Native close |
+| --- | --- | --- | --- |
+| CA | Original request4, before direction edit | RearY=-267.043mm; wrong intended placement | Pass |
+| CD | Add only request5 direction edit/rebuild/save | RearY=167.043mm; later equation matrix not run | Pass |
+| BZ | Through request9 delete/re-add binding repair | Binding repaired, original first matrix failed | Native AV / RPC_E_SERVERFAULT |
+| CB | Same through request8, then in-place repair and six cases | Binding and six cases valid | Native AV / RPC_E_SERVERFAULT |
+| BX | Through first-floor build and request12 | Dynamic matrix differs from original failure; stopped | Native AV during batch close |
+| CG | Add only request6 to CD | First check records Equations error51 | Native AV / RPC_E_SERVERFAULT |
+
+CG PID45452 ends immediately after the original request6 expected validation
+failure, before requests7..9. CloseDoc fails with RPC_E_SERVERFAULT and a
+1,974,658-byte exception dump: c0000005 at the same DCM do_move_to_list+0x83,
+read0x100000007, matching saved RIP. The immutable inputs match CA/CD/BZ/CB.
+Its exact identity and dump were preserved before held-handle cleanup; no CAD
+operation was retried after the fault. This contrasts directly with CD's
+successful close before request6. Request6 sets the initial control properties,
+evaluates equations, rebuilds, and then asserts no feature errors; it records
+Equations error51 in its first case. Later equation deletion/recreation,
+in-place repair, pattern creation and failed selection access are unnecessary
+for this reproduced fault.
+
+The operational failure interval is now request6 after the direction edit,
+not the much later CloseDoc itself. This does not yet isolate the first native
+write among property setting/evaluation/rebuild, or prove exact original40588
+CPU context. CH is running the planned comparison that refreshes the binding
+before that first evaluation. CB refreshed only AFTER the failing evaluation;
+valid later equations and geometry did not repair its native process state.
+These are observed order differences, not yet a verified prevention claim.
 
 Local evidence: `current-close-40588/earlier-history/manifest.json`,
 `40588-1817-1839-requests.json`, `40588-full-retained-api-history.json`,
