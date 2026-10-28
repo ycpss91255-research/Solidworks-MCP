@@ -164,6 +164,33 @@ A real SW 2023 probe failed: the new PID did not open the assigned journal in
 retained its original journal handle. Thus this technique is not verified as a
 working isolation solution and remains experimental.
 
+### Registry lease retest, 2026-10-28: does not work on this install
+
+Retested with direct evidence of the dialog and of the journal handle, same Windows user, three other
+SOLIDWORKS sessions holding the shared `swxJRNL.swj`. One fresh chat-owned instance per case, observed for 45 s:
+
+| Case | Warning dialog for the new PID | `swxJRNL.swj` handle of the new PID |
+|---|---|---|
+| Control (registry untouched) | appeared after 5.7 s, exact text "無法產生日誌檔案。自動復原無法運作…" | none |
+| Lease (`SolidWorks Journal Folders` set to a new empty folder for the 45 s window) | **still appeared** after 4.9 s | **none**; the new folder stayed empty |
+
+The value was restored byte-exact (`REG_SZ`, `C:\Users\CURRENT_USER\AppData\Roaming\SolidWorks\SOLIDWORKS 2023`)
+and was still original 8 s later; the other sessions' journal handles were unchanged; no other SOLIDWORKS
+started during the window. So on this SW 2023 install the value is not honoured for choosing a new instance's
+journal: the technique is verified as ineffective here, not merely unverified. Public articles that describe the
+value as the journal write location (GoEngineer, CATI) do not apply to this version and setup.
+
+The helper requires absolute paths for the folder and the evidence file as its own safeguard (a relative path
+depends on the process working directory); that is not a documented SOLIDWORKS constraint, and the failure is not
+caused by path style because the assigned value had no effect at all.
+
+The official Backup/Recover help states that starting a second SOLIDWORKS session produces a message that
+auto-recover will not work (linked in `RECOVERY_SNAPSHOTS.md`). With one Windows user there is no verified way to
+avoid it. Tested and ineffective: this registry lease, `SetUserPreferenceStringValue(24, ...)`, a child-only
+`APPDATA`, and `RegOverridePredefKey`. A separate Windows account was not tested. What remains is the PID-scoped
+warning acknowledgement above and, for MCP-driven work, the explicit recovery snapshots in
+`RECOVERY_SNAPSHOTS.md`, which do not restore native AutoRecover.
+
 ## Explicit journal warning acknowledgement
 
 ### Additional real-instance isolation probes
