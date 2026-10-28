@@ -43,17 +43,26 @@ Same script, same private model copy, a fresh chat-owned SolidWorks per run, arm
 
 | Route | Fix off | Fix on |
 |---|---|---|
-| Python via the real MCP server (`execute_python`) | 6 / 8 crashes | **0 / 8** |
-| Standalone typed C# harness (hold all return values) | 5 / 8 crashes | **0 / 8** |
+| MR12 recipe, Python via the real MCP server (`execute_python`) | 6 / 8 crashes | **0 / 8** |
+| MR12 recipe, standalone typed C# harness (hold all return values) | 5 / 8 crashes | **0 / 8** |
+| CN replay (rear mounting height, 通用貨架), original history through the real MCP server | 6 / 8 crashes | **0 / 8** |
 
-Fisher exact one-sided p is about 0.0035 for the Python route. Every fix-on run logged
-`IFeature reference keeper installed`.
+Fisher exact one-sided p is about 0.0035 for the MR12 Python route and for the CN replay. Every fix-on run
+logged `IFeature reference keeper installed`.
+
+The CN replay rebuilds a private seven-file copy from immutable sources for every run, replays the original
+history (`history_00`..`history_06`) and then saves, copies and closes. All six fix-off crashes were in the
+`CloseDoc` step with `RPC_E_SERVERFAULT` and `c0000005` at `dcu3d59.dll+0x11073`, the same signature as the
+original CN crash on 2026-10-15 (`moFeature_c` destructor reading the freed `+0x170` block of feature
+`後側_安裝高度`). Both arms used the same MCP code; only `SOLIDWORKS_HOLD_COM_REFS` differed (`0` versus default).
+Dump structure was not validated for the CN runs, only existence, size, exception code and address.
 
 ## Limits
 
 - This is a client-side workaround. SolidWorks still does not clear its pointer.
-- Verified for one reconstructed recipe (MR12 distance mates + `ModifyDefinition` + drag + `CloseDoc`), 8 runs
-  per arm. Other historical crash families are not covered.
+- Verified for two reconstructed recipes: MR12 (distance mates + `ModifyDefinition` + drag + `CloseDoc`) and the
+  CN replay (rear mounting height), 8 runs per arm each. Other historical crash families (sensor dispatch,
+  equations, backup, support-bar configuration) are not covered.
 - Default mode protects typed wrappers only. Without a makepy cache, wrappers are dynamic `CDispatch`; use
   `SOLIDWORKS_HOLD_COM_REFS=all` there. Features reached only through comtypes are not intercepted.
 - Held wrappers keep SolidWorks objects alive while documents stay open. A warning is logged at 50,000.
