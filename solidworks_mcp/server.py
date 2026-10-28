@@ -703,6 +703,8 @@ def _execute_python_fixed(code: str) -> Dict:
             sys.stdout = old_stdout
             sys.stderr = old_stderr
         
+        sw_automation.release_idle_com_references()
+
         # Get captured output
         stdout_text = captured_stdout.getvalue()
         stderr_text = captured_stderr.getvalue()

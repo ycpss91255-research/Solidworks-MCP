@@ -394,6 +394,7 @@ class DocumentOperations:
                 doc.Save3(0, 0, 0)
             
             self._sw_app.CloseDoc(title)
+            self.release_idle_com_references()
             
             return self._result(True, f"Closed: {title}",
                               SwErrors.swSuccess, {"document": title})

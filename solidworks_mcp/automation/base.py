@@ -35,6 +35,8 @@ class SolidWorksAutomation:
         """Initialize automation instance"""
         from ..com_safety import install_dependency_query_guard
         install_dependency_query_guard()
+        from ..com_keepalive import install_feature_reference_keeper
+        install_feature_reference_keeper()
         self._sw_app = None
         self._connected = False
         self._config = get_config()
@@ -54,6 +56,13 @@ class SolidWorksAutomation:
         
         logger.info("SolidWorksAutomation initialized")
     
+    def release_idle_com_references(self) -> bool:
+        """Release held IFeature wrappers once no document is open (read-only query)."""
+        if self.native_fault_result() is not None:
+            return False
+        from ..com_keepalive import release_if_no_documents
+        return release_if_no_documents(self._sw_app)
+
     # ========================================================================
     # Properties
     # ========================================================================
