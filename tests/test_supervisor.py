@@ -38,7 +38,8 @@ class Client:
         env = dict(os.environ,
                    SOLIDWORKS_MCP_WORKER_CMD=json.dumps([sys.executable, str(script)]),
                    SOLIDWORKS_MCP_MAX_RESPAWNS=str(max_respawns),
-                   FAKE_BOOT_FILE=str(tmp_path / "boots"))
+                   FAKE_BOOT_FILE=str(tmp_path / "boots"),
+                   SOLIDWORKS_MCP_SUPERVISOR_LOG=str(tmp_path / "sup.log"))
         self.proc = subprocess.Popen([sys.executable, str(ROOT / "solidworks_mcp_supervisor.py")],
                                      stdin=subprocess.PIPE, stdout=subprocess.PIPE, env=env)
         self.next_id = 0
@@ -105,6 +106,9 @@ class SupervisorTests(unittest.TestCase):
         self.assertEqual(after["result"]["boot"], 2)
         self.assertEqual(after["result"]["echo"], "tools/list")
         self.assertEqual(c.close(), 0)
+        log = (self.tmp / "sup.log").read_text(encoding="utf-8")
+        self.assertIn("exited with code 0xc0000005; in flight: crash", log)
+        self.assertEqual(log.count("started"), 2)
 
     def test_request_id_is_preserved_on_crash(self):
         c = self.client()

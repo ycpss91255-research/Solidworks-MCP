@@ -37,3 +37,10 @@ connection after changing it.
 handshake replay, request-id preservation, restart limit). A smoke run through
 the real server and an MCP client listed 27 tools and created the fault log.
 Not covered: a real combase crash (cannot be forced on demand).
+
+## Restart log
+The supervisor appends one line per worker start and per crash (time, worker pid,
+exit code, tools in flight, restarts in the window) to
+`SOLIDWORKS_MCP_SUPERVISOR_LOG`, or, when only `SOLIDWORKS_MCP_LOG` is set, to that
+path with `{server_pid}` replaced by `supervisor-<pid>`. Count the "exited with
+code" lines to measure how often crashes happen.

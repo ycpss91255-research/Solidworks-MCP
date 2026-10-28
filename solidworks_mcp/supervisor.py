@@ -30,6 +30,17 @@ WINDOW_SECONDS = 600
 INIT_TIMEOUT = 60
 
 
+def supervisor_log_path() -> Optional[Path]:
+    """Restart log: SOLIDWORKS_MCP_SUPERVISOR_LOG, else next to SOLIDWORKS_MCP_LOG."""
+    explicit = os.environ.get("SOLIDWORKS_MCP_SUPERVISOR_LOG")
+    if explicit:
+        return Path(explicit.replace("{server_pid}", str(os.getpid())))
+    base = os.environ.get("SOLIDWORKS_MCP_LOG")
+    if base:
+        return Path(base.replace("{server_pid}", f"supervisor-{os.getpid()}"))
+    return None
+
+
 def worker_command() -> List[str]:
     raw = os.environ.get("SOLIDWORKS_MCP_WORKER_CMD")
     if raw:
@@ -69,6 +80,17 @@ class Supervisor:
         self.closing = False
         self.exit_code = 0
         self.generation = 0
+        self.log_path = supervisor_log_path()
+
+    def log(self, text: str) -> None:
+        if self.log_path is None:
+            return
+        try:
+            self.log_path.parent.mkdir(parents=True, exist_ok=True)
+            with open(self.log_path, "a", encoding="utf-8") as f:
+                f.write(time.strftime("%Y-%m-%d %H:%M:%S") + " " + text + "\n")
+        except OSError:
+            pass
 
     # -- output to the client ------------------------------------------------
     def emit(self, message) -> None:
@@ -83,6 +105,7 @@ class Supervisor:
                                  stderr=None, bufsize=0, env=os.environ.copy())
         self.generation += 1
         self.child = child
+        self.log(f"worker pid {child.pid} started (generation {self.generation})")
         threading.Thread(target=self._read_child, args=(child, self.generation), daemon=True).start()
         return child
 
@@ -119,6 +142,9 @@ class Supervisor:
                 self.respawns.popleft()
             giving_up = len(self.respawns) > self.max_respawns
         detail = f"worker process exited with code {describe_exit(code)}"
+        tools = ", ".join(sorted({t or m for m, t in (v for _, v in lost)})) or "none"
+        self.log(f"worker pid {child.pid} {detail}; in flight: {tools}; "
+                 f"restarts in window: {len(self.respawns)}" + ("; giving up" if giving_up else ""))
         for request_id, (method, tool) in lost:
             what = f" while running '{tool}'" if tool else ""
             text = (f"MCP worker crashed{what} ({detail}). "
