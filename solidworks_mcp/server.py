@@ -34,6 +34,7 @@ from mcp.types import Tool, TextContent
 from .automation import SolidWorksAutomation
 from .constants import SwErrors
 from .config import get_config, save_config
+from .crash_diag import enable_fault_log
 from .utils import get_solidworks_info, set_default_unit
 
 # Configure logging
@@ -48,6 +49,7 @@ logging.basicConfig(
     handlers=[logging.FileHandler(LOG_FILE, encoding='utf-8')]
 )
 logger = logging.getLogger("SolidWorksMCP")
+FAULT_LOG = enable_fault_log(LOG_FILE)
 
 # ============================================================================
 # Global Instances
