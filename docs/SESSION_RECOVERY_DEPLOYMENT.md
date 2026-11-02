@@ -380,7 +380,7 @@ were closed through PID-bound MCP and their exits confirmed.
 Ignored evidence: `test-results/auto-close-repeat-observation.json`,
 `auto-close-repeat-b.connection.json` and `auto-close-repeat-cleanup.json`.
 
-The registered `solidworks-recovery/solidworks_data` worktree has its own config,
+The registered recovery worktree has its own config,
 state, logs and recovery directory. Its target 38376 was intentionally backed
 up and closed at the user's request. Automatic CAD launch is disabled there.
 A real stdio MCP loaded that exact TOML, refused the absent PID, and left the
@@ -397,7 +397,7 @@ test CAD PIDs are now absent; the two working CAD instances were preserved.
 See the ignored `all-mcp-reconnect/integration-result.json` and
 `final-closure-report.json` under `test-results/native-journal`.
 
-The calling chat still executes in the shared `Downloads/solidworks_data`
+The calling chat still executes in the shared workspace
 checkout. Its session file resolves to the rack chat's PID 12616. That shared
 config has not been retargeted or given this test's recovery state. The current
 host connection has not switched to the prepared worktree; the worktree tool

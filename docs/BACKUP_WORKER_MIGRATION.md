@@ -7,7 +7,7 @@ Prepared on 2026-10-13; not applied to another chat.
 - Working CAD: PID 2836. Do not terminate, save, close documents or retarget it.
 - Existing worker: PID 24684, creation identity
   `2026-10-12T13:30:14.968000+00:00` (revalidate at execution).
-- Status file: `C:/Users/yunchien.chen/.codex/worktrees/a946/solidworks_data/.codex/recovery/mr12-session/monitor.json`.
+- Status file: `<workspace>/.codex/recovery/<session>/monitor.json`.
 - The worker is live, its status remains `snapshot_in_progress`, and it does
   not follow native preferences. A nonblocking external stack dump locates it
   in the old `NativePack.__init__`, at `extension.GetPackAndGo()` (old line 34).

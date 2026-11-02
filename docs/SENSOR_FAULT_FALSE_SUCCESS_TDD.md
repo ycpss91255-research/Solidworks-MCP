@@ -290,7 +290,7 @@ The [persisted probe response](../test-results/remaining-fault-correlation/senso
 returned at10:48:19.757062Z with `[ERROR]`, HRESULT-2147417851 and
 `native_fault_quarantined=true`. The [MCP log](../test-results/remaining-fault-correlation/sensor-private-valid-v1/mcp-51300.log)
 records `Result: success=False`. The on-disk FaultStore marker
-`C:/Users/yunchien.chen/.solidworks-mcp/native-faults/pid-46396.json` matches
+`<user profile>/.solidworks-mcp/native-faults/pid-<pid>.json` matches
 the exact PID/start and HRESULT; reporter51300 recorded it at10:48:19.666671Z.
 All recorded probe source hashes and52 production runtime hashes still match.
 The controller remains `passed=false`, `request_success=false`, with its final
