@@ -27,46 +27,100 @@ class SketchOperations:
     - _units: UnitConverter instance
     """
     
+    # Index (into the plane transform's rotation) of each original plane's normal.
+    _PLANE_AXIS = {"front": 2, "top": 1, "right": 0}
+
+    @staticmethod
+    def _find_original_planes(doc) -> Dict[str, object]:
+        """Locate Front/Top/Right without relying on their (localized) names.
+
+        The original planes are the first RefPlane features in the tree. Each is
+        classified by the dominant axis of its normal, so a template that lists
+        them in another order still maps correctly.
+        """
+        found: Dict[str, object] = {}
+        axis_to_key = {axis: key for key, axis in SketchOperations._PLANE_AXIS.items()}
+        feat = doc.FirstFeature
+        seen = 0
+        while feat is not None and seen < 3:
+            try:
+                is_plane = feat.GetTypeName2 == "RefPlane"
+            except Exception:
+                is_plane = False
+            if is_plane:
+                seen += 1
+                try:
+                    data = feat.GetSpecificFeature2.Transform.ArrayData
+                    normal = [abs(float(data[6 + i])) for i in range(3)]
+                    axis = max(range(3), key=lambda i: normal[i])
+                    if normal[axis] > 0.9:
+                        found.setdefault(axis_to_key[axis], feat)
+                except Exception as e:
+                    logger.debug(f"_find_original_planes classify error: {e}")
+            try:
+                feat = feat.GetNextFeature
+            except Exception:
+                break
+        return found
+
     def create_sketch(self, plane: str = "Front") -> Dict:
         """
         Create a new sketch on specified plane
-        
+
+        The plane is found by its English name first and, if that fails (for
+        example a non-English SolidWorks), by the orientation of the original
+        planes. An unknown plane, or one that cannot be found, is an error; the
+        sketch is never placed on a different plane.
+
         Args:
             plane: Plane name - "Front", "Top", or "Right"
-        
+
         Returns:
             Result dictionary
         """
         try:
+            key = str(plane).strip().lower()
+            if key not in self._PLANE_AXIS:
+                return self._result(False,
+                                    f"Unknown plane '{plane}' (use Front, Top or Right)",
+                                    SwErrors.swSelectionError)
+
             doc, err = self.get_active_doc()
             if err:
                 return err
-            
-            # Get plane name
-            plane_name = SwPlanes.get(plane)
-            
+
+            plane_name = SwPlanes.get(key)
+
             # Create empty variant for callout parameter
             empty_callout = win32com.client.VARIANT(pythoncom.VT_DISPATCH, None)
-            
-            # Select plane
+
+            # Select plane by its English name
             result = doc.Extension.SelectByID2(
                 plane_name, "PLANE", 0, 0, 0, False, 0, empty_callout, 0
             )
-            
+
             if not result:
-                return self._result(False, f"Could not select {plane_name}",
+                # Localized names: find the plane by orientation instead
+                feat = self._find_original_planes(doc).get(key)
+                if feat is not None:
+                    result = feat.Select2(False, 0)
+                    if result:
+                        plane_name = feat.Name
+
+            if not result:
+                return self._result(False, f"Could not select {plane} plane",
                                   SwErrors.swSelectionError)
-            
+
             # Insert sketch
             doc.InsertSketch2(True)
-            
+
             return self._result(True, f"Sketch created on {plane_name}",
                               SwErrors.swSuccess, {"plane": plane_name})
-            
+
         except Exception as e:
             logger.error(f"Create sketch error: {e}\n{traceback.format_exc()}")
             return self._result(False, f"Error: {e}", SwErrors.swSketchError)
-    
+
     def create_sketch_on_face(self, x: float = 0, y: float = 0, z: float = 0,
                               unit: str = None) -> Dict:
         """
