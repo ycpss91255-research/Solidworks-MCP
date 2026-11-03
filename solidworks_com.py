@@ -307,15 +307,24 @@ class SolidWorksCOM:
             return False
         
         plane_names = {
-            "Front": "Front Plane",
-            "Top": "Top Plane", 
-            "Right": "Right Plane"
+            "front": "Front Plane",
+            "top": "Top Plane",
+            "right": "Right Plane"
         }
-        plane_name = plane_names.get(plane, "Front Plane")
-        
-        return model.Extension.SelectByID2(
-            plane_name, "PLANE", 0, 0, 0, False, 0, None, 0
-        )
+        key = str(plane).strip().lower()
+        if key not in plane_names:
+            logger.error(f"Unknown plane '{plane}' (use Front, Top or Right)")
+            return False
+
+        if model.Extension.SelectByID2(
+            plane_names[key], "PLANE", 0, 0, 0, False, 0, None, 0
+        ):
+            return True
+
+        # Localized names: find the plane by orientation instead
+        from solidworks_mcp.automation.sketches import SketchOperations
+        feat = SketchOperations._find_original_planes(model).get(key)
+        return bool(feat is not None and feat.Select2(False, 0))
     
     def create_sketch(self, plane: str = "Front") -> Tuple[bool, str]:
         """Create a new sketch on specified plane"""
@@ -324,7 +333,8 @@ class SolidWorksCOM:
             return False, "No active document"
         
         try:
-            self.select_plane(plane)
+            if not self.select_plane(plane):
+                return False, f"Could not select {plane} plane"
             model.InsertSketch2(True)
             return True, f"Sketch created on {plane} Plane"
         except Exception as e:
